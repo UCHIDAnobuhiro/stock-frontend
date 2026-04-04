@@ -42,7 +42,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
 
   const handleAnalyze = (name: string) => {
     resetAnalysis();
-    analyze(name);
+    analyze(name).catch(() => {});
   };
 
   const handleReset = () => {

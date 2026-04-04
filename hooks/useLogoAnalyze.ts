@@ -10,7 +10,10 @@ async function analyzeCompany(_key: string, { arg }: { arg: string }) {
   const { data, error } = await apiClient.POST("/v1/logo/analyze", {
     body: { company_name: arg },
   });
-  if (error) throw new Error("企業分析に失敗しました");
+  if (error) {
+    console.error("[useLogoAnalyze] API error:", error);
+    throw new Error("企業分析に失敗しました");
+  }
   return data ?? null;
 }
 
