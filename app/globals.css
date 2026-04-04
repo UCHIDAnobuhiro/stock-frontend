@@ -121,6 +121,25 @@ body {
 }
 
 
+/* ─── Custom Scrollbar ───────────────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-2) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-surface-2);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
