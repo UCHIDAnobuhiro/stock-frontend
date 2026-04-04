@@ -1,9 +1,10 @@
 "use client";
 
-import { Menu, ScanSearch } from "lucide-react";
+import { LogOut, Menu, ScanSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
+import { useLogout } from "@/hooks/useLogout";
 
 interface TopbarProps {
   onLogoSearchOpen: () => void;
@@ -13,6 +14,7 @@ interface TopbarProps {
 export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: TopbarProps) {
   const { symbol } = useSelectedSymbol();
   const { symbols } = useSymbols();
+  const { handleLogout } = useLogout();
   const selectedSymbol = symbols.find((s) => s.code === symbol);
 
   return (
@@ -76,6 +78,17 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: Topbar
         >
           <ScanSearch className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">ロゴ検索</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          style={{ color: "var(--color-text-secondary)" }}
+          onClick={handleLogout}
+          aria-label="ログアウト"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">ログアウト</span>
         </Button>
       </div>
     </header>
