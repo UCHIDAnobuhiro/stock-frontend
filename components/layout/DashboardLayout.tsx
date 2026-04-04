@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TOKEN_KEY } from "@/lib/api";
+import { isTokenValid } from "@/lib/auth";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
@@ -19,7 +20,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(TOKEN_KEY)) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token || !isTokenValid(token)) {
+      if (token) localStorage.removeItem(TOKEN_KEY);
       router.replace("/login");
       return;
     }
