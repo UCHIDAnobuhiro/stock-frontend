@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import {
   Sheet,
@@ -32,6 +32,12 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const { symbols } = useSymbols();
   const { setSymbol } = useSelectedSymbol();
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const handleFile = (file: File) => {
     resetDetect();
     resetAnalysis();
@@ -48,7 +54,6 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleReset = () => {
     resetDetect();
     resetAnalysis();
-    if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
   };
 
