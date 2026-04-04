@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useLogin } from "@/src/hooks/useLogin";
+import { useSignup } from "@/hooks/useSignup";
 
-export default function LoginForm() {
+export default function SignupForm() {
   const {
     email,
     setEmail,
@@ -13,7 +13,7 @@ export default function LoginForm() {
     fieldErrors,
     serverError,
     handleSubmit,
-  } = useLogin();
+  } = useSignup();
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -64,7 +64,7 @@ export default function LoginForm() {
         <input
           id="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           aria-describedby={fieldErrors.password ? "password-error" : undefined}
@@ -87,13 +87,13 @@ export default function LoginForm() {
         disabled={isLoading}
         className="w-full rounded-lg bg-[#16a34a] py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isLoading ? "ログイン中..." : "ログイン"}
+        {isLoading ? "登録中..." : "アカウント登録"}
       </button>
 
       <p className="mt-4 text-center text-sm text-slate-500">
-        アカウントをお持ちでない方は{" "}
-        <Link href="/signup" className="font-medium text-[#16a34a] hover:underline">
-          新規登録
+        すでにアカウントをお持ちの方は{" "}
+        <Link href="/login" className="font-medium text-[#16a34a] hover:underline">
+          ログイン
         </Link>
       </p>
     </form>

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import apiClient, { TOKEN_KEY } from "@/src/lib/api";
+import apiClient from "@/lib/api";
 
 interface FieldErrors {
   email?: string;
   password?: string;
 }
 
-export function useLogin() {
+export function useSignup() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -28,6 +28,8 @@ export function useLogin() {
     }
     if (!password) {
       errors.password = "パスワードを入力してください";
+    } else if (password.length < 8) {
+      errors.password = "パスワードは8文字以上で入力してください";
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -41,13 +43,12 @@ export function useLogin() {
 
     setIsLoading(true);
     try {
-      const { data, error, response } = await apiClient.POST("/v1/login", {
+      const { error, response } = await apiClient.POST("/v1/signup", {
         body: { email, password },
       });
 
-      if (data) {
-        localStorage.setItem(TOKEN_KEY, data.token);
-        router.replace("/");
+      if (response.ok) {
+        router.replace("/login");
         return;
       }
 
@@ -55,8 +56,8 @@ export function useLogin() {
         case 400:
           setServerError(error?.error ?? "入力内容に問題があります");
           break;
-        case 401:
-          setServerError("メールアドレスまたはパスワードが正しくありません");
+        case 409:
+          setServerError("このメールアドレスはすでに登録されています");
           break;
         case 429:
           setServerError("しばらく時間をおいてから再度お試しください");
