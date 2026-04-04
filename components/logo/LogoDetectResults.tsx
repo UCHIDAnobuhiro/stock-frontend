@@ -61,6 +61,7 @@ export function LogoDetectResults({
                 size="icon"
                 className="h-7 w-7"
                 style={{ color: "var(--color-accent)" }}
+                aria-label={`${result.name} のチャートを開く`}
                 title="チャートで見る"
                 onClick={() => onViewChart(result.name)}
               >
@@ -71,6 +72,7 @@ export function LogoDetectResults({
                 size="icon"
                 className="h-7 w-7"
                 style={{ color: "var(--color-bull)" }}
+                aria-label={`${result.name} をウォッチリストに追加`}
                 title="ウォッチリストに追加"
                 onClick={() => onAddToWatchlist(result.name)}
               >

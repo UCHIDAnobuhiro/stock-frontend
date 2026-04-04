@@ -16,12 +16,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem(TOKEN_KEY)) {
       router.replace("/login");
+      return;
     }
+    setIsAuthReady(true);
   }, [router]);
+
+  if (!isAuthReady) return null;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

@@ -33,16 +33,26 @@ export function WatchlistItem({ id, code, name, isActive, onClick, onRemove }: W
     <div
       ref={setNodeRef}
       style={style}
+      role="button"
+      tabIndex={0}
       className={cn(
         "group flex items-center gap-1 px-2 py-2 text-sm cursor-pointer select-none",
         isDragging && "opacity-50 z-50"
       )}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       {/* ドラッグハンドル */}
       <button
+        type="button"
         {...attributes}
         {...listeners}
+        aria-label="並び替え"
         className="shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => e.stopPropagation()}
@@ -78,6 +88,8 @@ export function WatchlistItem({ id, code, name, isActive, onClick, onRemove }: W
 
       {/* 削除ボタン */}
       <button
+        type="button"
+        aria-label={`${code} をウォッチリストから削除`}
         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-[var(--color-surface-3)]"
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => {

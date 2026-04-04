@@ -14,6 +14,7 @@ export function LogoDropzone({ onFile, isLoading, preview }: LogoDropzoneProps) 
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFile = (file: File) => {
+    if (isLoading) return;
     if (!file.type.startsWith("image/")) return;
     onFile(file);
   };
@@ -36,14 +37,16 @@ export function LogoDropzone({ onFile, isLoading, preview }: LogoDropzoneProps) 
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
+      onClick={() => { if (!isLoading) inputRef.current?.click(); }}
     >
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
         className="sr-only"
+        disabled={isLoading}
         onChange={(e) => {
+          if (isLoading) return;
           const file = e.target.files?.[0];
           if (file) handleFile(file);
         }}

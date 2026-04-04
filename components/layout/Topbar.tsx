@@ -29,6 +29,7 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: Topbar
         size="icon"
         className="md:hidden h-8 w-8"
         onClick={onMobileSidebarOpen}
+        aria-label="銘柄サイドバーを開く"
       >
         <Menu className="h-4 w-4" />
       </Button>
@@ -71,6 +72,7 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: Topbar
           className="h-8 gap-1.5 text-xs"
           style={{ color: "var(--color-text-secondary)" }}
           onClick={onLogoSearchOpen}
+          aria-label="ロゴ検索を開く"
         >
           <ScanSearch className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">ロゴ検索</span>

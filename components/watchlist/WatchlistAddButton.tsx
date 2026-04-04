@@ -26,8 +26,12 @@ export function WatchlistAddButton() {
   const watchedCodes = new Set(items.map((i) => i.symbol_code));
 
   const handleSelect = async (code: string) => {
-    setOpen(false);
-    await addSymbol(code);
+    try {
+      await addSymbol(code);
+      setOpen(false);
+    } catch {
+      // 失敗時はポップオーバーを維持
+    }
   };
 
   return (

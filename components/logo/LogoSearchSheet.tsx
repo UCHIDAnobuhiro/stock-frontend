@@ -26,13 +26,14 @@ interface LogoSearchSheetProps {
 
 export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const [preview, setPreview] = useState<string | null>(null);
-  const { results, isLoading: isDetecting, detect, reset: resetDetect } = useLogoDetect();
-  const { analysis, isLoading: isAnalyzing, analyze, reset: resetAnalysis } = useLogoAnalyze();
+  const { results, isLoading: isDetecting, error: detectError, detect, reset: resetDetect } = useLogoDetect();
+  const { analysis, isLoading: isAnalyzing, error: analyzeError, analyze, reset: resetAnalysis } = useLogoAnalyze();
   const { addSymbol } = useWatchlist();
   const { symbols } = useSymbols();
   const { setSymbol } = useSelectedSymbol();
 
   const handleFile = (file: File) => {
+    resetAnalysis();
     const url = URL.createObjectURL(file);
     setPreview(url);
     detect(file);
@@ -103,6 +104,12 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
                 onAddToWatchlist={handleAddToWatchlist}
                 onAnalyze={analyze}
               />
+            )}
+
+            {(detectError || analyzeError) && (
+              <p className="text-xs" style={{ color: "var(--color-bear)" }}>
+                {detectError ?? analyzeError}
+              </p>
             )}
 
             <CompanyAnalysisCard
