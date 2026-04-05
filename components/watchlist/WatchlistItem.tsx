@@ -79,7 +79,7 @@ export function WatchlistItem({ id, code, name, isActive, onClick, onRemove }: W
       >
         <div className="font-medium truncate text-xs">{code}</div>
         <div
-          className="truncate text-[10px]"
+          className="truncate text-xs"
           style={{ color: "var(--color-text-muted)" }}
         >
           {name}

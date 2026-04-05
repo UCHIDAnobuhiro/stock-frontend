@@ -19,7 +19,7 @@
   /* Text */
   --color-text-primary: #e6edf3;
   --color-text-secondary:#8b949e;
-  --color-text-muted:   #484f58;
+  --color-text-muted:   #8b949e;
 
   /* Accent */
   --color-accent:       #2f81f7;
@@ -118,6 +118,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-geist-sans, Arial, sans-serif);
+  font-weight: 300;
 }
 
 
