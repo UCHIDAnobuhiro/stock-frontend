@@ -1,3 +1,5 @@
+"use client";
+
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function AuthPageShell({ children }: { children: React.ReactNode }) {
