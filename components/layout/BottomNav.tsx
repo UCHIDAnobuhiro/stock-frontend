@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart2, List, ScanSearch } from "lucide-react";
+import { List, ScanSearch } from "lucide-react";
 
 interface BottomNavProps {
   onLogoSearchOpen: () => void;
@@ -16,13 +16,6 @@ export default function BottomNav({ onLogoSearchOpen, onSidebarOpen }: BottomNav
         borderColor: "var(--color-border)",
       }}
     >
-      <button
-        className="flex flex-col items-center gap-0.5 px-4 py-2 text-xs"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        <BarChart2 className="h-5 w-5" />
-        <span>チャート</span>
-      </button>
       <button
         className="flex flex-col items-center gap-0.5 px-4 py-2 text-xs"
         style={{ color: "var(--color-text-secondary)" }}
