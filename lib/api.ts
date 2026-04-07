@@ -48,7 +48,14 @@ export const SESSION_EXPIRED_EVENT = "session:expired" as const;
 apiClient.use({
   onResponse({ response }) {
     if (response.status === 401 && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
+      } catch {
+        // storage が使えない環境ではスキップ
+      }
     }
     return response;
   },

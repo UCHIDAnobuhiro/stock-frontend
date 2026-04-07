@@ -23,8 +23,9 @@ export function SessionExpiredDialog({ open, onLogin }: SessionExpiredDialogProp
   return (
     <Dialog
       open={open}
-      onOpenChange={() => {
+      onOpenChange={(nextOpen, eventDetails) => {
         // Escape キー・バックドロップクリックによるクローズを遮断
+        if (!nextOpen) eventDetails.cancel();
       }}
       modal={true}
     >
@@ -36,7 +37,7 @@ export function SessionExpiredDialog({ open, onLogin }: SessionExpiredDialogProp
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={onLogin}>ログインする</Button>
+          <Button onClick={onLogin} autoFocus>ログインする</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
