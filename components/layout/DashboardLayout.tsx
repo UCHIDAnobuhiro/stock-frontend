@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TOKEN_KEY } from "@/lib/api";
 import { isTokenValid } from "@/lib/auth";
+import { useSessionExpiry } from "@/hooks/useSessionExpiry";
+import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
@@ -18,6 +20,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const { isExpired } = useSessionExpiry();
+  const handleSessionExpiredLogin = useCallback(() => {
+    router.replace("/login");
+  }, [router]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -73,6 +79,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         open={isLogoSearchOpen}
         onOpenChange={setIsLogoSearchOpen}
       />
+      {/* セッション切れダイアログ */}
+      <SessionExpiredDialog open={isExpired} onLogin={handleSessionExpiredLogin} />
     </div>
   );
 }
