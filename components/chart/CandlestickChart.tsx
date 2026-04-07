@@ -104,30 +104,32 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
       if (!legendRef.current) return;
       const c = resolvedThemeRef.current === "light" ? lightColors : darkColors;
 
-      if (!param.time) {
-        legendRef.current.innerHTML = "";
-        return;
-      }
+      if (!param.time) return;
 
       const data = param.seriesData.get(candleSeries) as
         | { open: number; high: number; low: number; close: number }
         | undefined;
 
-      if (!data) {
-        legendRef.current.innerHTML = "";
-        return;
-      }
+      if (!data) return;
+
+      const volData = param.seriesData.get(volumeSeries) as
+        | { value: number }
+        | undefined;
 
       const color = data.close >= data.open ? c.upColor : c.downColor;
       const fmt = (n: number) => n.toFixed(2);
 
-      const label = (text: string) => `<span style="color:#0f172a">${text}</span>`;
+      const label = (text: string) =>
+        `<span style="color:${c.textColor}">${text}</span>`;
       legendRef.current.style.color = color;
       legendRef.current.innerHTML =
         `${label("始値")} <b>${fmt(data.open)}</b>` +
         `&nbsp; ${label("高値")} <b>${fmt(data.high)}</b>` +
         `&nbsp; ${label("安値")} <b>${fmt(data.low)}</b>` +
-        `&nbsp; ${label("終値")} <b>${fmt(data.close)}</b>`;
+        `&nbsp; ${label("終値")} <b>${fmt(data.close)}</b>` +
+        (volData !== undefined
+          ? `&nbsp; ${label("出来高")} <b>${Math.round(volData.value).toLocaleString()}</b>`
+          : "");
     });
 
     chartRef.current = chart;
