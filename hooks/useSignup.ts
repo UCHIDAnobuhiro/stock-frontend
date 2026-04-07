@@ -9,6 +9,10 @@ interface FieldErrors {
   password?: string;
 }
 
+/**
+ * 新規登録フォームのロジックを管理するフック。
+ * バリデーション・API 送信・エラー状態・リダイレクトを担う。
+ */
 export function useSignup() {
   const router = useRouter();
 
@@ -18,6 +22,10 @@ export function useSignup() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
+  /**
+   * クライアントサイドのバリデーションを実行する。
+   * useLogin より厳しく、パスワードは 8 文字以上を要求する。
+   */
   function validate(): boolean {
     const errors: FieldErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,7 +43,13 @@ export function useSignup() {
     return Object.keys(errors).length === 0;
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  /**
+   * フォーム送信ハンドラー。
+   * バリデーション通過後に /v1/signup を呼び出し、
+   * 成功時はログインページへリダイレクトする。
+   * 409 はメールアドレス重複、その他はステータスコードに応じたエラーを表示する。
+   */
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setServerError(null);
 

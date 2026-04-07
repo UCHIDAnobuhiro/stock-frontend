@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type SubmitEventHandler } from "react";
 import { useRouter } from "next/navigation";
 import apiClient, { TOKEN_KEY } from "@/lib/api";
 
@@ -9,6 +9,10 @@ interface FieldErrors {
   password?: string;
 }
 
+/**
+ * ログインフォームのロジックを管理するフック。
+ * バリデーション・API 送信・エラー状態・リダイレクトを担う。
+ */
 export function useLogin() {
   const router = useRouter();
 
@@ -18,6 +22,10 @@ export function useLogin() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
+  /**
+   * クライアントサイドのバリデーションを実行する。
+   * エラーがあれば fieldErrors を更新して false を返す。
+   */
   function validate(): boolean {
     const errors: FieldErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,7 +41,13 @@ export function useLogin() {
     return Object.keys(errors).length === 0;
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  /**
+   * フォーム送信ハンドラー。
+   * バリデーション通過後に /v1/login を呼び出し、
+   * 成功時は JWT をlocalStorage に保存してホームへリダイレクトする。
+   * 失敗時はステータスコードに応じたエラーメッセージを設定する。
+   */
+  const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     setServerError(null);
 

@@ -20,13 +20,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token || !isTokenValid(token)) {
-      if (token) localStorage.removeItem(TOKEN_KEY);
-      router.replace("/login");
-      return;
-    }
-    setIsAuthReady(true);
+    const checkAuth = async () => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token || !isTokenValid(token)) {
+        if (token) localStorage.removeItem(TOKEN_KEY);
+        router.replace("/login");
+        return;
+      }
+      setIsAuthReady(true);
+    };
+    checkAuth();
   }, [router]);
 
   if (!isAuthReady) return null;

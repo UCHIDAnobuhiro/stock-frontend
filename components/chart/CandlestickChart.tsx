@@ -50,7 +50,9 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
   // ThemeProvider は CandlestickChart より先にマウントされるため、
   // useEffect 実行時点では ref 経由で正しいテーマを取得できる。
   const resolvedThemeRef = useRef(resolvedTheme);
-  resolvedThemeRef.current = resolvedTheme;
+  useEffect(() => {
+    resolvedThemeRef.current = resolvedTheme;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!containerRef.current) return;
