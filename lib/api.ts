@@ -37,4 +37,28 @@ apiClient.use({
   },
 });
 
+/** セッション切れを通知するカスタムイベント名 */
+export const SESSION_EXPIRED_EVENT = "session:expired" as const;
+
+/**
+ * レスポンスミドルウェア。
+ * 401 レスポンスを受け取った場合、セッション切れイベントを発火する。
+ * React コンポーネント側でこのイベントを監視してダイアログを表示する。
+ */
+apiClient.use({
+  onResponse({ response }) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
+      } catch {
+        // storage が使えない環境ではスキップ
+      }
+    }
+    return response;
+  },
+});
+
 export default apiClient;
