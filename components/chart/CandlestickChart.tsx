@@ -41,6 +41,7 @@ interface CandlestickChartProps {
 
 export function CandlestickChart({ candles }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const legendRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
@@ -97,6 +98,36 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
 
     chart.priceScale("volume").applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!legendRef.current) return;
+      const c = resolvedThemeRef.current === "light" ? lightColors : darkColors;
+
+      if (!param.time) {
+        legendRef.current.innerHTML = "";
+        return;
+      }
+
+      const data = param.seriesData.get(candleSeries) as
+        | { open: number; high: number; low: number; close: number }
+        | undefined;
+
+      if (!data) {
+        legendRef.current.innerHTML = "";
+        return;
+      }
+
+      const color = data.close >= data.open ? c.upColor : c.downColor;
+      const fmt = (n: number) => n.toFixed(2);
+
+      const label = (text: string) => `<span style="color:#0f172a">${text}</span>`;
+      legendRef.current.style.color = color;
+      legendRef.current.innerHTML =
+        `${label("始値")} <b>${fmt(data.open)}</b>` +
+        `&nbsp; ${label("高値")} <b>${fmt(data.high)}</b>` +
+        `&nbsp; ${label("安値")} <b>${fmt(data.low)}</b>` +
+        `&nbsp; ${label("終値")} <b>${fmt(data.close)}</b>`;
     });
 
     chartRef.current = chart;
@@ -164,5 +195,13 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
     chartRef.current?.timeScale().fitContent();
   }, [candles, resolvedTheme]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      <div
+        ref={legendRef}
+        className="pointer-events-none absolute left-3 top-3 z-10 text-xs font-mono"
+      />
+    </div>
+  );
 }
