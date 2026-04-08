@@ -3,20 +3,18 @@ import { renderHook, act } from "@testing-library/react";
 import { useLogout } from "@/hooks/useLogout";
 
 // ---- モック設定 ----
-// vi.mock はファイル先頭にホイストされるため、vi.hoisted で事前に変数を初期化する
 
-const { mockReplace } = vi.hoisted(() => ({
+const { mockReplace, mockDelete } = vi.hoisted(() => ({
   mockReplace: vi.fn(),
+  mockDelete: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
 }));
 
-// lib/api はモジュールロード時に環境変数チェックで throw するためモックが必要
 vi.mock("@/lib/api", () => ({
-  default: { POST: vi.fn() },
-  TOKEN_KEY: "stock_jwt",
+  default: { DELETE: mockDelete },
 }));
 
 // ---- テスト ----
@@ -24,36 +22,36 @@ vi.mock("@/lib/api", () => ({
 describe("useLogout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.removeItem("stock_jwt");
+    mockDelete.mockResolvedValue({ data: { message: "ok" }, response: { status: 200 } });
   });
 
-  it("handleLogout で JWT が localStorage から削除される", async () => {
-    localStorage.setItem("stock_jwt", "dummy-token");
-
+  it("handleLogout で DELETE /v1/logout が呼ばれる", async () => {
     const { result } = renderHook(() => useLogout());
 
-    act(() => {
-      result.current.handleLogout();
+    await act(async () => {
+      await result.current.handleLogout();
     });
 
-    expect(localStorage.getItem("stock_jwt")).toBeNull();
+    expect(mockDelete).toHaveBeenCalledWith("/v1/logout");
   });
 
   it("handleLogout でログインページへリダイレクトされる", async () => {
     const { result } = renderHook(() => useLogout());
 
-    act(() => {
-      result.current.handleLogout();
+    await act(async () => {
+      await result.current.handleLogout();
     });
 
     expect(mockReplace).toHaveBeenCalledWith("/login");
   });
 
-  it("localStorage にトークンがなくてもエラーなくリダイレクトされる", async () => {
+  it("API がエラーを返してもリダイレクトされる", async () => {
+    mockDelete.mockRejectedValue(new Error("network error"));
+
     const { result } = renderHook(() => useLogout());
 
-    act(() => {
-      result.current.handleLogout();
+    await act(async () => {
+      await result.current.handleLogout();
     });
 
     expect(mockReplace).toHaveBeenCalledWith("/login");

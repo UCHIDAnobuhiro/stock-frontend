@@ -2,7 +2,7 @@
 
 import { useState, type SubmitEventHandler } from "react";
 import { useRouter } from "next/navigation";
-import apiClient, { TOKEN_KEY } from "@/lib/api";
+import apiClient from "@/lib/api";
 
 interface FieldErrors {
   email?: string;
@@ -44,7 +44,8 @@ export function useLogin() {
   /**
    * フォーム送信ハンドラー。
    * バリデーション通過後に /v1/login を呼び出し、
-   * 成功時は JWT をlocalStorage に保存してホームへリダイレクトする。
+   * 成功時はサーバーが Set-Cookie で auth_token・csrf_token を発行するため
+   * クライアント側での保存は不要。ホームへリダイレクトする。
    * 失敗時はステータスコードに応じたエラーメッセージを設定する。
    */
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (e) => {
@@ -60,7 +61,6 @@ export function useLogin() {
       });
 
       if (data) {
-        localStorage.setItem(TOKEN_KEY, data.token);
         router.replace("/");
         return;
       }

@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   default: { POST: mockPost },
-  TOKEN_KEY: "stock_jwt",
 }));
 
 // ---- ヘルパー ----
@@ -86,7 +85,7 @@ describe("useLogin", () => {
 
     it("入力が正しければバリデーションは通過して API が呼ばれる", async () => {
       mockPost.mockResolvedValue({
-        data: { token: "jwt-token" },
+        data: { message: "ログインしました" },
         error: null,
         response: { status: 200 },
       });
@@ -108,9 +107,9 @@ describe("useLogin", () => {
 
   // API 成功
   describe("handleSubmit - 成功", () => {
-    it("data が返ったとき JWT を localStorage に保存してホームへリダイレクトする", async () => {
+    it("data が返ったときホームへリダイレクトする", async () => {
       mockPost.mockResolvedValue({
-        data: { token: "jwt-token" },
+        data: { message: "ログインしました" },
         error: null,
         response: { status: 200 },
       });
@@ -125,7 +124,6 @@ describe("useLogin", () => {
         await result.current.handleSubmit(fakeEvent());
       });
 
-      expect(localStorage.getItem("stock_jwt")).toBe("jwt-token");
       expect(mockReplace).toHaveBeenCalledWith("/");
     });
   });
@@ -239,7 +237,7 @@ describe("useLogin", () => {
   describe("isLoading", () => {
     it("API 呼び出し完了後は isLoading が false に戻る", async () => {
       mockPost.mockResolvedValue({
-        data: { token: "jwt-token" },
+        data: { message: "ログインしました" },
         error: null,
         response: { status: 200 },
       });

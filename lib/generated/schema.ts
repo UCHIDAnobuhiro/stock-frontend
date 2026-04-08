@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** ログアウト */
+        delete: operations["logout"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/candles/{code}": {
         parameters: {
             query?: never;
@@ -380,13 +397,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 認証成功 */
+            /** @description 認証成功（auth_token・csrf_token CookieをSet-Cookieで発行） */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description バリデーションエラー */
@@ -416,6 +433,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ログアウト成功（auth_token・csrf_token Cookieを削除） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
         };
@@ -546,6 +583,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description CSRFトークン不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description 銘柄が存在しない */
             404: {
                 headers: {
@@ -585,6 +631,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description CSRFトークン不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description ウォッチリストに存在しない */
             404: {
                 headers: {
@@ -618,6 +673,15 @@ export interface operations {
             };
             /** @description バリデーションエラー */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CSRFトークン不一致 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -664,6 +728,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description CSRFトークン不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description 外部API通信エラー */
             502: {
                 headers: {
@@ -699,6 +772,15 @@ export interface operations {
             };
             /** @description バリデーションエラー */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CSRFトークン不一致 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

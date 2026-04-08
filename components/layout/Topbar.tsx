@@ -86,7 +86,7 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: Topbar
           size="sm"
           className="h-8 gap-1.5 text-xs"
           style={{ color: "var(--color-text-secondary)" }}
-          onClick={handleLogout}
+          onClick={() => void handleLogout()}
           aria-label="ログアウト"
         >
           <LogOut className="h-3.5 w-3.5" />

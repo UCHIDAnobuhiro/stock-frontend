@@ -6,16 +6,15 @@ import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 
 vi.mock("@/lib/api", () => ({
   default: { use: vi.fn() },
-  TOKEN_KEY: "stock_jwt",
   SESSION_EXPIRED_EVENT: "session:expired",
 }));
 
-const { mockIsTokenValid } = vi.hoisted(() => ({
-  mockIsTokenValid: vi.fn(),
+const { mockGetCsrfToken } = vi.hoisted(() => ({
+  mockGetCsrfToken: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
-  isTokenValid: mockIsTokenValid,
+  getCsrfToken: mockGetCsrfToken,
 }));
 
 // ---- テスト ----
@@ -24,7 +23,8 @@ describe("useSessionExpiry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    localStorage.removeItem("stock_jwt");
+    // デフォルト: csrf_token Cookie あり（セッション有効）
+    mockGetCsrfToken.mockReturnValue("csrf-token-value");
   });
 
   afterEach(() => {
@@ -36,9 +36,8 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(false);
   });
 
-  it("ポーリング: トークンが期限切れのとき isExpired が true になる", () => {
-    localStorage.setItem("stock_jwt", "expired-token");
-    mockIsTokenValid.mockReturnValue(false);
+  it("ポーリング: csrf_token Cookie が null のとき isExpired が true になる", () => {
+    mockGetCsrfToken.mockReturnValue(null);
 
     const { result } = renderHook(() => useSessionExpiry());
 
@@ -49,9 +48,8 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(true);
   });
 
-  it("ポーリング: トークンが有効なとき isExpired は false のまま", () => {
-    localStorage.setItem("stock_jwt", "valid-token");
-    mockIsTokenValid.mockReturnValue(true);
+  it("ポーリング: csrf_token Cookie が存在するとき isExpired は false のまま", () => {
+    mockGetCsrfToken.mockReturnValue("valid-csrf");
 
     const { result } = renderHook(() => useSessionExpiry());
 
@@ -62,19 +60,6 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(false);
   });
 
-  it("ポーリング: 期限切れ検知時にトークンが localStorage から削除される", () => {
-    localStorage.setItem("stock_jwt", "expired-token");
-    mockIsTokenValid.mockReturnValue(false);
-
-    renderHook(() => useSessionExpiry());
-
-    act(() => {
-      vi.advanceTimersByTime(60_000);
-    });
-
-    expect(localStorage.getItem("stock_jwt")).toBeNull();
-  });
-
   it("イベント: session:expired を dispatch すると isExpired が true になる", () => {
     const { result } = renderHook(() => useSessionExpiry());
 
@@ -83,18 +68,6 @@ describe("useSessionExpiry", () => {
     });
 
     expect(result.current.isExpired).toBe(true);
-  });
-
-  it("イベント: session:expired 検知時にトークンが localStorage から削除される", () => {
-    localStorage.setItem("stock_jwt", "some-token");
-
-    renderHook(() => useSessionExpiry());
-
-    act(() => {
-      window.dispatchEvent(new CustomEvent("session:expired"));
-    });
-
-    expect(localStorage.getItem("stock_jwt")).toBeNull();
   });
 
   it("冪等性: expire が複数回呼ばれてもエラーなく isExpired が true のまま", () => {
@@ -122,8 +95,7 @@ describe("useSessionExpiry", () => {
   });
 
   it("クリーンアップ: アンマウント後はポーリングに反応しない", () => {
-    localStorage.setItem("stock_jwt", "expired-token");
-    mockIsTokenValid.mockReturnValue(false);
+    mockGetCsrfToken.mockReturnValue(null);
 
     const { result, unmount } = renderHook(() => useSessionExpiry());
 

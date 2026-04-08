@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:api": "openapi-typescript openapi/openapi.yaml -o src/lib/generated/schema.ts",
+    "generate:api": "openapi-typescript openapi/openapi.yaml -o lib/generated/schema.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { TOKEN_KEY, SESSION_EXPIRED_EVENT } from "@/lib/api";
-import { isTokenValid } from "@/lib/auth";
+import { SESSION_EXPIRED_EVENT } from "@/lib/api";
+import { getCsrfToken } from "@/lib/auth";
 
 const POLL_INTERVAL_MS = 60_000;
 
 /**
  * セッション切れを検知するフック。
- * 60 秒ごとにトークンの有効期限をチェック（能動的検知）し、
+ * 60 秒ごとに csrf_token Cookie の存在を確認（能動的検知）し、
  * API から 401 が返った際のカスタムイベントも監視する（受動的検知）。
  * いずれかが検知されると isExpired が true になる（一方通行ラッチ）。
  */
@@ -16,24 +16,13 @@ export function useSessionExpiry() {
   const [isExpired, setIsExpired] = useState(false);
 
   const expire = useCallback(() => {
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token) localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      // storage が使えない環境ではスキップ
-    }
     setIsExpired(true);
   }, []);
 
-  // 能動的: 60 秒ごとにトークン有効期限をチェック
+  // 能動的: 60 秒ごとに csrf_token Cookie の存在を確認
   useEffect(() => {
     const id = setInterval(() => {
-      try {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (token && !isTokenValid(token)) expire();
-      } catch {
-        // storage が使えない環境ではスキップ
-      }
+      if (getCsrfToken() === null) expire();
     }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [expire]);

@@ -121,17 +121,30 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
       const color = data.close >= data.open ? c.upColor : c.downColor;
       const fmt = (n: number) => n.toFixed(2);
 
-      const label = (text: string) =>
-        `<span style="color:${c.textColor}">${text}</span>`;
       legendRef.current.style.color = color;
-      legendRef.current.innerHTML =
-        `${label("始値")} <b>${fmt(data.open)}</b>` +
-        `&nbsp; ${label("高値")} <b>${fmt(data.high)}</b>` +
-        `&nbsp; ${label("安値")} <b>${fmt(data.low)}</b>` +
-        `&nbsp; ${label("終値")} <b>${fmt(data.close)}</b>` +
-        (volData !== undefined
-          ? `&nbsp; ${label("出来高")} <b>${Math.round(volData.value).toLocaleString()}</b>`
-          : "");
+      legendRef.current.textContent = "";
+
+      const fields: Array<[string, string]> = [
+        ["始値", fmt(data.open)],
+        ["高値", fmt(data.high)],
+        ["安値", fmt(data.low)],
+        ["終値", fmt(data.close)],
+        ...(volData !== undefined
+          ? [["出来高", Math.round(volData.value).toLocaleString()] as [string, string]]
+          : []),
+      ];
+
+      fields.forEach(([labelText, valueText], i) => {
+        if (i > 0) legendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
+        const labelSpan = document.createElement("span");
+        labelSpan.style.color = c.textColor;
+        labelSpan.textContent = labelText;
+        const valueB = document.createElement("b");
+        valueB.textContent = valueText;
+        legendRef.current!.appendChild(labelSpan);
+        legendRef.current!.appendChild(document.createTextNode(" "));
+        legendRef.current!.appendChild(valueB);
+      });
     });
 
     chartRef.current = chart;

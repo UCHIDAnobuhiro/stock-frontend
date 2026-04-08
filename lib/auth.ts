@@ -1,4 +1,17 @@
 /**
+ * csrf_token Cookie を読み取って返す。
+ * Cookie が存在しない（セッションなし）場合は null を返す。
+ * ブラウザ環境以外では常に null。
+ */
+export function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("csrf_token="));
+  return match ? match.slice("csrf_token=".length) : null;
+}
+
+/**
  * JWT トークンの有効性を検証する。
  * ペイロードの `exp` クレームをデコードし、現在時刻と比較する。
  * トークンのフォーマットが不正・期限切れ・`exp` 欠損のいずれかで false を返す。
