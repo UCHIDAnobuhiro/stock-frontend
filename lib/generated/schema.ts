@@ -259,10 +259,6 @@ export interface components {
         MessageResponse: {
             message: string;
         };
-        TokenResponse: {
-            /** @description JWTトークン */
-            token: string;
-        };
         CompanyAnalysisRequest: {
             /** @description 分析対象の企業名 */
             company_name: string;
@@ -610,6 +606,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description サーバーエラー */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     removeFromWatchlist: {
@@ -642,6 +647,15 @@ export interface operations {
             };
             /** @description ウォッチリストに存在しない */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サーバーエラー */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -682,6 +696,15 @@ export interface operations {
             };
             /** @description CSRFトークン不一致 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サーバーエラー */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -730,6 +753,15 @@ export interface operations {
             };
             /** @description CSRFトークン不一致 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 画像サイズ超過（10MB超） */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

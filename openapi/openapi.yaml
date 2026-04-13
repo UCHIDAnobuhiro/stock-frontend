@@ -116,7 +116,6 @@ paths:
         - auth
       security:
         - cookieAuth: []
-          csrfHeader: []
       responses:
         "200":
           description: ログアウト成功（auth_token・csrf_token Cookieを削除）
@@ -133,7 +132,6 @@ paths:
         - candles
       security:
         - cookieAuth: []
-        - bearerAuth: []
       parameters:
         - name: code
           in: path
@@ -179,7 +177,6 @@ paths:
         - symbols
       security:
         - cookieAuth: []
-        - bearerAuth: []
       responses:
         "200":
           description: 銘柄一覧
@@ -204,7 +201,6 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-        - bearerAuth: []
       responses:
         "200":
           description: ウォッチリスト一覧
@@ -227,8 +223,6 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-          csrfHeader: []
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -248,20 +242,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: CSRFトークン不一致
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: 銘柄が存在しない
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: CSRFトークン不一致
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: 既にウォッチリストに存在する
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: サーバーエラー
           content:
             application/json:
               schema:
@@ -275,8 +275,6 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-          csrfHeader: []
-        - bearerAuth: []
       parameters:
         - name: code
           in: path
@@ -299,6 +297,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /v1/watchlist/order:
     put:
@@ -308,8 +312,6 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-          csrfHeader: []
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -331,6 +333,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /v1/logo/detect:
     post:
@@ -340,8 +348,6 @@ paths:
         - logo
       security:
         - cookieAuth: []
-          csrfHeader: []
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -376,6 +382,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: 画像サイズ超過（10MB超）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "502":
           description: 外部API通信エラー
           content:
@@ -391,8 +403,6 @@ paths:
         - logo
       security:
         - cookieAuth: []
-          csrfHeader: []
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -427,19 +437,10 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
     cookieAuth:
       type: apiKey
       in: cookie
       name: auth_token
-    csrfHeader:
-      type: apiKey
-      in: header
-      name: X-CSRF-Token
-      description: Cookie認証使用時に必須。csrf_token CookieをJavaScriptで読み取り、このヘッダーにセットする（Double Submit Cookieパターン）
 
   schemas:
     SignupRequest:
@@ -545,15 +546,6 @@ components:
       properties:
         message:
           type: string
-
-    TokenResponse:
-      type: object
-      required:
-        - token
-      properties:
-        token:
-          type: string
-          description: JWTトークン
 
     CompanyAnalysisRequest:
       type: object
