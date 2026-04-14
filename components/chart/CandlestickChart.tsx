@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import {
   createChart,
@@ -10,6 +10,9 @@ import {
   type ISeriesApi,
 } from "lightweight-charts";
 import type { CandleResponse } from "@/hooks/useCandles";
+import type { Interval } from "@/hooks/useSelectedSymbol";
+import { SMA_PERIODS, getSmaColor } from "@/lib/indicators";
+import { useIndicatorSeries } from "./useIndicatorSeries";
 
 const darkColors = {
   background: "#0d1117",
@@ -37,11 +40,14 @@ const lightColors = {
 
 interface CandlestickChartProps {
   candles: CandleResponse[];
+  interval: Interval;
+  smaEnabled: boolean;
 }
 
-export function CandlestickChart({ candles }: CandlestickChartProps) {
+export function CandlestickChart({ candles, interval, smaEnabled }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const legendRef = useRef<HTMLDivElement>(null);
+  const smaLegendRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
@@ -53,6 +59,12 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
   useEffect(() => {
     resolvedThemeRef.current = resolvedTheme;
   }, [resolvedTheme]);
+
+  // チャート生成完了フラグ（useIndicatorSeries の effect をチャート生成後に走らせるため）
+  const [chartReady, setChartReady] = useState(false);
+
+  // SMAシリーズ管理（period → ISeriesApi<"Line">）
+  const smaSeriesMapRef = useIndicatorSeries(chartRef, candles, interval, smaEnabled, chartReady);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -103,8 +115,8 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
     });
 
     chart.subscribeCrosshairMove((param) => {
-      if (!legendRef.current) return;
-      const c = resolvedThemeRef.current === "light" ? lightColors : darkColors;
+      if (!legendRef.current || !smaLegendRef.current) return;
+      const colors = resolvedThemeRef.current === "light" ? lightColors : darkColors;
 
       if (!param.time) return;
 
@@ -118,9 +130,10 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
         | { value: number }
         | undefined;
 
-      const color = data.close >= data.open ? c.upColor : c.downColor;
+      const color = data.close >= data.open ? colors.upColor : colors.downColor;
       const fmt = (n: number) => n.toFixed(2);
 
+      // 1行目: OHLCV
       legendRef.current.style.color = color;
       legendRef.current.textContent = "";
 
@@ -137,7 +150,7 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
       fields.forEach(([labelText, valueText], i) => {
         if (i > 0) legendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
         const labelSpan = document.createElement("span");
-        labelSpan.style.color = c.textColor;
+        labelSpan.style.color = colors.textColor;
         labelSpan.textContent = labelText;
         const valueB = document.createElement("b");
         valueB.textContent = valueText;
@@ -145,11 +158,38 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
         legendRef.current!.appendChild(document.createTextNode(" "));
         legendRef.current!.appendChild(valueB);
       });
+
+      // 2行目: SMA値
+      smaLegendRef.current.textContent = "";
+      const smaMap = smaSeriesMapRef.current;
+      const periods = SMA_PERIODS[interval];
+      let first = true;
+      periods.forEach((period, idx) => {
+        const series = smaMap.get(period);
+        if (!series) return;
+        const smaData = param.seriesData.get(series) as { value: number } | undefined;
+        if (smaData === undefined) return;
+
+        if (!first) smaLegendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
+        first = false;
+
+        const labelSpan = document.createElement("span");
+        labelSpan.style.color = colors.textColor;
+        labelSpan.textContent = `SMA(${period})`;
+
+        const valueB = document.createElement("b");
+        valueB.style.color = getSmaColor(idx);
+        valueB.textContent = ` ${fmt(smaData.value)}`;
+
+        smaLegendRef.current!.appendChild(labelSpan);
+        smaLegendRef.current!.appendChild(valueB);
+      });
     });
 
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
     volumeSeriesRef.current = volumeSeries;
+    setChartReady(true);
 
     const observer = new ResizeObserver(() => {
       if (containerRef.current) {
@@ -164,8 +204,17 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
     return () => {
       observer.disconnect();
       chart.remove();
+      chartRef.current = null;
+      setChartReady(false);
     };
   }, []);
+
+  // interval が変わったときにレジェンド2行目を更新するため依存に追加
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const intervalRef = useRef(interval);
+  useEffect(() => {
+    intervalRef.current = interval;
+  }, [interval]);
 
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
@@ -215,10 +264,10 @@ export function CandlestickChart({ candles }: CandlestickChartProps) {
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      <div
-        ref={legendRef}
-        className="pointer-events-none absolute left-3 top-3 z-10 text-xs font-mono"
-      />
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-0.5">
+        <div ref={legendRef} className="text-xs font-mono" />
+        <div ref={smaLegendRef} className="text-xs font-mono" />
+      </div>
     </div>
   );
 }

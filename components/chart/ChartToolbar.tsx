@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useSelectedSymbol, type Interval } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
+import { IndicatorToolbar } from "./IndicatorToolbar";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "1day", label: "日足" },
@@ -10,7 +11,12 @@ const INTERVALS: { value: Interval; label: string }[] = [
   { value: "1month", label: "月足" },
 ];
 
-export function ChartToolbar() {
+interface ChartToolbarProps {
+  smaEnabled: boolean;
+  toggleSma: () => void;
+}
+
+export function ChartToolbar({ smaEnabled, toggleSma }: ChartToolbarProps) {
   const { symbol, interval, setInterval } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const selectedSymbol = symbols.find((s) => s.code === symbol);
@@ -50,8 +56,17 @@ export function ChartToolbar() {
         )}
       </div>
 
-      {/* 足種ボタン（右寄せ、横スクロール対応） */}
-      <div className="ml-auto flex items-center gap-1 overflow-x-auto shrink-0">
+      {/* 右側: 指標ボタン + 足種ボタン */}
+      <div className="ml-auto flex items-center gap-1 shrink-0">
+        <IndicatorToolbar
+          smaEnabled={smaEnabled}
+          toggleSma={toggleSma}
+        />
+        <div
+          className="mx-1 h-4 w-px shrink-0"
+          style={{ backgroundColor: "var(--color-border)" }}
+        />
+        <div className="flex items-center gap-1 overflow-x-auto">
         {INTERVALS.map((item) => (
           <button
             key={item.value}
@@ -77,6 +92,7 @@ export function ChartToolbar() {
             {item.label}
           </button>
         ))}
+        </div>
       </div>
     </div>
   );
