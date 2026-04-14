@@ -16,14 +16,20 @@ export function calcSMA(
   data: { time: string; value: number }[],
   period: number
 ): { time: string; value: number }[] {
+  if (period <= 0 || data.length < period) return [];
+
   const result: { time: string; value: number }[] = [];
-  for (let i = 0; i < data.length; i++) {
-    if (i < period - 1) continue;
-    let sum = 0;
-    for (let j = i - period + 1; j <= i; j++) {
-      sum += data[j].value;
-    }
+  let sum = 0;
+
+  for (let i = 0; i < period; i++) {
+    sum += data[i].value;
+  }
+  result.push({ time: data[period - 1].time, value: sum / period });
+
+  for (let i = period; i < data.length; i++) {
+    sum += data[i].value - data[i - period].value;
     result.push({ time: data[i].time, value: sum / period });
   }
+
   return result;
 }

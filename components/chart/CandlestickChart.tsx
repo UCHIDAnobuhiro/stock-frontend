@@ -162,7 +162,7 @@ export function CandlestickChart({ candles, interval, smaEnabled }: CandlestickC
       // 2行目: SMA値
       smaLegendRef.current.textContent = "";
       const smaMap = smaSeriesMapRef.current;
-      const periods = SMA_PERIODS[interval];
+      const periods = SMA_PERIODS[intervalRef.current];
       let first = true;
       periods.forEach((period, idx) => {
         const series = smaMap.get(period);

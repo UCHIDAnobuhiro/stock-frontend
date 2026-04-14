@@ -50,11 +50,5 @@ export function useIndicatorSeries(
     });
   }, [chartRef, candles, interval, smaEnabled, chartReady]);
 
-  useEffect(() => {
-    return () => {
-      seriesMapRef.current.clear();
-    };
-  }, []);
-
   return seriesMapRef;
 }
