@@ -23,18 +23,32 @@
 ## ディレクトリ構成
 
 ```
-src/
+.
 ├── app/                        # ページ・レイアウト（App Router）
 ├── components/                 # UIコンポーネント（View層）
+│   ├── auth/                   # ログイン・サインアップ
+│   ├── chart/                  # ローソク足・テクニカル指標
+│   ├── layout/                 # Sidebar/Topbar/BottomNav 等のシェル
+│   ├── logo/                   # ロゴ検出・企業分析
+│   ├── providers/              # ThemeProvider 等のコンテキスト
+│   ├── ui/                     # shadcn/ui ベースの汎用プリミティブ
+│   └── watchlist/              # ウォッチリストパネル・並び替え
 ├── hooks/                      # カスタムフック（ViewModelに近い役割）
 │   ├── useCandles.ts           # ローソク足データ取得
 │   ├── useSymbols.ts           # 銘柄一覧取得
 │   └── useWatchlist.ts         # ウォッチリスト操作
-└── lib/
-    ├── api.ts                  # APIクライアント（openapi-fetch）
-    └── generated/
-        └── schema.ts           # 自動生成の型定義（直接編集禁止）
+├── lib/
+│   ├── api.ts                  # APIクライアント（openapi-fetch）
+│   ├── auth.ts                 # 認証ヘルパー
+│   ├── indicators.ts           # テクニカル指標の計算ロジック
+│   ├── utils.ts                # `cn()` などの汎用ユーティリティ
+│   └── generated/
+│       └── schema.ts           # 自動生成の型定義（直接編集禁止）
+└── openapi/
+    └── openapi.yaml            # バックエンドAPI仕様（schema.ts の生成元）
 ```
+
+※ ルート直下にフラットに配置している（`src/` 配下ではない）。インポートエイリアスは `@/*` → `./*`。
 
 ## アーキテクチャ方針
 
@@ -102,8 +116,8 @@ Go バックエンド
 
 ## コーディング規約
 
-- API呼び出しは必ず `src/lib/api.ts` 経由で行う
-- `src/lib/generated/` 以下は直接編集しない
+- API呼び出しは必ず `lib/api.ts` 経由で行う
+- `lib/generated/` 以下は直接編集しない
 - ロジックはカスタムフックに切り出し、コンポーネントは表示に専念させる
 - 環境変数は `.env.local` で管理し、`.env.example` をリポジトリに含める
 
