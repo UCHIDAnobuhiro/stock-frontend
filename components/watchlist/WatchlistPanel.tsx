@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { useMemo } from "react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
@@ -47,8 +48,10 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
     reorder(newOrder);
   };
 
-  const getSymbolName = (code: string) =>
-    symbols.find((s) => s.code === code)?.name ?? code;
+  const symbolMap = useMemo(
+    () => new Map(symbols.map((s) => [s.code, s])),
+    [symbols]
+  );
 
   return (
     <div className="flex flex-col">
@@ -92,7 +95,8 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
                   key={item.symbol_code}
                   id={item.symbol_code}
                   code={item.symbol_code}
-                  name={getSymbolName(item.symbol_code)}
+                  name={symbolMap.get(item.symbol_code)?.name ?? item.symbol_code}
+                  logoUrl={symbolMap.get(item.symbol_code)?.logo_url ?? null}
                   isActive={item.symbol_code === activeSymbol}
                   onClick={() => {
                     setSymbol(item.symbol_code);

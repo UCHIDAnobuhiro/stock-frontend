@@ -294,6 +294,8 @@ export interface components {
             code: string;
             /** @description 企業名 */
             name: string;
+            /** @description Twelve DataのロゴURL（未取得時はnull） */
+            logo_url: string | null;
         };
         ErrorResponse: {
             /** @description エラーメッセージ */
