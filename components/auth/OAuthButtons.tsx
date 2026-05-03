@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { API_BASE } from "@/lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const buttonClass = cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-3");
 
 function GoogleIcon() {
   return (
@@ -25,14 +27,25 @@ function GitHubIcon() {
 }
 
 export function OAuthButtons() {
-  const buttonClass = cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-3");
+  const [loading, setLoading] = useState<"google" | "github" | null>(null);
+
   return (
     <div className="flex flex-col gap-2">
-      <a href={`${API_BASE}/v1/auth/oauth/google`} className={buttonClass} rel="noopener noreferrer">
+      <a
+        href={`${API_BASE}/v1/auth/oauth/google`}
+        className={cn(buttonClass, loading === "google" && "pointer-events-none opacity-70")}
+        onClick={() => setLoading("google")}
+        aria-disabled={loading !== null}
+      >
         <GoogleIcon />
         <span>Googleで続ける</span>
       </a>
-      <a href={`${API_BASE}/v1/auth/oauth/github`} className={buttonClass} rel="noopener noreferrer">
+      <a
+        href={`${API_BASE}/v1/auth/oauth/github`}
+        className={cn(buttonClass, loading === "github" && "pointer-events-none opacity-70")}
+        onClick={() => setLoading("github")}
+        aria-disabled={loading !== null}
+      >
         <GitHubIcon />
         <span>GitHubで続ける</span>
       </a>

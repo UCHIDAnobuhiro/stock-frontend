@@ -2,12 +2,14 @@ import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
 import { getCsrfToken } from "./auth";
 
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
 /**
  * openapi-fetch で生成された型安全な API クライアント。
  * Cookie 認証（HttpOnly auth_token）＋ Double Submit CSRF パターンを使用。
  */
 const apiClient = createClient<paths>({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseUrl: API_BASE,
   credentials: "include",
 });
 
