@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSignup } from "@/hooks/useSignup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 export default function SignupForm() {
   const {
@@ -77,6 +78,13 @@ export default function SignupForm() {
       <Button type="submit" size="lg" disabled={isLoading} className="w-full">
         {isLoading ? "登録中..." : "アカウント登録"}
       </Button>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <span className="text-xs text-[var(--color-text-muted)]">または</span>
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
+      </div>
+      <OAuthButtons />
 
       <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
         すでにアカウントをお持ちの方は{" "}

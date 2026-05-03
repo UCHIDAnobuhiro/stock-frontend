@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLogin } from "@/hooks/useLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 export default function LoginForm() {
   const {
@@ -77,6 +78,13 @@ export default function LoginForm() {
       <Button type="submit" size="lg" disabled={isLoading} className="w-full">
         {isLoading ? "ログイン中..." : "ログイン"}
       </Button>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <span className="text-xs text-[var(--color-text-muted)]">または</span>
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
+      </div>
+      <OAuthButtons />
 
       <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
         アカウントをお持ちでない方は{" "}

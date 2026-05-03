@@ -72,6 +72,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/oauth/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuthログイン開始
+         * @description 指定プロバイダー（google/github）のOAuth2認可画面へリダイレクトします。
+         *     state + PKCEコードチャレンジを生成しRedisに保存します（TTL: 10分）。
+         */
+        get: operations["beginOAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/oauth/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuthコールバック処理
+         * @description プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
+         *     フロントエンドURLへリダイレクトします。
+         *     同メールアドレスが既存ユーザーに存在する場合は自動リンクします。
+         */
+        get: operations["oauthCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/candles/{code}": {
         parameters: {
             query?: never;
@@ -467,6 +510,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    beginOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OAuthプロバイダー名 */
+                provider: "google" | "github";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description プロバイダー認可画面へリダイレクト */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 未サポートのプロバイダー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    oauthCallback: {
+        parameters: {
+            query: {
+                code: string;
+                state: string;
+            };
+            header?: never;
+            path: {
+                provider: "google" | "github";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description フロントエンドURLへリダイレクト（auth_token・csrf_token Cookieをセット） */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description stateが無効または期限切れ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サーバーエラー */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description プロバイダーAPIエラー（メールアドレス取得失敗等） */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
