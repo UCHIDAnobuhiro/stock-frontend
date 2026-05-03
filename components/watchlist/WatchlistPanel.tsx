@@ -50,6 +50,9 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   const getSymbolName = (code: string) =>
     symbols.find((s) => s.code === code)?.name ?? code;
 
+  const getSymbolLogoUrl = (code: string) =>
+    symbols.find((s) => s.code === code)?.logo_url ?? null;
+
   return (
     <div className="flex flex-col">
       {/* ヘッダー */}
@@ -93,6 +96,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
                   id={item.symbol_code}
                   code={item.symbol_code}
                   name={getSymbolName(item.symbol_code)}
+                  logoUrl={getSymbolLogoUrl(item.symbol_code)}
                   isActive={item.symbol_code === activeSymbol}
                   onClick={() => {
                     setSymbol(item.symbol_code);

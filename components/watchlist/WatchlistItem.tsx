@@ -4,17 +4,19 @@ import { GripVertical, X } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
+import { SymbolLogo } from "@/components/ui/SymbolLogo";
 
 interface WatchlistItemProps {
   id: string;
   code: string;
   name: string;
+  logoUrl?: string | null;
   isActive: boolean;
   onClick: () => void;
   onRemove: () => void;
 }
 
-export function WatchlistItem({ id, code, name, isActive, onClick, onRemove }: WatchlistItemProps) {
+export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRemove }: WatchlistItemProps) {
   const {
     attributes,
     listeners,
@@ -71,18 +73,21 @@ export function WatchlistItem({ id, code, name, isActive, onClick, onRemove }: W
 
       {/* 銘柄情報 */}
       <div
-        className="flex-1 min-w-0 rounded px-1.5 py-0.5"
+        className="flex flex-1 min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5"
         style={{
           backgroundColor: isActive ? "var(--color-surface-3)" : "transparent",
           color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
         }}
       >
-        <div className="font-medium truncate text-xs">{code}</div>
-        <div
-          className="truncate text-xs"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          {name}
+        <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
+        <div className="min-w-0">
+          <div className="font-medium truncate text-xs">{code}</div>
+          <div
+            className="truncate text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {name}
+          </div>
         </div>
       </div>
 

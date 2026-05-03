@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob:",
+              "img-src 'self' data: blob: https://api.twelvedata.com https://logo.twelvedata.com",
               `connect-src 'self' ${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}`,
               "font-src 'self'",
               "frame-src 'none'",

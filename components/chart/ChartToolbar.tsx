@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useSelectedSymbol, type Interval } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
 import { IndicatorToolbar } from "./IndicatorToolbar";
+import { SymbolLogo } from "@/components/ui/SymbolLogo";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "1day", label: "日足" },
@@ -35,6 +36,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
       <div className="flex items-center gap-2 min-w-0">
         {selectedSymbol ? (
           <>
+            <SymbolLogo code={selectedSymbol.code} logoUrl={selectedSymbol.logo_url} size={24} />
             <span
               className="text-sm font-semibold truncate"
               style={{ color: "var(--color-text-primary)" }}
