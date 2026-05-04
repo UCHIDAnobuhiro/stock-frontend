@@ -36,7 +36,7 @@ interface WatchlistPanelProps {
 }
 
 export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
-  const { items, isLoading, removeSymbol, reorder, addSymbol } = useWatchlist();
+  const { items, isLoading, removeSymbol, reorder } = useWatchlist();
   const { symbols, isLoading: symbolsLoading } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
   const [viewMode, setViewMode] = useState<"compact" | "chart">("compact");
@@ -75,18 +75,10 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
     [symbols]
   );
 
-  const watchedCodes = useMemo(
-    () => new Set(items.map((i) => i.symbol_code)),
-    [items]
-  );
-
-  const handleSelect = async (code: string) => {
-    try {
-      await addSymbol(code);
-      setQuery("");
-    } catch {
-      // 失敗時は検索を維持
-    }
+  const handleSelect = (code: string) => {
+    setSymbol(code);
+    setQuery("");
+    onItemClick?.();
   };
 
   return (
@@ -135,7 +127,6 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
                     </CommandEmpty>
                     <CommandGroup>
                       {symbols
-                        .filter((s) => !watchedCodes.has(s.code))
                         .map((symbol) => (
                           <CommandItem
                             key={symbol.code}
