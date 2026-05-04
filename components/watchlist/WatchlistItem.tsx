@@ -82,7 +82,7 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
         <div className="flex items-center gap-1.5 min-w-0">
           <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
           <div className="min-w-0">
-            <div className="font-medium truncate text-xs">{code}</div>
+            <div className="font-medium truncate text-sm">{code}</div>
             <div
               className="truncate text-xs"
               style={{ color: "var(--color-text-muted)" }}

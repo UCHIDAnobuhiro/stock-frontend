@@ -69,7 +69,10 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   return (
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
-      <div className="px-3 pt-3 pb-2 flex items-center justify-between">
+      <div
+        className="h-10 shrink-0 px-3 flex items-center justify-between border-b"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         <p
           className="text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: "var(--color-text-muted)" }}
@@ -90,7 +93,6 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
           )}
         </button>
       </div>
-      <Separator style={{ backgroundColor: "var(--color-border)" }} />
 
       {/* リスト */}
       <div className="flex-1 overflow-y-auto min-h-0 py-1">
