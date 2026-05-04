@@ -37,7 +37,7 @@ export function WatchlistSparkline({ code }: { code: string }) {
     .map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`))
     .join(" ");
   const areaPath = `${linePath} L${points.at(-1)!.x},${H} L${points[0].x},${H} Z`;
-  const isUp = closes.at(-1)! >= closes.at(-2)!;
+  const isUp = closes.at(-1)! >= closes[0];
   const color = isUp ? "var(--color-bull)" : "var(--color-bear)";
 
   return (

@@ -26,7 +26,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
   const { symbol, interval, setInterval } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
-  const priceInfo = usePriceInfo(symbol, interval);
+  const priceInfo = usePriceInfo(symbol, "1day");
   const selectedSymbol = symbols.find((s) => s.code === symbol);
   const isWatched = symbol !== null && items.some((i) => i.symbol_code === symbol);
 
