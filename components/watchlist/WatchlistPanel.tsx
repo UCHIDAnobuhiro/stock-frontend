@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { BarChart2, List } from "lucide-react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
@@ -33,12 +33,11 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   const { items, isLoading, removeSymbol, reorder } = useWatchlist();
   const { symbols } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
-  const [viewMode, setViewMode] = useState<"compact" | "chart">("compact");
-
-  useEffect(() => {
+  const [viewMode, setViewMode] = useState<"compact" | "chart">(() => {
+    if (typeof window === "undefined") return "compact";
     const stored = localStorage.getItem("watchlist-view-mode");
-    if (stored === "chart" || stored === "compact") setViewMode(stored);
-  }, []);
+    return stored === "chart" ? "chart" : "compact";
+  });
 
   const toggleViewMode = () => {
     const next = viewMode === "compact" ? "chart" : "compact";
