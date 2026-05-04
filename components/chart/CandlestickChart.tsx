@@ -39,7 +39,7 @@ const lightColors = {
   volumeBear: "#f78c95",
 };
 
-const DEFAULT_VISIBLE_CANDLES = 30;
+const DEFAULT_VISIBLE_CANDLES = 60;
 
 interface CandlestickChartProps {
   candles: CandleResponse[];
