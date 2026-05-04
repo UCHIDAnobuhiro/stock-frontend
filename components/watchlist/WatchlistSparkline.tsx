@@ -16,7 +16,8 @@ export function WatchlistSparkline({ code }: { code: string }) {
     );
   }
 
-  const slice = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).slice(-60);
+  const visibleCount = window.innerWidth < 640 ? 30 : 60;
+  const slice = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).slice(-visibleCount);
   if (slice.length < 2) return <div className="h-9 w-full" />;
 
   const closes = slice.map((c) => c.close);

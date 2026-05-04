@@ -39,7 +39,9 @@ const lightColors = {
   volumeBear: "#f78c95",
 };
 
-const DEFAULT_VISIBLE_CANDLES = 60;
+const MOBILE_BREAKPOINT = 640;
+const VISIBLE_CANDLES_MOBILE = 30;
+const VISIBLE_CANDLES_DESKTOP = 60;
 
 interface CandlestickChartProps {
   candles: CandleResponse[];
@@ -303,8 +305,11 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
     const total = sorted.length;
+    const visibleCount = (containerRef.current?.clientWidth ?? MOBILE_BREAKPOINT) < MOBILE_BREAKPOINT
+      ? VISIBLE_CANDLES_MOBILE
+      : VISIBLE_CANDLES_DESKTOP;
     chartRef.current?.timeScale().setVisibleLogicalRange({
-      from: Math.max(0, total - DEFAULT_VISIBLE_CANDLES),
+      from: Math.max(0, total - visibleCount),
       to: total - 1,
     });
   }, [candles, resolvedTheme]);
