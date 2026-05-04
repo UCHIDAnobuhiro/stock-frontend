@@ -104,7 +104,10 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       },
       timeScale: {
         borderColor: c.border,
-        timeVisible: true,
+        timeVisible: false,
+      },
+      localization: {
+        dateFormat: "yyyy/MM/dd",
       },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
