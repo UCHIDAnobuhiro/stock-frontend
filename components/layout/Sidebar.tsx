@@ -9,7 +9,7 @@ interface SidebarProps {
 export default function Sidebar({ onItemClick }: SidebarProps) {
   return (
     <aside
-      className="flex h-full w-56 md:w-64 flex-col border-r"
+      className="flex h-full w-full md:w-64 flex-col border-r"
       style={{
         backgroundColor: "var(--color-surface-1)",
         borderColor: "var(--color-border)",
