@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
+import { WatchlistSparkline } from "./WatchlistSparkline";
 
 interface WatchlistItemProps {
   id: string;
@@ -14,9 +15,10 @@ interface WatchlistItemProps {
   isActive: boolean;
   onClick: () => void;
   onRemove: () => void;
+  viewMode: "compact" | "chart";
 }
 
-export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRemove }: WatchlistItemProps) {
+export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRemove, viewMode }: WatchlistItemProps) {
   const {
     attributes,
     listeners,
@@ -38,7 +40,8 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
       role="button"
       tabIndex={0}
       className={cn(
-        "group flex items-center gap-1 px-2 py-2 text-sm cursor-pointer select-none",
+        "group flex gap-1 px-2 py-2 text-sm cursor-pointer select-none",
+        viewMode === "chart" ? "items-start" : "items-center",
         isDragging && "opacity-50 z-50"
       )}
       onClick={onClick}
@@ -55,47 +58,50 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
         {...attributes}
         {...listeners}
         aria-label="並び替え"
-        className="shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        className={cn(
+          "shrink-0 cursor-grab active:cursor-grabbing transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100",
+          viewMode === "chart" ? "self-stretch flex items-center" : "mt-0"
+        )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
 
-      {/* アクティブインジケーター */}
-      <span
-        className={cn(
-          "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
-          isActive ? "opacity-100" : "opacity-0"
-        )}
-        style={{ backgroundColor: "var(--color-accent)" }}
-      />
-
       {/* 銘柄情報 */}
       <div
-        className="flex flex-1 min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5"
+        className={cn(
+          "flex flex-1 min-w-0 rounded px-1.5 py-0.5",
+          viewMode === "chart" ? "flex-col gap-1" : "items-center gap-1.5"
+        )}
         style={{
           backgroundColor: isActive ? "var(--color-surface-3)" : "transparent",
           color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
         }}
       >
-        <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
-        <div className="min-w-0">
-          <div className="font-medium truncate text-xs">{code}</div>
-          <div
-            className="truncate text-xs"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            {name}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
+          <div className="min-w-0">
+            <div className="font-medium truncate text-sm">{code}</div>
+            <div
+              className="truncate text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {name}
+            </div>
           </div>
         </div>
+        {viewMode === "chart" && <WatchlistSparkline code={code} />}
       </div>
 
       {/* 削除ボタン */}
       <button
         type="button"
         aria-label={`${code} をウォッチリストから削除`}
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-[var(--color-surface-3)]"
+        className={cn(
+          "shrink-0 transition-opacity rounded p-0.5 hover:bg-[var(--color-surface-3)] opacity-100 md:opacity-0 md:group-hover:opacity-100",
+          viewMode === "chart" ? "self-stretch flex items-center" : ""
+        )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => {
           e.stopPropagation();

@@ -29,9 +29,10 @@ export function useSignup() {
   function validate(): boolean {
     const errors: FieldErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       errors.email = "メールアドレスを入力してください";
-    } else if (!emailRegex.test(email)) {
+    } else if (!emailRegex.test(trimmedEmail)) {
       errors.email = "有効なメールアドレスを入力してください";
     }
     if (!password) {
@@ -58,7 +59,7 @@ export function useSignup() {
     setIsLoading(true);
     try {
       const { error, response } = await apiClient.POST("/v1/signup", {
-        body: { email, password },
+        body: { email: email.trim(), password },
       });
 
       if (response.ok) {
