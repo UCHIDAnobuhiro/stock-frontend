@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 import { WatchlistSparkline } from "./WatchlistSparkline";
+import { usePriceInfo } from "@/hooks/usePriceInfo";
 
 interface WatchlistItemProps {
   id: string;
@@ -19,6 +20,7 @@ interface WatchlistItemProps {
 }
 
 export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRemove, viewMode }: WatchlistItemProps) {
+  const priceInfo = usePriceInfo(code);
   const {
     attributes,
     listeners,
@@ -81,7 +83,7 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="font-medium truncate text-sm">{code}</div>
             <div
               className="truncate text-xs"
@@ -90,6 +92,19 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
               {name}
             </div>
           </div>
+          {priceInfo && (
+            <div className="ml-auto text-right shrink-0">
+              <div className="text-sm font-medium tabular-nums">
+                {priceInfo.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div
+                className="text-xs tabular-nums"
+                style={{ color: priceInfo.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}
+              >
+                {priceInfo.change >= 0 ? "+" : ""}{priceInfo.changePercent.toFixed(2)}%
+              </div>
+            </div>
+          )}
         </div>
         {viewMode === "chart" && <WatchlistSparkline code={code} />}
       </div>
