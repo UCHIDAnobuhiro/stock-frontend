@@ -67,7 +67,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div className="px-3 pt-3 pb-2 flex items-center justify-between">
         <p
@@ -93,7 +93,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
       <Separator style={{ backgroundColor: "var(--color-border)" }} />
 
       {/* リスト */}
-      <div className="py-1">
+      <div className="flex-1 overflow-y-auto min-h-0 py-1">
         {isLoading ? (
           <div className="space-y-1 px-3 py-2">
             {[1, 2, 3].map((i) => (

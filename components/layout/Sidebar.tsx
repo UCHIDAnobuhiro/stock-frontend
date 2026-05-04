@@ -1,6 +1,5 @@
 "use client";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { WatchlistPanel } from "@/components/watchlist/WatchlistPanel";
 
 interface SidebarProps {
@@ -16,9 +15,7 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
         borderColor: "var(--color-border)",
       }}
     >
-      <ScrollArea className="flex-1">
-        <WatchlistPanel onItemClick={onItemClick} />
-      </ScrollArea>
+      <WatchlistPanel onItemClick={onItemClick} />
     </aside>
   );
 }
