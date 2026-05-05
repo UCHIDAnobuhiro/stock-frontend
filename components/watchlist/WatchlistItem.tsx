@@ -81,19 +81,20 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
           color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
         }}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5">
           <SymbolLogo code={code} logoUrl={logoUrl} size={20} />
           <div className="min-w-0 flex-1">
             <div className="font-medium truncate text-sm">{code}</div>
             <div
               className="truncate text-xs"
               style={{ color: "var(--color-text-muted)" }}
+              title={name}
             >
               {name}
             </div>
           </div>
           {priceInfo && (
-            <div className="ml-auto text-right shrink-0">
+            <div className="justify-self-end whitespace-nowrap text-right">
               <div className="text-sm font-medium tabular-nums">
                 {priceInfo.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
