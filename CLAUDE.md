@@ -1,4 +1,3 @@
-@AGENTS.md
 # stock_frontend
 
 ## プロジェクト概要
