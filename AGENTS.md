@@ -145,8 +145,6 @@ npm run generate:api
 
 コミットメッセージおよびプルリクエストのタイトル・説明はすべて**日本語**で記述してください。
 
-- コミット前のコードレビューは `/code-check` スキル（`.claude/skills/code-check/SKILL.md`）を参照
-
 ## Git ブランチ操作のルール
 
 ブランチを切る・切り替える際は `git checkout` ではなく `git switch` を使用してください。
