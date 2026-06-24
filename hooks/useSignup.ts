@@ -24,7 +24,7 @@ export function useSignup() {
 
   /**
    * クライアントサイドのバリデーションを実行する。
-   * useLogin より厳しく、パスワードは 8 文字以上を要求する。
+   * useLogin より厳しく、パスワードは 12 文字以上を要求する。
    */
   function validate(): boolean {
     const errors: FieldErrors = {};
@@ -37,8 +37,8 @@ export function useSignup() {
     }
     if (!password) {
       errors.password = "パスワードを入力してください";
-    } else if (password.length < 8) {
-      errors.password = "パスワードは8文字以上で入力してください";
+    } else if (password.length < 12) {
+      errors.password = "パスワードは12文字以上で入力してください";
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;

@@ -38,7 +38,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -55,7 +55,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("invalid-email");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -82,7 +82,7 @@ describe("useSignup", () => {
       );
     });
 
-    it("パスワードが 8 文字未満のとき password エラーが設定される", async () => {
+    it("パスワードが 12 文字未満のとき password エラーが設定される", async () => {
       const { result } = renderHook(() => useSignup());
 
       await act(async () => {
@@ -94,12 +94,12 @@ describe("useSignup", () => {
       });
 
       expect(result.current.fieldErrors.password).toBe(
-        "パスワードは8文字以上で入力してください"
+        "パスワードは12文字以上で入力してください"
       );
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it("パスワードがちょうど 8 文字のときバリデーションを通過して API が呼ばれる", async () => {
+    it("パスワードがちょうど 12 文字のときバリデーションを通過して API が呼ばれる", async () => {
       mockPost.mockResolvedValue({
         data: null,
         error: null,
@@ -110,7 +110,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("12345678");
+        result.current.setPassword("123456789012");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -134,7 +134,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -157,7 +157,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("existing@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -179,7 +179,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -199,7 +199,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -221,7 +221,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());
@@ -239,7 +239,7 @@ describe("useSignup", () => {
 
       await act(async () => {
         result.current.setEmail("user@example.com");
-        result.current.setPassword("password123");
+        result.current.setPassword("password1234");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());

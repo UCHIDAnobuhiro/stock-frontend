@@ -245,7 +245,7 @@ export interface components {
              * @description メールアドレス
              */
             email: string;
-            /** @description パスワード（8文字以上） */
+            /** @description パスワード（12文字以上） */
             password: string;
         };
         LoginRequest: {
@@ -324,7 +324,10 @@ export interface components {
             summary: string;
         };
         WatchlistItem: {
-            /** @description ウォッチリストエントリのID */
+            /**
+             * Format: int64
+             * @description ウォッチリストエントリのID
+             */
             id: number;
             /** @description 銘柄コード（例: AAPL, 7203.T） */
             symbol_code: string;
@@ -344,8 +347,24 @@ export interface components {
             status: string;
         };
     };
-    responses: never;
-    parameters: never;
+    responses: {
+        /** @description 認証失敗（auth_token Cookieが無い・無効・期限切れ） */
+        UnauthorizedError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+    };
+    parameters: {
+        /**
+         * @description CSRFトークン（Double Submit Cookieパターン）。
+         *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+         */
+        CsrfToken: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -600,8 +619,8 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description 時間間隔 */
-                interval?: string;
-                /** @description 取得件数 */
+                interval?: "1day" | "1week" | "1month";
+                /** @description 取得件数（1〜5000。範囲外の値が指定された場合は400を返す） */
                 outputsize?: number;
             };
             header?: never;
@@ -622,7 +641,7 @@ export interface operations {
                     "application/json": components["schemas"]["CandleResponse"][];
                 };
             };
-            /** @description バリデーションエラー（outputsizeに整数以外が指定された等） */
+            /** @description バリデーションエラー（outputsizeに整数以外、outputsize範囲外、未対応のinterval等） */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -631,8 +650,9 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description 外部API通信エラー */
-            502: {
+            401: components["responses"]["UnauthorizedError"];
+            /** @description サーバーエラー */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -660,6 +680,7 @@ export interface operations {
                     "application/json": components["schemas"]["SymbolItem"][];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -689,6 +710,7 @@ export interface operations {
                     "application/json": components["schemas"]["WatchlistItem"][];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -703,7 +725,13 @@ export interface operations {
     addToWatchlist: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /**
+                 * @description CSRFトークン（Double Submit Cookieパターン）。
+                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+                 */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -731,6 +759,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description CSRFトークン不一致 */
             403: {
                 headers: {
@@ -772,7 +801,13 @@ export interface operations {
     removeFromWatchlist: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /**
+                 * @description CSRFトークン（Double Submit Cookieパターン）。
+                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+                 */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
             path: {
                 /** @description 銘柄コード（例: AAPL, 7203.T） */
                 code: string;
@@ -788,6 +823,16 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description バリデーションエラー（銘柄コードの形式不正） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
             /** @description CSRFトークン不一致 */
             403: {
                 headers: {
@@ -820,7 +865,13 @@ export interface operations {
     reorderWatchlist: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /**
+                 * @description CSRFトークン（Double Submit Cookieパターン）。
+                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+                 */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -846,6 +897,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description CSRFトークン不一致 */
             403: {
                 headers: {
@@ -869,7 +921,13 @@ export interface operations {
     detectLogo: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /**
+                 * @description CSRFトークン（Double Submit Cookieパターン）。
+                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+                 */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -903,6 +961,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description CSRFトークン不一致 */
             403: {
                 headers: {
@@ -944,7 +1003,13 @@ export interface operations {
     analyzeCompany: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /**
+                 * @description CSRFトークン（Double Submit Cookieパターン）。
+                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
+                 */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -972,6 +1037,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            401: components["responses"]["UnauthorizedError"];
             /** @description CSRFトークン不一致 */
             403: {
                 headers: {

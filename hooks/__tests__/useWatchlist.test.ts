@@ -17,6 +17,7 @@ vi.mock("swr", () => ({ default: mockUseSWR }));
 vi.mock("@/lib/api", () => ({
   default: { GET: mockGet, POST: mockPost, DELETE: mockDelete, PUT: mockPut },
   TOKEN_KEY: "stock_jwt",
+  CSRF_HEADER: { "X-CSRF-Token": "" },
 }));
 
 // ---- テストデータ ----
@@ -99,6 +100,7 @@ describe("useWatchlist", () => {
       });
 
       expect(mockPost).toHaveBeenCalledWith("/v1/watchlist", {
+        params: { header: { "X-CSRF-Token": "" } },
         body: { symbol_code: "TSLA" },
       });
     });
@@ -145,7 +147,7 @@ describe("useWatchlist", () => {
       });
 
       expect(mockDelete).toHaveBeenCalledWith("/v1/watchlist/{code}", {
-        params: { path: { code: "AAPL" } },
+        params: { path: { code: "AAPL" }, header: { "X-CSRF-Token": "" } },
       });
     });
 
@@ -193,6 +195,7 @@ describe("useWatchlist", () => {
       });
 
       expect(mockPut).toHaveBeenCalledWith("/v1/watchlist/order", {
+        params: { header: { "X-CSRF-Token": "" } },
         body: { codes: ["GOOGL", "AAPL"] },
       });
     });

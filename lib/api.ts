@@ -31,6 +31,13 @@ apiClient.use({
   },
 });
 
+/**
+ * 変更系リクエスト（POST / PUT / DELETE）の `params.header` に渡すプレースホルダー。
+ * OpenAPI 仕様で X-CSRF-Token が必須ヘッダーとして定義されているため型上は指定が必要だが、
+ * 実際の値は上記ミドルウェアが csrf_token Cookie から付与する。ここでは型を満たす空文字でよい。
+ */
+export const CSRF_HEADER = { "X-CSRF-Token": "" } as const;
+
 /** セッション切れを通知するカスタムイベント名 */
 export const SESSION_EXPIRED_EVENT = "session:expired" as const;
 

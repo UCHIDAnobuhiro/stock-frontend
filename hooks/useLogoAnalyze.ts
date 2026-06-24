@@ -1,13 +1,14 @@
 "use client";
 
 import useSWRMutation from "swr/mutation";
-import apiClient from "@/lib/api";
+import apiClient, { CSRF_HEADER } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 
 export type CompanyAnalysisResponse = components["schemas"]["CompanyAnalysisResponse"];
 
 async function analyzeCompany(_key: string, { arg }: { arg: string }) {
   const { data, error } = await apiClient.POST("/v1/logo/analyze", {
+    params: { header: CSRF_HEADER },
     body: { company_name: arg },
   });
   if (error) {
