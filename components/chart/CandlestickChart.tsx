@@ -151,6 +151,26 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       const color = data.close >= data.open ? colors.upColor : colors.downColor;
       const fmt = (n: number) => n.toFixed(2);
 
+      // ラベルと値のペアを折り返し不可の1要素として行に追加する
+      // （折り返しはペアの間でのみ発生させ、ラベルと値の泣き別れを防ぐ）
+      const appendPair = (
+        row: HTMLDivElement,
+        labelText: string,
+        valueText: string,
+        valueColor?: string,
+      ) => {
+        const pair = document.createElement("span");
+        pair.className = "whitespace-nowrap";
+        const labelSpan = document.createElement("span");
+        labelSpan.style.color = colors.textColor;
+        labelSpan.textContent = labelText;
+        const valueB = document.createElement("b");
+        if (valueColor) valueB.style.color = valueColor;
+        valueB.textContent = ` ${valueText}`;
+        pair.append(labelSpan, valueB);
+        row.appendChild(pair);
+      };
+
       // 1行目: OHLCV
       legendRef.current.style.color = color;
       legendRef.current.textContent = "";
@@ -165,42 +185,21 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
           : []),
       ];
 
-      fields.forEach(([labelText, valueText], i) => {
-        if (i > 0) legendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
-        const labelSpan = document.createElement("span");
-        labelSpan.style.color = colors.textColor;
-        labelSpan.textContent = labelText;
-        const valueB = document.createElement("b");
-        valueB.textContent = valueText;
-        legendRef.current!.appendChild(labelSpan);
-        legendRef.current!.appendChild(document.createTextNode(" "));
-        legendRef.current!.appendChild(valueB);
+      fields.forEach(([labelText, valueText]) => {
+        appendPair(legendRef.current!, labelText, valueText);
       });
 
       // 2行目: SMA値
       smaLegendRef.current.textContent = "";
       const smaMap = smaSeriesMapRef.current;
       const periods = SMA_PERIODS[intervalRef.current];
-      let first = true;
       periods.forEach((period, idx) => {
         const series = smaMap.get(period);
         if (!series) return;
         const smaData = param.seriesData.get(series) as { value: number } | undefined;
         if (smaData === undefined) return;
 
-        if (!first) smaLegendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
-        first = false;
-
-        const labelSpan = document.createElement("span");
-        labelSpan.style.color = colors.textColor;
-        labelSpan.textContent = `SMA(${period})`;
-
-        const valueB = document.createElement("b");
-        valueB.style.color = getSmaColor(idx);
-        valueB.textContent = ` ${fmt(smaData.value)}`;
-
-        smaLegendRef.current!.appendChild(labelSpan);
-        smaLegendRef.current!.appendChild(valueB);
+        appendPair(smaLegendRef.current!, `SMA(${period})`, fmt(smaData.value), getSmaColor(idx));
       });
 
       // 3行目: ボリンジャーバンド値
@@ -217,26 +216,13 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
             { label: "+3σ", key: "upper3", color: BOLLINGER_COLORS.sigma3 },
             { label: "-3σ", key: "lower3", color: BOLLINGER_COLORS.sigma3 },
           ];
-          let firstBb = true;
           bbEntries.forEach(({ label, key, color }) => {
             const series = bbMap.get(key as BollingerKey);
             if (!series) return;
             const d = param.seriesData.get(series) as { value: number } | undefined;
             if (d === undefined) return;
 
-            if (!firstBb) bbLegendRef.current!.appendChild(document.createTextNode("\u00a0\u00a0"));
-            firstBb = false;
-
-            const labelSpan = document.createElement("span");
-            labelSpan.style.color = colors.textColor;
-            labelSpan.textContent = label;
-
-            const valueB = document.createElement("b");
-            valueB.style.color = color;
-            valueB.textContent = ` ${fmt(d.value)}`;
-
-            bbLegendRef.current!.appendChild(labelSpan);
-            bbLegendRef.current!.appendChild(valueB);
+            appendPair(bbLegendRef.current!, label, fmt(d.value), color);
           });
         }
       }
@@ -320,10 +306,11 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-0.5">
-        <div ref={legendRef} className="text-xs font-mono" />
-        <div ref={smaLegendRef} className="text-xs font-mono" />
-        <div ref={bbLegendRef} className="text-xs font-mono" />
+      {/* right-20 は価格軸（実測 約72px）と重ならないための制約 */}
+      <div className="pointer-events-none absolute left-3 right-20 top-3 z-10 flex flex-col gap-0.5">
+        <div ref={legendRef} className="text-xs font-mono flex flex-wrap gap-x-2" />
+        <div ref={smaLegendRef} className="text-xs font-mono flex flex-wrap gap-x-2" />
+        <div ref={bbLegendRef} className="text-xs font-mono flex flex-wrap gap-x-2" />
       </div>
     </div>
   );
