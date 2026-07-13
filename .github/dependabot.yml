@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # npm パッケージの依存関係を毎日チェック
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    # minor / patch 更新は1つのPRにまとめてレビュー負荷を下げる
+    # major 更新は破壊的変更の可能性があるため個別PRにする
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 999
+    labels:
+      - "dependencies"
+
+  # GitHub Actions のバージョンも毎日チェック
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 999
+    labels:
+      - "dependencies"
+      - "github-actions"
