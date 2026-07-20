@@ -16,7 +16,6 @@ vi.mock("swr", () => ({ default: mockUseSWR }));
 
 vi.mock("@/lib/api", () => ({
   default: { GET: mockGet, POST: mockPost, DELETE: mockDelete, PUT: mockPut },
-  TOKEN_KEY: "stock_jwt",
   CSRF_HEADER: { "X-CSRF-Token": "" },
 }));
 

@@ -12,7 +12,6 @@ vi.mock("swr", () => ({ default: mockUseSWR }));
 
 vi.mock("@/lib/api", () => ({
   default: { GET: vi.fn() },
-  TOKEN_KEY: "stock_jwt",
 }));
 
 // ---- テスト ----

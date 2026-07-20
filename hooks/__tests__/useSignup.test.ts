@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   default: { POST: mockPost },
-  TOKEN_KEY: "stock_jwt",
 }));
 
 // ---- ヘルパー ----
