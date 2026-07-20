@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, startTransition } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCsrfToken } from "@/lib/auth";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import Topbar from "./Topbar";
@@ -18,23 +17,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const { isExpired } = useSessionExpiry();
   const handleSessionExpiredLogin = useCallback(() => {
     router.replace("/login");
   }, [router]);
-
-  useEffect(() => {
-    if (getCsrfToken() === null) {
-      router.replace("/login");
-      return;
-    }
-    startTransition(() => {
-      setIsAuthReady(true);
-    });
-  }, [router]);
-
-  if (!isAuthReady) return null;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
