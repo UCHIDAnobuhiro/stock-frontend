@@ -37,7 +37,8 @@
 │   ├── useSymbols.ts           # 銘柄一覧取得
 │   └── useWatchlist.ts         # ウォッチリスト操作
 ├── lib/
-│   ├── api.ts                  # APIクライアント（openapi-fetch）
+│   ├── api.ts                  # APIクライアント（openapi-fetch、Client Component 用）
+│   ├── api.server.ts           # Server Component 用APIフェッチ（cookies() からCookieヘッダーを付与）
 │   ├── auth.ts                 # 認証ヘルパー
 │   ├── indicators.ts           # テクニカル指標の計算ロジック
 │   ├── utils.ts                # `cn()` などの汎用ユーティリティ
@@ -58,10 +59,12 @@
 
 | 機能 | 方式 |
 |---|---|
-| 銘柄一覧 | Server Component（SSR）|
+| 銘柄一覧 | Server Component（SSR）で初期データ取得 + Client Component（SWR）でハイドレート |
 | ローソク足チャート | Client Component |
 | ウォッチリスト | Client Component |
 | ロゴ検出・企業分析 | Client Component |
+
+銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` の複数の Client Component から共有参照されるため、それ自体を Server Component として描画することはできない。代わりに `app/page.tsx`（Server Component）が `lib/api.server.ts` の `fetchSymbolsServer()` で初回データを取得し、`SWRConfig` の `fallback` としてクライアントへ渡す。`hooks/useSymbols.ts` の `useSWR("/v1/symbols", ...)` はこの `fallback` を即座にハイドレートし、初回ローディング状態を経由しない。
 
 ### 状態管理
 
@@ -76,11 +79,13 @@
 コンポーネント (components/)
     ↓ hooks を呼ぶ
 カスタムフック (hooks/)
-    ↓ api.ts を呼ぶ
+    ↓ api.ts を呼ぶ（Client Component）
 APIクライアント (lib/api.ts)
     ↓
 Go バックエンド
 ```
+
+例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。
 
 ## API
 
@@ -115,7 +120,7 @@ Go バックエンド
 
 ## コーディング規約
 
-- API呼び出しは必ず `lib/api.ts` 経由で行う
+- API呼び出しは必ず `lib/api.ts`（Client Component）または `lib/api.server.ts`（Server Component）経由で行う
 - `lib/generated/` 以下は直接編集しない
 - ロジックはカスタムフックに切り出し、コンポーネントは表示に専念させる
 - 環境変数は `.env.local` で管理し、`.env.example` をリポジトリに含める

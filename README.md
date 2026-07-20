@@ -110,7 +110,7 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │
 ├── hooks/                            # カスタムフック（ロジック・データ取得）
 │   ├── useCandles.ts                 # ローソク足データ取得（SWR）
-│   ├── useSymbols.ts                 # 銘柄一覧取得（SWR）
+│   ├── useSymbols.ts                 # 銘柄一覧取得（SWR、app/page.tsx が渡す SSR 初期データでハイドレート）
 │   ├── useWatchlist.ts               # ウォッチリスト操作（取得・追加・削除・並び替え）
 │   ├── useSelectedSymbol.ts          # 選択中の銘柄（URL searchParams）
 │   ├── useLogin.ts                   # ログイン処理
@@ -122,7 +122,8 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │   └── __tests__/                    # フックのユニットテスト（Vitest）
 │
 ├── lib/
-│   ├── api.ts                        # API クライアント（openapi-fetch・CSRF ミドルウェア）
+│   ├── api.ts                        # API クライアント（openapi-fetch・CSRF ミドルウェア、ブラウザ専用）
+│   ├── api.server.ts                 # Server Component 用 API 呼び出し（cookies() から Cookie ヘッダーを付与）
 │   ├── auth.ts                       # CSRF トークン取得・JWT 検証ユーティリティ
 │   ├── utils.ts                      # 汎用ユーティリティ（cn 等）
 │   └── generated/
@@ -148,11 +149,13 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 - **セッション切れ（401）**: `SESSION_EXPIRED_EVENT` カスタムイベントを発火し、ダイアログで通知
 
 ```
-lib/api.ts
-  → credentials: "include"（全リクエスト）
+lib/api.ts（Client Component から使用）
+  → credentials: "include"（全リクエスト、ブラウザが Cookie を自動送信）
   → X-CSRF-Token ヘッダー付与（POST / PUT / DELETE）
   → 401 検知 → SESSION_EXPIRED_EVENT 発火
 ```
+
+**Server Component からの認証付きフェッチ**: `credentials: "include"` はブラウザ専用のオプションであり、Server Component（Node ランタイム）では Cookie が自動送信されない。銘柄一覧（`app/page.tsx`）は `lib/api.server.ts` の `fetchSymbolsServer()` が `next/headers` の `cookies()` から `auth_token` を明示的に読み取り、`Cookie` ヘッダーとして付与して `/v1/symbols` を取得する。取得結果は SWR の `SWRConfig` の `fallback` としてクライアントへ渡され、`useSymbols()` はマウント時点で即座にこのデータでハイドレートされる（初回ローディング状態を経由しない）。取得に失敗した場合は空配列を返し、クライアント側の再検証・セッション切れフローに委ねる。
 
 ### ルーティングガード（proxy.ts）
 
@@ -186,11 +189,13 @@ lib/api.ts
 コンポーネント (components/)
     ↓ hooks を呼ぶ
 カスタムフック (hooks/)
-    ↓ lib/api.ts を呼ぶ
+    ↓ lib/api.ts を呼ぶ（Client Component）
 API クライアント (lib/api.ts)
     ↓
 Go バックエンド (stock_backend)
 ```
+
+例外: 銘柄一覧は `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼んで初期データを取得し、SWR の `fallback` として `useSymbols()` に渡す（上記「Server Component からの認証付きフェッチ」参照）。
 
 ## セットアップ
 
