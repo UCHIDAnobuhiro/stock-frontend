@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import Topbar from "./Topbar";
@@ -15,12 +16,16 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
+  const { mutate } = useSWRConfig();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { isExpired } = useSessionExpiry();
-  const handleSessionExpiredLogin = useCallback(() => {
+  const handleSessionExpiredLogin = useCallback(async () => {
+    // 前ユーザーのデータが次のログインユーザーに見えないよう、
+    // SWR のグローバルキャッシュを全破棄する
+    await mutate(() => true, undefined, { revalidate: false });
     router.replace("/login");
-  }, [router]);
+  }, [router, mutate]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
