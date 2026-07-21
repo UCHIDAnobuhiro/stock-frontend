@@ -29,6 +29,8 @@ export function ChartContainer() {
           >
             {error instanceof ApiError ? error.message : "データの取得に失敗しました"}
           </div>
+        ) : candles.length === 0 ? (
+          <ChartEmpty message="データがありません" />
         ) : (
           <CandlestickChart candles={candles} interval={interval} smaEnabled={smaEnabled} bollingerEnabled={bollingerEnabled} />
         )}

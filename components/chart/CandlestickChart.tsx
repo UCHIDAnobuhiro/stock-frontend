@@ -272,7 +272,13 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
   }, [resolvedTheme]);
 
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || candles.length === 0) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+
+    if (candles.length === 0) {
+      candleSeriesRef.current.setData([]);
+      volumeSeriesRef.current.setData([]);
+      return;
+    }
 
     const c = resolvedTheme === "light" ? lightColors : darkColors;
     const sorted = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1));
