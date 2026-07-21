@@ -646,7 +646,7 @@ components:
     CsrfToken:
       name: X-CSRF-Token
       in: header
-      required: true
+      required: false
       description: |
         CSRFトークン（Double Submit Cookieパターン）。
         ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。

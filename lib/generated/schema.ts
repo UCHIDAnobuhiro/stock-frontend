@@ -761,12 +761,12 @@ export interface operations {
     addToWatchlist: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description CSRFトークン（Double Submit Cookieパターン）。
                  *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
                  */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
             };
             path?: never;
             cookie?: never;
@@ -837,12 +837,12 @@ export interface operations {
     removeFromWatchlist: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description CSRFトークン（Double Submit Cookieパターン）。
                  *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
                  */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
             };
             path: {
                 /** @description 銘柄コード（例: AAPL, 7203.T） */
@@ -901,12 +901,12 @@ export interface operations {
     reorderWatchlist: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description CSRFトークン（Double Submit Cookieパターン）。
                  *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
                  */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
             };
             path?: never;
             cookie?: never;
@@ -957,12 +957,12 @@ export interface operations {
     detectLogo: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description CSRFトークン（Double Submit Cookieパターン）。
                  *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
                  */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
             };
             path?: never;
             cookie?: never;
@@ -1059,12 +1059,12 @@ export interface operations {
     analyzeCompany: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description CSRFトークン（Double Submit Cookieパターン）。
                  *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
                  */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
             };
             path?: never;
             cookie?: never;

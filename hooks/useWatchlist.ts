@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import apiClient, { CSRF_HEADER, createApiError } from "@/lib/api";
+import apiClient, { createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 
 export type WatchlistItem = components["schemas"]["WatchlistItem"];
@@ -35,7 +35,6 @@ export function useWatchlist() {
     await mutate(
       async () => {
         const { error, response } = await apiClient.POST("/v1/watchlist", {
-          params: { header: CSRF_HEADER },
           body: { symbol_code: symbolCode },
         });
         if (error) throw createApiError(response.status, "銘柄の追加に失敗しました");
@@ -62,7 +61,7 @@ export function useWatchlist() {
     await mutate(
       async () => {
         const { error, response } = await apiClient.DELETE("/v1/watchlist/{code}", {
-          params: { path: { code }, header: CSRF_HEADER },
+          params: { path: { code } },
         });
         if (error) throw createApiError(response.status, "銘柄の削除に失敗しました");
         return fetchWatchlist();
@@ -87,7 +86,6 @@ export function useWatchlist() {
     await mutate(
       async () => {
         const { error, response } = await apiClient.PUT("/v1/watchlist/order", {
-          params: { header: CSRF_HEADER },
           body: { codes },
         });
         if (error) throw createApiError(response.status, "並び替えに失敗しました");

@@ -137,7 +137,6 @@ describe("useWatchlist", () => {
       });
 
       expect(mockPost).toHaveBeenCalledWith("/v1/watchlist", {
-        params: { header: { "X-CSRF-Token": "" } },
         body: { symbol_code: "TSLA" },
       });
     });
@@ -231,7 +230,7 @@ describe("useWatchlist", () => {
       });
 
       expect(mockDelete).toHaveBeenCalledWith("/v1/watchlist/{code}", {
-        params: { path: { code: "AAPL" }, header: { "X-CSRF-Token": "" } },
+        params: { path: { code: "AAPL" } },
       });
     });
 
@@ -311,7 +310,6 @@ describe("useWatchlist", () => {
       });
 
       expect(mockPut).toHaveBeenCalledWith("/v1/watchlist/order", {
-        params: { header: { "X-CSRF-Token": "" } },
         body: { codes: ["GOOGL", "AAPL"] },
       });
     });
