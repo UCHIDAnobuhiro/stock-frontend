@@ -104,7 +104,7 @@ export interface paths {
          * OAuthコールバック処理
          * @description プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
          *     フロントエンドURLへリダイレクトします。
-         *     同メールアドレスが既存ユーザーに存在する場合は自動リンクします。
+         *     同メールアドレスの既存アカウントが存在する場合は自動リンクせず 409 を返します。
          */
         get: operations["oauthCallback"];
         put?: never;
@@ -451,6 +451,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description サービス一時利用不可（レートリミット基盤障害時） */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     login: {
@@ -506,6 +515,15 @@ export interface operations {
             };
             /** @description サーバーエラー */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サービス一時利用不可（レートリミット基盤障害時） */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -595,6 +613,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description 同メールアドレスの既存アカウントが存在（自動リンクは行わない） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -606,6 +633,15 @@ export interface operations {
             };
             /** @description プロバイダーAPIエラー（メールアドレス取得失敗等） */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サービス一時利用不可（レートリミット基盤障害時） */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -980,6 +1016,17 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description リクエスト過多（レートリミット超過） */
+            429: {
+                headers: {
+                    /** @description 再試行までの秒数 */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -991,6 +1038,15 @@ export interface operations {
             };
             /** @description 外部API通信エラー */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サービス一時利用不可（レートリミット基盤障害時） */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1047,8 +1103,28 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description リクエスト過多（レートリミット超過） */
+            429: {
+                headers: {
+                    /** @description 再試行までの秒数 */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description 外部API通信エラー */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サービス一時利用不可（レートリミット基盤障害時） */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -64,6 +64,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: サービス一時利用不可（レートリミット基盤障害時）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: サーバーエラー
           content:
@@ -109,6 +115,12 @@ paths:
               description: 再試行までの秒数
               schema:
                 type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: サービス一時利用不可（レートリミット基盤障害時）
           content:
             application/json:
               schema:
@@ -169,7 +181,7 @@ paths:
       description: |
         プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
         フロントエンドURLへリダイレクトします。
-        同メールアドレスが既存ユーザーに存在する場合は自動リンクします。
+        同メールアドレスの既存アカウントが存在する場合は自動リンクせず 409 を返します。
       operationId: oauthCallback
       tags:
         - auth
@@ -200,8 +212,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "502":
           description: プロバイダーAPIエラー（メールアドレス取得失敗等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: サービス一時利用不可（レートリミット基盤障害時）
           content:
             application/json:
               schema:
@@ -520,6 +544,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: リクエスト過多（レートリミット超過）
+          headers:
+            Retry-After:
+              description: 再試行までの秒数
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: サービス一時利用不可（レートリミット基盤障害時）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: サーバーエラー
           content:
@@ -566,6 +607,23 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "403":
           description: CSRFトークン不一致
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: リクエスト過多（レートリミット超過）
+          headers:
+            Retry-After:
+              description: 再試行までの秒数
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: サービス一時利用不可（レートリミット基盤障害時）
           content:
             application/json:
               schema:
