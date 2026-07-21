@@ -77,13 +77,47 @@ describe("useWatchlist", () => {
 
       expect(mockMutate).toHaveBeenCalledOnce();
       const [, options] = mockMutate.mock.calls[0];
+      expect(typeof options.optimisticData).toBe("function");
+      const optimistic = options.optimisticData(ITEMS);
       // 既存アイテム + 新規アイテムが末尾に追加されている
-      expect(options.optimisticData).toHaveLength(3);
-      expect(options.optimisticData[2]).toMatchObject({
+      expect(optimistic).toHaveLength(3);
+      expect(optimistic[2]).toMatchObject({
         symbol_code: "TSLA",
         sort_key: 3, // 既存 2 件の次
       });
       expect(options.rollbackOnError).toBe(true);
+    });
+
+    it("optimisticData は mutate 実行時点の最新キャッシュを土台に計算する（stale closure 回避）", async () => {
+      mockMutate.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await act(async () => {
+        await result.current.addSymbol("TSLA");
+      });
+
+      const [, options] = mockMutate.mock.calls[0];
+      // レンダー時の ITEMS（2件）ではなく、その時点のキャッシュ（3件）を土台にする
+      const latestCache = [...ITEMS, { id: 3, symbol_code: "MSFT", sort_key: 3 }];
+      const optimistic = options.optimisticData(latestCache);
+      expect(optimistic).toHaveLength(4);
+      expect(optimistic[3]).toMatchObject({ symbol_code: "TSLA", sort_key: 4 });
+    });
+
+    it("optimisticData は current が undefined でも例外を投げず1件配列を返す", async () => {
+      mockMutate.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await act(async () => {
+        await result.current.addSymbol("TSLA");
+      });
+
+      const [, options] = mockMutate.mock.calls[0];
+      const optimistic = options.optimisticData(undefined);
+      expect(optimistic).toHaveLength(1);
+      expect(optimistic[0]).toMatchObject({ symbol_code: "TSLA", sort_key: 1 });
     });
 
     it("mutate コールバック内で POST /v1/watchlist を呼ぶ", async () => {
@@ -129,9 +163,24 @@ describe("useWatchlist", () => {
       });
 
       const [, options] = mockMutate.mock.calls[0];
-      expect(options.optimisticData).toHaveLength(1);
-      expect(options.optimisticData[0].symbol_code).toBe("GOOGL");
+      expect(typeof options.optimisticData).toBe("function");
+      const optimistic = options.optimisticData(ITEMS);
+      expect(optimistic).toHaveLength(1);
+      expect(optimistic[0].symbol_code).toBe("GOOGL");
       expect(options.rollbackOnError).toBe(true);
+    });
+
+    it("optimisticData は current が undefined でも例外を投げず空配列を返す", async () => {
+      mockMutate.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await act(async () => {
+        await result.current.removeSymbol("AAPL");
+      });
+
+      const [, options] = mockMutate.mock.calls[0];
+      expect(options.optimisticData(undefined)).toEqual([]);
     });
 
     it("mutate コールバック内で DELETE /v1/watchlist/{code} を呼ぶ", async () => {
@@ -175,11 +224,43 @@ describe("useWatchlist", () => {
       });
 
       const [, options] = mockMutate.mock.calls[0];
-      expect(options.optimisticData).toEqual([
+      expect(typeof options.optimisticData).toBe("function");
+      expect(options.optimisticData(ITEMS)).toEqual([
         { id: 2, symbol_code: "GOOGL", sort_key: 1 },
         { id: 1, symbol_code: "AAPL", sort_key: 2 },
       ]);
       expect(options.rollbackOnError).toBe(true);
+    });
+
+    it("現在のキャッシュに存在しないコードは架空アイテムを作らず除外する", async () => {
+      mockMutate.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await act(async () => {
+        await result.current.reorder(["GOOGL", "AAPL", "UNKNOWN"]);
+      });
+
+      const [, options] = mockMutate.mock.calls[0];
+      const optimistic = options.optimisticData(ITEMS);
+      expect(optimistic).toHaveLength(2);
+      expect(optimistic).toEqual([
+        { id: 2, symbol_code: "GOOGL", sort_key: 1 },
+        { id: 1, symbol_code: "AAPL", sort_key: 2 },
+      ]);
+    });
+
+    it("optimisticData は current が undefined でも例外を投げず空配列を返す", async () => {
+      mockMutate.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await act(async () => {
+        await result.current.reorder(["GOOGL", "AAPL"]);
+      });
+
+      const [, options] = mockMutate.mock.calls[0];
+      expect(options.optimisticData(undefined)).toEqual([]);
     });
 
     it("mutate コールバック内で PUT /v1/watchlist/order を呼ぶ", async () => {

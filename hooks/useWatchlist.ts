@@ -28,12 +28,10 @@ export function useWatchlist() {
    * 銘柄をウォッチリストに追加する。
    * 一時 ID と末尾 sort_key を持つアイテムをオプティミスティックに追加し、
    * API 確定後にサーバー側の正式データで上書きする。
+   * optimisticData はコールバック形式で渡し、mutate 実行時点の最新キャッシュを
+   * 土台に計算する（連続操作時の stale closure を回避するため）。
    */
   const addSymbol = async (symbolCode: string) => {
-    const optimistic = [
-      ...(data ?? []),
-      { id: Date.now(), symbol_code: symbolCode, sort_key: (data?.length ?? 0) + 1 },
-    ];
     await mutate(
       async () => {
         const { error } = await apiClient.POST("/v1/watchlist", {
@@ -43,7 +41,13 @@ export function useWatchlist() {
         if (error) throw new Error("銘柄の追加に失敗しました");
         return fetchWatchlist();
       },
-      { optimisticData: optimistic, rollbackOnError: true }
+      {
+        optimisticData: (current?: WatchlistItem[]) => [
+          ...(current ?? []),
+          { id: Date.now(), symbol_code: symbolCode, sort_key: (current?.length ?? 0) + 1 },
+        ],
+        rollbackOnError: true,
+      }
     );
   };
 
@@ -51,9 +55,10 @@ export function useWatchlist() {
    * 指定した銘柄をウォッチリストから削除する。
    * オプティミスティックに該当アイテムをフィルタリングし、
    * API 確定後にサーバー側の正式データで上書きする。
+   * optimisticData はコールバック形式で渡し、mutate 実行時点の最新キャッシュを
+   * 土台に計算する（連続操作時の stale closure を回避するため）。
    */
   const removeSymbol = async (code: string) => {
-    const optimistic = (data ?? []).filter((item) => item.symbol_code !== code);
     await mutate(
       async () => {
         const { error } = await apiClient.DELETE("/v1/watchlist/{code}", {
@@ -62,7 +67,11 @@ export function useWatchlist() {
         if (error) throw new Error("銘柄の削除に失敗しました");
         return fetchWatchlist();
       },
-      { optimisticData: optimistic, rollbackOnError: true }
+      {
+        optimisticData: (current?: WatchlistItem[]) =>
+          (current ?? []).filter((item) => item.symbol_code !== code),
+        rollbackOnError: true,
+      }
     );
   };
 
@@ -70,13 +79,11 @@ export function useWatchlist() {
    * ウォッチリストの並び順を更新する。
    * `codes` の順序に従い sort_key を 1 始まりで振り直す。
    * オプティミスティックに並び替えを反映し、API 確定後に正式データで上書きする。
+   * optimisticData はコールバック形式で渡し、mutate 実行時点の最新キャッシュを
+   * 土台に計算する（連続操作時の stale closure を回避するため）。
+   * 現在のキャッシュに存在しないコードは架空アイテムを作らず除外する。
    */
   const reorder = async (codes: string[]) => {
-    const currentData = data ?? [];
-    const optimistic = codes.map((code, index) => {
-      const item = currentData.find((i) => i.symbol_code === code);
-      return { ...(item ?? { id: index, symbol_code: code }), sort_key: index + 1 };
-    });
     await mutate(
       async () => {
         const { error } = await apiClient.PUT("/v1/watchlist/order", {
@@ -86,7 +93,16 @@ export function useWatchlist() {
         if (error) throw new Error("並び替えに失敗しました");
         return fetchWatchlist();
       },
-      { optimisticData: optimistic, rollbackOnError: true }
+      {
+        optimisticData: (current?: WatchlistItem[]) => {
+          const byCode = new Map((current ?? []).map((item) => [item.symbol_code, item]));
+          return codes
+            .map((code) => byCode.get(code))
+            .filter((item): item is WatchlistItem => item !== undefined)
+            .map((item, index) => ({ ...item, sort_key: index + 1 }));
+        },
+        rollbackOnError: true,
+      }
     );
   };
 
