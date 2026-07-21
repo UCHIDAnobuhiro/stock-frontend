@@ -1,14 +1,13 @@
 "use client";
 
 import useSWRMutation from "swr/mutation";
-import apiClient, { CSRF_HEADER } from "@/lib/api";
+import apiClient from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 
 export type DetectedLogoResponse = components["schemas"]["DetectedLogoResponse"];
 
 async function detectLogo(_key: string, { arg }: { arg: File }) {
   const { data, error, response } = await apiClient.POST("/v1/logo/detect", {
-    params: { header: CSRF_HEADER },
     body: { image: arg } as never,
     bodySerializer: () => {
       const formData = new FormData();

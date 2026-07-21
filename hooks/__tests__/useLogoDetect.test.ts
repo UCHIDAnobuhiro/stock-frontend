@@ -26,7 +26,6 @@ vi.mock("swr/mutation", () => ({
 
 vi.mock("@/lib/api", () => ({
   default: { POST: mockPost },
-  CSRF_HEADER: { "X-CSRF-Token": "" },
 }));
 
 // ---- ヘルパー ----
