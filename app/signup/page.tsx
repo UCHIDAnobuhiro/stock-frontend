@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "アカウント登録",
 };
 
+// CSP の nonce は proxy.ts でリクエストごとに生成されるため、動的レンダリングが必須
+export const dynamic = "force-dynamic";
+
 export default function SignupPage() {
   return (
     <AuthPageShell>

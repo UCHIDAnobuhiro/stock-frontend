@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-const isDev = process.env.NODE_ENV === "development";
-
+// NOTE: Content-Security-Policy はリクエストごとの nonce が必要なため
+// ここではなく proxy.ts で付与している。
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -27,26 +27,6 @@ const nextConfig: NextConfig = {
             // 不要なブラウザ機能を無効化
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
-          },
-          {
-            // Content Security Policy
-            // NOTE: script-src の 'unsafe-inline' は Next.js のハイドレーション用。
-            // 'unsafe-eval' は開発時のみ（React がコールスタック再構築に使用）。
-            // 本番では eval() は使われないため除外される。
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://api.twelvedata.com https://logo.twelvedata.com",
-              `connect-src 'self' ${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}`,
-              "font-src 'self'",
-              "frame-src 'none'",
-              "frame-ancestors 'none'",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; "),
           },
         ],
       },

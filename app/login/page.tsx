@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "ログイン",
 };
 
+// CSP の nonce は proxy.ts でリクエストごとに生成されるため、動的レンダリングが必須
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   return (
     <AuthPageShell>
