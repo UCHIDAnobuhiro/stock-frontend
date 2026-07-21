@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import apiClient, { CSRF_HEADER } from "@/lib/api";
+import apiClient, { CSRF_HEADER, createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 
 export type WatchlistItem = components["schemas"]["WatchlistItem"];
@@ -11,8 +11,8 @@ export type WatchlistItem = components["schemas"]["WatchlistItem"];
  * `/v1/watchlist` にリクエストし、ウォッチリストの項目一覧を返す。
  */
 async function fetchWatchlist(): Promise<WatchlistItem[]> {
-  const { data, error } = await apiClient.GET("/v1/watchlist");
-  if (error) throw new Error("ウォッチリストの取得に失敗しました");
+  const { data, error, response } = await apiClient.GET("/v1/watchlist");
+  if (error) throw createApiError(response.status, "ウォッチリストの取得に失敗しました");
   return data ?? [];
 }
 
@@ -34,11 +34,11 @@ export function useWatchlist() {
   const addSymbol = async (symbolCode: string) => {
     await mutate(
       async () => {
-        const { error } = await apiClient.POST("/v1/watchlist", {
+        const { error, response } = await apiClient.POST("/v1/watchlist", {
           params: { header: CSRF_HEADER },
           body: { symbol_code: symbolCode },
         });
-        if (error) throw new Error("銘柄の追加に失敗しました");
+        if (error) throw createApiError(response.status, "銘柄の追加に失敗しました");
         return fetchWatchlist();
       },
       {
@@ -61,10 +61,10 @@ export function useWatchlist() {
   const removeSymbol = async (code: string) => {
     await mutate(
       async () => {
-        const { error } = await apiClient.DELETE("/v1/watchlist/{code}", {
+        const { error, response } = await apiClient.DELETE("/v1/watchlist/{code}", {
           params: { path: { code }, header: CSRF_HEADER },
         });
-        if (error) throw new Error("銘柄の削除に失敗しました");
+        if (error) throw createApiError(response.status, "銘柄の削除に失敗しました");
         return fetchWatchlist();
       },
       {
@@ -86,11 +86,11 @@ export function useWatchlist() {
   const reorder = async (codes: string[]) => {
     await mutate(
       async () => {
-        const { error } = await apiClient.PUT("/v1/watchlist/order", {
+        const { error, response } = await apiClient.PUT("/v1/watchlist/order", {
           params: { header: CSRF_HEADER },
           body: { codes },
         });
-        if (error) throw new Error("並び替えに失敗しました");
+        if (error) throw createApiError(response.status, "並び替えに失敗しました");
         return fetchWatchlist();
       },
       {

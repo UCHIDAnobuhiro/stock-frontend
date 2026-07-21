@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useWatchlist } from "@/hooks/useWatchlist";
+import { ApiError } from "@/lib/api";
 
 // ---- モック設定 ----
 
@@ -14,10 +15,13 @@ const { mockUseSWR, mockPost, mockDelete, mockPut, mockGet } = vi.hoisted(() => 
 
 vi.mock("swr", () => ({ default: mockUseSWR }));
 
-vi.mock("@/lib/api", () => ({
-  default: { GET: mockGet, POST: mockPost, DELETE: mockDelete, PUT: mockPut },
-  CSRF_HEADER: { "X-CSRF-Token": "" },
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    default: { GET: mockGet, POST: mockPost, DELETE: mockDelete, PUT: mockPut },
+  };
+});
 
 // ---- テストデータ ----
 
@@ -139,7 +143,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に mutate コールバックが throw する", async () => {
-      mockPost.mockResolvedValue({ data: null, error: { message: "server error" } });
+      mockPost.mockResolvedValue({ data: null, error: { message: "server error" }, response: { status: 400 } });
       mockMutate.mockImplementation(async (fn) => fn());
 
       const { result } = renderHook(() => useWatchlist());
@@ -149,6 +153,38 @@ describe("useWatchlist", () => {
           await result.current.addSymbol("TSLA");
         })
       ).rejects.toThrow("銘柄の追加に失敗しました");
+    });
+
+    it("403 のとき共通の拒否メッセージの ApiError を throw する", async () => {
+      mockPost.mockResolvedValue({ data: null, error: {}, response: { status: 403 } });
+      mockMutate.mockImplementation(async (fn) => fn());
+
+      const { result } = renderHook(() => useWatchlist());
+
+      await expect(
+        act(async () => {
+          await result.current.addSymbol("TSLA");
+        })
+      ).rejects.toThrow("リクエストが拒否されました。ページを再読み込みして再度お試しください");
+    });
+
+    it("throw されるエラーは status を保持した ApiError インスタンスである", async () => {
+      mockPost.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+      mockMutate.mockImplementation(async (fn) => fn());
+
+      const { result } = renderHook(() => useWatchlist());
+
+      let caught: unknown;
+      await act(async () => {
+        try {
+          await result.current.addSymbol("TSLA");
+        } catch (e) {
+          caught = e;
+        }
+      });
+
+      expect(caught).toBeInstanceOf(ApiError);
+      expect((caught as ApiError).status).toBe(500);
     });
   });
 
@@ -200,7 +236,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に mutate コールバックが throw する", async () => {
-      mockDelete.mockResolvedValue({ data: null, error: { message: "not found" } });
+      mockDelete.mockResolvedValue({ data: null, error: { message: "not found" }, response: { status: 400 } });
       mockMutate.mockImplementation(async (fn) => fn());
 
       const { result } = renderHook(() => useWatchlist());
@@ -281,7 +317,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に mutate コールバックが throw する", async () => {
-      mockPut.mockResolvedValue({ data: null, error: { message: "server error" } });
+      mockPut.mockResolvedValue({ data: null, error: { message: "server error" }, response: { status: 400 } });
       mockMutate.mockImplementation(async (fn) => fn());
 
       const { result } = renderHook(() => useWatchlist());
@@ -291,6 +327,20 @@ describe("useWatchlist", () => {
           await result.current.reorder(["GOOGL", "AAPL"]);
         })
       ).rejects.toThrow("並び替えに失敗しました");
+    });
+  });
+
+  describe("fetchWatchlist（フェッチャー）", () => {
+    it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {
+      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+      mockUseSWR.mockReturnValue({ data: ITEMS, isLoading: false, error: undefined, mutate: mockMutate });
+
+      renderHook(() => useWatchlist());
+
+      const [, fetcher] = mockUseSWR.mock.calls[0];
+      await expect((fetcher as () => Promise<unknown>)()).rejects.toThrow(
+        "データが見つかりませんでした"
+      );
     });
   });
 });

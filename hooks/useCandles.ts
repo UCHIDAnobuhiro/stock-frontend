@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import apiClient from "@/lib/api";
+import apiClient, { createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 import type { Interval } from "./useSelectedSymbol";
 
@@ -20,13 +20,13 @@ const INTERVAL_OUTPUTSIZE: Record<Interval, number> = {
  * タプルの第 0 要素は SWR キャッシュキーのプレフィックスなので無視する。
  */
 async function fetchCandles([, code, interval]: [string, string, Interval]): Promise<CandleResponse[]> {
-  const { data, error } = await apiClient.GET("/v1/candles/{code}", {
+  const { data, error, response } = await apiClient.GET("/v1/candles/{code}", {
     params: {
       path: { code },
       query: { interval, outputsize: INTERVAL_OUTPUTSIZE[interval] },
     },
   });
-  if (error) throw new Error("チャートデータの取得に失敗しました");
+  if (error) throw createApiError(response.status, "チャートデータの取得に失敗しました");
   return data ?? [];
 }
 

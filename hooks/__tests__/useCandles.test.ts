@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useCandles } from "@/hooks/useCandles";
+import { ApiError } from "@/lib/api";
 
 // ---- モック設定 ----
 
-const { mockUseSWR } = vi.hoisted(() => ({
+const { mockUseSWR, mockGet } = vi.hoisted(() => ({
   mockUseSWR: vi.fn(),
+  mockGet: vi.fn(),
 }));
 
 vi.mock("swr", () => ({ default: mockUseSWR }));
 
-vi.mock("@/lib/api", () => ({
-  default: { GET: vi.fn() },
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return { ...actual, default: { GET: mockGet } };
+});
 
 // useSelectedSymbol は型のみ使用するためモック不要
 
@@ -82,6 +85,58 @@ describe("useCandles", () => {
 
       const [, , options] = mockUseSWR.mock.calls[0];
       expect(options.revalidateOnFocus).toBe(false);
+    });
+  });
+
+  describe("fetchCandles（フェッチャー）", () => {
+    function getFetcher() {
+      mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined });
+      renderHook(() => useCandles("AAPL", "1day"));
+      const [, fetcher] = mockUseSWR.mock.calls[0];
+      return fetcher as (key: [string, string, string]) => Promise<unknown>;
+    }
+
+    it("成功時は data をそのまま返す", async () => {
+      const candles = [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }];
+      mockGet.mockResolvedValue({ data: candles, error: undefined, response: { status: 200 } });
+
+      const result = await getFetcher()(["/v1/candles", "AAPL", "1day"]);
+
+      expect(result).toEqual(candles);
+    });
+
+    it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {
+      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+
+      await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
+        "データが見つかりませんでした"
+      );
+    });
+
+    it("500 のときサーバーエラーメッセージの ApiError を throw する", async () => {
+      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+
+      await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
+        "サーバーエラーが発生しました。時間をおいて再度お試しください"
+      );
+    });
+
+    it("403 のとき共通の拒否メッセージの ApiError を throw する", async () => {
+      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 403 } });
+
+      await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
+        "リクエストが拒否されました。ページを再読み込みして再度お試しください"
+      );
+    });
+
+    it("マッピング外のステータスのときデフォルトメッセージの ApiError を throw する", async () => {
+      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 400 } });
+
+      const error = await getFetcher()(["/v1/candles", "AAPL", "1day"]).catch((e) => e);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+      expect((error as ApiError).message).toBe("チャートデータの取得に失敗しました");
     });
   });
 });
