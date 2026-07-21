@@ -18,6 +18,7 @@ import { useLogoAnalyze } from "@/hooks/useLogoAnalyze";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
+import { findBestMatch } from "@/lib/companyMatch";
 
 interface LogoSearchSheetProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface LogoSearchSheetProps {
 
 export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [matchError, setMatchError] = useState<string | null>(null);
   const { results, isLoading: isDetecting, error: detectError, detect, reset: resetDetect } = useLogoDetect();
   const { analysis, isLoading: isAnalyzing, error: analyzeError, analyze, reset: resetAnalysis } = useLogoAnalyze();
   const { addSymbol } = useWatchlist();
@@ -41,6 +43,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleFile = (file: File) => {
     resetDetect();
     resetAnalysis();
+    setMatchError(null);
     const url = URL.createObjectURL(file);
     setPreview(url);
     detect(file);
@@ -54,27 +57,28 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleReset = () => {
     resetDetect();
     resetAnalysis();
+    setMatchError(null);
     setPreview(null);
   };
 
   const handleViewChart = (name: string) => {
-    const symbol = symbols.find(
-      (s) => s.name.toLowerCase().includes(name.toLowerCase()) ||
-             name.toLowerCase().includes(s.name.toLowerCase())
-    );
+    const symbol = findBestMatch(name, symbols, (s) => s.name);
     if (symbol) {
+      setMatchError(null);
       setSymbol(symbol.code);
       onOpenChange(false);
+    } else {
+      setMatchError(`「${name}」に対応する銘柄が見つかりませんでした`);
     }
   };
 
   const handleAddToWatchlist = (name: string) => {
-    const symbol = symbols.find(
-      (s) => s.name.toLowerCase().includes(name.toLowerCase()) ||
-             name.toLowerCase().includes(s.name.toLowerCase())
-    );
+    const symbol = findBestMatch(name, symbols, (s) => s.name);
     if (symbol) {
+      setMatchError(null);
       addSymbol(symbol.code);
+    } else {
+      setMatchError(`「${name}」に対応する銘柄が見つかりませんでした`);
     }
   };
 
@@ -117,9 +121,9 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
               />
             )}
 
-            {(detectError || analyzeError) && (
+            {(detectError || analyzeError || matchError) && (
               <p className="text-xs" style={{ color: "var(--color-bear)" }}>
-                {detectError ?? analyzeError}
+                {detectError ?? analyzeError ?? matchError}
               </p>
             )}
 
