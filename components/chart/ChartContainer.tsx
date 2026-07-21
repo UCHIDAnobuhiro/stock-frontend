@@ -3,6 +3,7 @@
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators } from "@/hooks/useIndicators";
+import { ApiError } from "@/lib/api";
 import { ChartToolbar } from "./ChartToolbar";
 import { CandlestickChart } from "./CandlestickChart";
 import { ChartSkeleton } from "./ChartSkeleton";
@@ -26,7 +27,7 @@ export function ChartContainer() {
             className="flex h-full items-center justify-center text-sm"
             style={{ color: "var(--color-bear)" }}
           >
-            データの取得に失敗しました
+            {error instanceof ApiError ? error.message : "データの取得に失敗しました"}
           </div>
         ) : (
           <CandlestickChart candles={candles} interval={interval} smaEnabled={smaEnabled} bollingerEnabled={bollingerEnabled} />

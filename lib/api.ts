@@ -54,4 +54,39 @@ apiClient.use({
   },
 });
 
+/**
+ * API エラーを HTTP ステータスコード付きで表現するエラークラス。
+ * フェッチャーはこのクラスを throw し、UI 層は message（必要なら status）で表示を分岐する。
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+/** ステータスコード共通のエラーメッセージ対応表 */
+const STATUS_MESSAGES: Record<number, string> = {
+  401: "セッションの有効期限が切れました。再度ログインしてください",
+  403: "リクエストが拒否されました。ページを再読み込みして再度お試しください",
+  404: "データが見つかりませんでした",
+};
+
+/**
+ * HTTP ステータスに応じたメッセージを持つ ApiError を生成する。
+ * 401/403/404 は共通メッセージ、500番台はサーバーエラーメッセージ、
+ * それ以外は呼び出し元が指定する defaultMessage を使う。
+ */
+export function createApiError(status: number, defaultMessage: string): ApiError {
+  const message =
+    STATUS_MESSAGES[status] ??
+    (status >= 500
+      ? "サーバーエラーが発生しました。時間をおいて再度お試しください"
+      : defaultMessage);
+  return new ApiError(status, message);
+}
+
 export default apiClient;
