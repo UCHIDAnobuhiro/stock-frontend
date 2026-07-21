@@ -3,6 +3,8 @@
 import { useId } from "react";
 import { useCandles } from "@/hooks/useCandles";
 
+const VISIBLE_COUNT = 60;
+
 export function WatchlistSparkline({ code }: { code: string }) {
   const gradientId = `spark${useId().replace(/:/g, "")}`;
   const { candles, isLoading } = useCandles(code, "1day");
@@ -16,8 +18,7 @@ export function WatchlistSparkline({ code }: { code: string }) {
     );
   }
 
-  const visibleCount = window.innerWidth < 640 ? 30 : 60;
-  const slice = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).slice(-visibleCount);
+  const slice = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).slice(-VISIBLE_COUNT);
   if (slice.length < 2) return <div className="h-9 w-full" />;
 
   const closes = slice.map((c) => c.close);
