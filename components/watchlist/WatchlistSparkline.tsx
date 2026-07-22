@@ -1,13 +1,15 @@
 "use client";
 
 import { useId } from "react";
-import { useCandles } from "@/hooks/useCandles";
 
-const VISIBLE_COUNT = 60;
+interface WatchlistSparklineProps {
+  /** 古い→新しい順の直近終値。表示に必要な件数は呼び出し側で絞り込む */
+  closes: number[];
+  isLoading: boolean;
+}
 
-export function WatchlistSparkline({ code }: { code: string }) {
+export function WatchlistSparkline({ closes, isLoading }: WatchlistSparklineProps) {
   const gradientId = `spark${useId().replace(/:/g, "")}`;
-  const { candles, isLoading } = useCandles(code, "1day");
 
   if (isLoading) {
     return (
@@ -18,10 +20,8 @@ export function WatchlistSparkline({ code }: { code: string }) {
     );
   }
 
-  const slice = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).slice(-VISIBLE_COUNT);
-  if (slice.length < 2) return <div className="h-9 w-full" />;
+  if (closes.length < 2) return <div className="h-9 w-full" />;
 
-  const closes = slice.map((c) => c.close);
   const min = Math.min(...closes);
   const max = Math.max(...closes);
   const range = max - min || 1;

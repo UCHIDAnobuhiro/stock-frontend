@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useSelectedSymbol, type Interval } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { usePriceInfo } from "@/hooks/usePriceInfo";
+import { useQuotes } from "@/hooks/useQuotes";
 import { IndicatorToolbar } from "./IndicatorToolbar";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 
@@ -26,7 +26,8 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
   const { symbol, interval, setInterval } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
-  const priceInfo = usePriceInfo(symbol, "1day");
+  const { quotes } = useQuotes(symbol ? [symbol] : []);
+  const priceInfo = symbol ? quotes.get(symbol) : undefined;
   const selectedSymbol = symbols.find((s) => s.code === symbol);
   const isWatched = symbol !== null && items.some((i) => i.symbol_code === symbol);
 
@@ -67,7 +68,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
                   className="text-xs font-medium tabular-nums hidden sm:block"
                   style={{ color: priceInfo.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}
                 >
-                  {priceInfo.change >= 0 ? "+" : ""}{priceInfo.changePercent.toFixed(2)}%
+                  {priceInfo.change >= 0 ? "+" : ""}{priceInfo.change_percent.toFixed(2)}%
                 </span>
               </>
             )}

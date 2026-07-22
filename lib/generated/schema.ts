@@ -132,6 +132,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 複数銘柄の最新終値・前日比・スパークライン用終値配列を一括取得 */
+        get: operations["getQuotes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/symbols": {
         parameters: {
             query?: never;
@@ -288,6 +305,37 @@ export interface components {
              * @description 出来高
              */
             volume: number;
+        };
+        QuoteResponse: {
+            /** @description 銘柄コード（例: AAPL, 7203.T） */
+            code: string;
+            /**
+             * @description 最新足の日付（YYYY-MM-DD形式）
+             * @example 2024-01-15
+             */
+            time: string;
+            /**
+             * Format: double
+             * @description 最新終値
+             */
+            close: number;
+            /**
+             * Format: double
+             * @description 前日終値
+             */
+            prev_close: number;
+            /**
+             * Format: double
+             * @description 前日比（close - prev_close）
+             */
+            change: number;
+            /**
+             * Format: double
+             * @description 前日比率（%）。prev_closeが0の場合は0
+             */
+            change_percent: number;
+            /** @description スパークライン用の終値配列（古い→新しい順、最大bars本）。bars=0の場合は含まれない */
+            closes?: number[];
         };
         SymbolItem: {
             /** @description 銘柄コード（例: AAPL, 7203.T） */
@@ -678,6 +726,52 @@ export interface operations {
                 };
             };
             /** @description バリデーションエラー（outputsizeに整数以外、outputsize範囲外、未対応のinterval等） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            /** @description サーバーエラー */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getQuotes: {
+        parameters: {
+            query: {
+                /** @description カンマ区切りの銘柄コード（1〜50件、例: AAPL,GOOGL,7203.T）。重複は順序を保って除去される */
+                codes: string;
+                /** @description 時間間隔 */
+                interval?: "1day" | "1week" | "1month";
+                /** @description スパークライン用に含める直近終値の本数（0〜500）。0の場合はclosesを含めない */
+                bars?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 銘柄ごとの最新終値・前日比一覧（ローソク足2本未満の銘柄は除外。順序は保証しない） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"][];
+                };
+            };
+            /** @description バリデーションエラー（codes未指定/空/51件以上/パターン不一致、未対応のinterval、barsに整数以外/範囲外等） */
             400: {
                 headers: {
                     [name: string]: unknown;

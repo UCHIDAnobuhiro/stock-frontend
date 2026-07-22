@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 import { WatchlistSparkline } from "./WatchlistSparkline";
-import { usePriceInfo } from "@/hooks/usePriceInfo";
+import type { QuoteResponse } from "@/hooks/useQuotes";
 
 interface WatchlistItemProps {
   id: string;
@@ -17,10 +17,24 @@ interface WatchlistItemProps {
   onClick: () => void;
   onRemove: () => void;
   viewMode: "compact" | "chart";
+  /** `/v1/quotes` から取得した株価サマリー。未取得時は undefined */
+  quote?: QuoteResponse;
+  /** 株価サマリーの取得中かどうか（スパークラインのプレースホルダー表示に使用） */
+  isQuoteLoading: boolean;
 }
 
-export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRemove, viewMode }: WatchlistItemProps) {
-  const priceInfo = usePriceInfo(code);
+export function WatchlistItem({
+  id,
+  code,
+  name,
+  logoUrl,
+  isActive,
+  onClick,
+  onRemove,
+  viewMode,
+  quote,
+  isQuoteLoading,
+}: WatchlistItemProps) {
   const {
     attributes,
     listeners,
@@ -93,21 +107,23 @@ export function WatchlistItem({ id, code, name, logoUrl, isActive, onClick, onRe
               {name}
             </div>
           </div>
-          {priceInfo && (
+          {quote && (
             <div className="justify-self-end whitespace-nowrap text-right">
               <div className="text-sm font-medium tabular-nums">
-                {priceInfo.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {quote.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div
                 className="text-xs tabular-nums"
-                style={{ color: priceInfo.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}
+                style={{ color: quote.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}
               >
-                {priceInfo.change >= 0 ? "+" : ""}{priceInfo.changePercent.toFixed(2)}%
+                {quote.change >= 0 ? "+" : ""}{quote.change_percent.toFixed(2)}%
               </div>
             </div>
           )}
         </div>
-        {viewMode === "chart" && <WatchlistSparkline code={code} />}
+        {viewMode === "chart" && (
+          <WatchlistSparkline closes={quote?.closes ?? []} isLoading={isQuoteLoading} />
+        )}
       </div>
 
       {/* 削除ボタン */}

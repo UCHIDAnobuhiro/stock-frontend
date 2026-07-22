@@ -20,6 +20,7 @@ import { BarChart2, List } from "lucide-react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
+import { useQuotes } from "@/hooks/useQuotes";
 import { WatchlistItem } from "./WatchlistItem";
 import { WatchlistEmpty } from "./WatchlistEmpty";
 import {
@@ -42,6 +43,12 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   const [viewMode, setViewMode] = useState<"compact" | "chart">("compact");
   const [query, setQuery] = useState("");
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // ウォッチリスト内の全銘柄の株価サマリーを1回のリクエストでまとめて取得する（N+1回避）
+  // viewMode によらず常に bars: 60 で取得することで、compact ⇄ chart 切替でSWRキーが変わらないようにする
+  // （切替のたびの再フェッチ・価格表示の一時消失・chartモード保存ユーザーの初回マウント時2回フェッチを防ぐ）
+  const codes = useMemo(() => items.map((i) => i.symbol_code), [items]);
+  const { quotes, isLoading: quotesLoading } = useQuotes(codes, { bars: 60 });
 
   useEffect(() => {
     const stored = localStorage.getItem("watchlist-view-mode");
@@ -203,6 +210,8 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
                   }}
                   onRemove={() => removeSymbol(item.symbol_code)}
                   viewMode={viewMode}
+                  quote={quotes.get(item.symbol_code)}
+                  isQuoteLoading={quotesLoading}
                 />
               ))}
             </SortableContext>
