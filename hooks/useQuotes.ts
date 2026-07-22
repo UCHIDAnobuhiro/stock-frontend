@@ -38,6 +38,8 @@ async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteR
  *
  * `codes` が空のときは SWR キーを null にしてフェッチを無効化する。
  * SWR キーは codes をソートしてから構築するため、並び替え操作（順序の変化のみ）では再フェッチされない。
+ * `keepPreviousData: true` により、銘柄の追加・削除で codes（＝SWRキー）が変わった際も、
+ * 新しいデータの取得が完了するまで直前のデータを表示し続ける（値が一瞬空になるちらつきを防ぐ）。
  */
 export function useQuotes(codes: string[], options: UseQuotesOptions = {}) {
   const { interval = "1day", bars = 0 } = options;
@@ -49,6 +51,7 @@ export function useQuotes(codes: string[], options: UseQuotesOptions = {}) {
 
   const { data, isLoading, error } = useSWR(key, fetchQuotes, {
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
 
   const quotes = new Map((data ?? []).map((quote) => [quote.code, quote]));

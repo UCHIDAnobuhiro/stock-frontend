@@ -45,10 +45,10 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // ウォッチリスト内の全銘柄の株価サマリーを1回のリクエストでまとめて取得する（N+1回避）
+  // viewMode によらず常に bars: 60 で取得することで、compact ⇄ chart 切替でSWRキーが変わらないようにする
+  // （切替のたびの再フェッチ・価格表示の一時消失・chartモード保存ユーザーの初回マウント時2回フェッチを防ぐ）
   const codes = useMemo(() => items.map((i) => i.symbol_code), [items]);
-  const { quotes, isLoading: quotesLoading } = useQuotes(codes, {
-    bars: viewMode === "chart" ? 60 : 0,
-  });
+  const { quotes, isLoading: quotesLoading } = useQuotes(codes, { bars: 60 });
 
   useEffect(() => {
     const stored = localStorage.getItem("watchlist-view-mode");
