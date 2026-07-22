@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import useSWR from "swr";
 import apiClient, { createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
@@ -78,7 +79,8 @@ export function useQuotes(codes: string[], options: UseQuotesOptions = {}) {
     keepPreviousData: true,
   });
 
-  const quotes = new Map((data ?? []).map((quote) => [quote.code, quote]));
+  // data が変わらない限り Map インスタンスを再生成しない（参照同一性を保つ）
+  const quotes = useMemo(() => new Map((data ?? []).map((quote) => [quote.code, quote])), [data]);
 
   return {
     quotes,
