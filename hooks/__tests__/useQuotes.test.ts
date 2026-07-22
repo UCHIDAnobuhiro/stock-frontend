@@ -165,5 +165,40 @@ describe("useQuotes", () => {
       expect((error as ApiError).status).toBe(400);
       expect((error as ApiError).message).toBe("株価サマリーの取得に失敗しました");
     });
+
+    it("codes が51件以上のとき50件ずつのチャンクに分割してリクエストし、結果をマージした Map を返す", async () => {
+      const codesList = Array.from({ length: 51 }, (_, i) => `CODE${i}`);
+
+      mockGet.mockImplementation(async (_path: string, options: { params: { query: { codes: string } } }) => {
+        const requestedCodes = options.params.query.codes.split(",");
+        const data = requestedCodes.map((code) => ({
+          code,
+          time: "2024-01-15",
+          close: 100,
+          prev_close: 99,
+          change: 1,
+          change_percent: 1.01,
+        }));
+        return { data, error: undefined, response: { status: 200 } };
+      });
+
+      const result = (await getFetcher(codesList)(["/v1/quotes", codesList.join(","), "1day", 0])) as Array<{
+        code: string;
+      }>;
+
+      expect(mockGet).toHaveBeenCalledTimes(2);
+      const requestedCodesPerCall = mockGet.mock.calls.map(
+        ([, options]: [string, { params: { query: { codes: string } } }]) =>
+          options.params.query.codes.split(",")
+      );
+      expect(requestedCodesPerCall[0]).toHaveLength(50);
+      expect(requestedCodesPerCall[1]).toHaveLength(1);
+      for (const requestedCodes of requestedCodesPerCall) {
+        expect(requestedCodes.length).toBeLessThanOrEqual(50);
+      }
+
+      expect(result).toHaveLength(51);
+      expect(new Set(result.map((q) => q.code))).toEqual(new Set(codesList));
+    });
   });
 });
