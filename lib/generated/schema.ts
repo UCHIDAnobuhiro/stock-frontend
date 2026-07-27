@@ -397,7 +397,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description 認証失敗（auth_token Cookieが無い・無効・期限切れ） */
+        /** @description 認証失敗（auth_token CookieまたはBearerトークンが無い・無効・期限切れ） */
         UnauthorizedError: {
             headers: {
                 [name: string]: unknown;
