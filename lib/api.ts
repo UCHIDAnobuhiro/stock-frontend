@@ -4,6 +4,8 @@ import { getCsrfToken } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
+const SAFE_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 /**
  * openapi-fetch で生成された型安全な API クライアント。
  * Cookie 認証（HttpOnly auth_token）＋ Double Submit CSRF パターンを使用。
@@ -15,13 +17,13 @@ const apiClient = createClient<paths>({
 
 /**
  * リクエストミドルウェア。
- * 状態変更リクエスト（POST / PUT / DELETE）に X-CSRF-Token ヘッダーを付与する。
+ * 安全メソッド（GET / HEAD / OPTIONS）以外に X-CSRF-Token ヘッダーを付与する。
  * csrf_token Cookie が存在しない場合はヘッダーをセットしない（サーバーが 403 を返す）。
  */
 apiClient.use({
   onRequest({ request }) {
     const method = request.method.toUpperCase();
-    if (["POST", "PUT", "DELETE"].includes(method)) {
+    if (!SAFE_HTTP_METHODS.has(method)) {
       const csrf = getCsrfToken();
       if (csrf) {
         request.headers.set("X-CSRF-Token", csrf);

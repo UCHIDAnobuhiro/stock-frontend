@@ -181,7 +181,8 @@ paths:
       description: |
         プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
         フロントエンドURLへリダイレクトします。
-        同メールアドレスの既存アカウントが存在する場合は自動リンクせず 409 を返します。
+        エラー時は自動リンクや JSON 応答は行わず、フロントエンドのログイン画面へ
+        `error` コード付きでリダイレクトします。
       operationId: oauthCallback
       tags:
         - auth
@@ -205,33 +206,15 @@ paths:
             type: string
       responses:
         "302":
-          description: フロントエンドURLへリダイレクト（auth_token・csrf_token Cookieをセット）
-        "400":
-          description: stateが無効または期限切れ
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "502":
-          description: プロバイダーAPIエラー（メールアドレス取得失敗等）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          description: |
+            成功時は `{FRONTEND_URL}` へリダイレクト（auth_token・csrf_token Cookieをセット）。
+            エラー時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト（Cookieはセットしない）。
+            code は以下のいずれか:
+              - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
+              - `oauth_failed`: 上記以外のすべてのエラー（state不正・期限切れ、プロバイダーAPIエラー、
+                未サポートのプロバイダー、内部エラー等）
         "503":
           description: サービス一時利用不可（レートリミット基盤障害時）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: サーバーエラー
           content:
             application/json:
               schema:
@@ -245,6 +228,7 @@ paths:
         - candles
       security:
         - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - name: code
           in: path
@@ -306,6 +290,7 @@ paths:
         - quotes
       security:
         - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - name: codes
           in: query
@@ -366,6 +351,7 @@ paths:
         - symbols
       security:
         - cookieAuth: []
+        - bearerAuth: []
       responses:
         "200":
           description: 銘柄一覧
@@ -392,6 +378,7 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
+        - bearerAuth: []
       responses:
         "200":
           description: ウォッチリスト一覧
@@ -416,8 +403,8 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
+          csrfToken: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -472,6 +459,8 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
+          csrfToken: []
+        - bearerAuth: []
       parameters:
         - name: code
           in: path
@@ -481,7 +470,6 @@ paths:
             type: string
             maxLength: 20
             pattern: "^[A-Za-z0-9._-]{1,20}$"
-        - $ref: "#/components/parameters/CsrfToken"
       responses:
         "204":
           description: 削除成功
@@ -520,8 +508,8 @@ paths:
         - watchlist
       security:
         - cookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
+          csrfToken: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -560,8 +548,8 @@ paths:
         - logo
       security:
         - cookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
+          csrfToken: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -642,8 +630,8 @@ paths:
         - logo
       security:
         - cookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
+          csrfToken: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -702,20 +690,22 @@ components:
       in: cookie
       name: auth_token
 
-  parameters:
-    CsrfToken:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    csrfToken:
+      type: apiKey
       name: X-CSRF-Token
       in: header
-      required: false
       description: |
         CSRFトークン（Double Submit Cookieパターン）。
         ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-      schema:
-        type: string
 
   responses:
     UnauthorizedError:
-      description: 認証失敗（auth_token Cookieが無い・無効・期限切れ）
+      description: 認証失敗（auth_token CookieまたはBearerトークンが無い・無効・期限切れ）
       content:
         application/json:
           schema:

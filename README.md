@@ -145,13 +145,13 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 
 - **ログイン時**: バックエンドが `auth_token`（HttpOnly）と `csrf_token` の 2 つの Cookie を発行
 - **認証済みリクエスト**: `credentials: "include"` で Cookie を自動送信
-- **状態変更（POST / PUT / DELETE）**: `csrf_token` Cookie を読み取り `X-CSRF-Token` ヘッダーに付与
+- **状態変更（GET / HEAD / OPTIONS 以外）**: `csrf_token` Cookie を読み取り `X-CSRF-Token` ヘッダーに付与
 - **セッション切れ（401）**: `SESSION_EXPIRED_EVENT` カスタムイベントを発火し、ダイアログで通知
 
 ```
 lib/api.ts（Client Component から使用）
   → credentials: "include"（全リクエスト、ブラウザが Cookie を自動送信）
-  → X-CSRF-Token ヘッダー付与（POST / PUT / DELETE）
+  → X-CSRF-Token ヘッダー付与（GET / HEAD / OPTIONS 以外）
   → 401 検知 → SESSION_EXPIRED_EVENT 発火
 ```
 
@@ -234,15 +234,24 @@ npm run lint          # ESLint 実行
 npm run test          # テスト実行（Vitest）
 npm run test:watch    # テストウォッチモード
 npm run generate:api  # openapi.yaml から schema.ts を再生成
+npm run check:api     # schema.ts が OpenAPI と同期しているか確認
+npm run sync:api      # バックエンドの OpenAPI を同期して型を再生成
 ```
 
 ## 型定義の再生成
 
-バックエンドの `openapi/openapi.yaml` を更新したら以下を実行：
+バックエンドの `api/openapi.yaml` が API コントラクトの正本です。
+バックエンドを同じ親ディレクトリにチェックアウトした状態で、以下を実行します。
 
 ```bash
-npm run generate:api
-# = openapi-typescript openapi/openapi.yaml -o lib/generated/schema.ts
+npm run sync:api
 ```
 
-生成先: `lib/generated/schema.ts`（直接編集禁止）
+`STOCK_BACKEND_DIR` を設定すると、別の場所にあるバックエンドも指定できます。
+
+```bash
+STOCK_BACKEND_DIR=/path/to/stock-backend npm run sync:api
+```
+
+同期先は `openapi/openapi.yaml`、生成先は `lib/generated/schema.ts` です。
+どちらも直接編集せず、バックエンドの正本から同期してください。CIでは正本との完全一致と生成漏れを検証します。

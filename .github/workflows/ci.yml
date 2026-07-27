@@ -13,6 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Checkout backend OpenAPI
+        uses: actions/checkout@v7
+        with:
+          repository: UCHIDAnobuhiro/stock-backend
+          path: .openapi-source/stock-backend
+          sparse-checkout: api/openapi.yaml
+
       - uses: actions/setup-node@v7
         with:
           node-version: 20
@@ -20,6 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check backend OpenAPI sync
+        run: diff -u .openapi-source/stock-backend/api/openapi.yaml openapi/openapi.yaml
+
+      - name: Check generated API types
+        run: npm run check:api
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high

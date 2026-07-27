@@ -104,7 +104,8 @@ export interface paths {
          * OAuthコールバック処理
          * @description プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
          *     フロントエンドURLへリダイレクトします。
-         *     同メールアドレスの既存アカウントが存在する場合は自動リンクせず 409 を返します。
+         *     エラー時は自動リンクや JSON 応答は行わず、フロントエンドのログイン画面へ
+         *     `error` コード付きでリダイレクトします。
          */
         get: operations["oauthCallback"];
         put?: never;
@@ -396,7 +397,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description 認証失敗（auth_token Cookieが無い・無効・期限切れ） */
+        /** @description 認証失敗（auth_token CookieまたはBearerトークンが無い・無効・期限切れ） */
         UnauthorizedError: {
             headers: {
                 [name: string]: unknown;
@@ -406,13 +407,7 @@ export interface components {
             };
         };
     };
-    parameters: {
-        /**
-         * @description CSRFトークン（Double Submit Cookieパターン）。
-         *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-         */
-        CsrfToken: string;
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -645,48 +640,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description フロントエンドURLへリダイレクト（auth_token・csrf_token Cookieをセット） */
+            /**
+             * @description 成功時は `{FRONTEND_URL}` へリダイレクト（auth_token・csrf_token Cookieをセット）。
+             *     エラー時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト（Cookieはセットしない）。
+             *     code は以下のいずれか:
+             *       - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
+             *       - `oauth_failed`: 上記以外のすべてのエラー（state不正・期限切れ、プロバイダーAPIエラー、
+             *         未サポートのプロバイダー、内部エラー等）
+             */
             302: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description stateが無効または期限切れ */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description 同メールアドレスの既存アカウントが存在（自動リンクは行わない） */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description サーバーエラー */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description プロバイダーAPIエラー（メールアドレス取得失敗等） */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
             };
             /** @description サービス一時利用不可（レートリミット基盤障害時） */
             503: {
@@ -855,13 +821,7 @@ export interface operations {
     addToWatchlist: {
         parameters: {
             query?: never;
-            header?: {
-                /**
-                 * @description CSRFトークン（Double Submit Cookieパターン）。
-                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-                 */
-                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -931,13 +891,7 @@ export interface operations {
     removeFromWatchlist: {
         parameters: {
             query?: never;
-            header?: {
-                /**
-                 * @description CSRFトークン（Double Submit Cookieパターン）。
-                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-                 */
-                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path: {
                 /** @description 銘柄コード（例: AAPL, 7203.T） */
                 code: string;
@@ -995,13 +949,7 @@ export interface operations {
     reorderWatchlist: {
         parameters: {
             query?: never;
-            header?: {
-                /**
-                 * @description CSRFトークン（Double Submit Cookieパターン）。
-                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-                 */
-                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1051,13 +999,7 @@ export interface operations {
     detectLogo: {
         parameters: {
             query?: never;
-            header?: {
-                /**
-                 * @description CSRFトークン（Double Submit Cookieパターン）。
-                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-                 */
-                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1153,13 +1095,7 @@ export interface operations {
     analyzeCompany: {
         parameters: {
             query?: never;
-            header?: {
-                /**
-                 * @description CSRFトークン（Double Submit Cookieパターン）。
-                 *     ログイン時にSet-Cookieで発行された csrf_token Cookie の値を、変更系リクエストでこのヘッダーに設定します。
-                 */
-                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
