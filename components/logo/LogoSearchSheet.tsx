@@ -27,8 +27,16 @@ interface LogoSearchSheetProps {
 
 export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
-  const { results, isLoading: isDetecting, error: detectError, detect, reset: resetDetect } = useLogoDetect();
+  const {
+    results,
+    hasSearched,
+    isLoading: isDetecting,
+    error: detectError,
+    detect,
+    reset: resetDetect,
+  } = useLogoDetect();
   const { analysis, isLoading: isAnalyzing, error: analyzeError, analyze, reset: resetAnalysis } = useLogoAnalyze();
   const { addSymbol } = useWatchlist();
   const { symbols } = useSymbols();
@@ -43,10 +51,11 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleFile = (file: File) => {
     resetDetect();
     resetAnalysis();
+    setFileError(null);
     setMatchError(null);
     const url = URL.createObjectURL(file);
     setPreview(url);
-    detect(file);
+    detect(file).catch(() => {});
   };
 
   const handleAnalyze = (name: string) => {
@@ -57,6 +66,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleReset = () => {
     resetDetect();
     resetAnalysis();
+    setFileError(null);
     setMatchError(null);
     setPreview(null);
   };
@@ -108,6 +118,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
           <div className="space-y-4 p-4">
             <LogoDropzone
               onFile={handleFile}
+              onValidationError={setFileError}
               isLoading={isDetecting}
               preview={preview}
             />
@@ -121,9 +132,32 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
               />
             )}
 
-            {(detectError || analyzeError || matchError) && (
-              <p className="text-xs" style={{ color: "var(--color-bear)" }}>
-                {detectError ?? analyzeError ?? matchError}
+            {hasSearched &&
+              !isDetecting &&
+              results.length === 0 &&
+              !detectError && (
+                <div
+                  role="status"
+                  className="rounded-lg p-3 text-xs"
+                  style={{
+                    backgroundColor: "var(--color-surface-3)",
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  <p className="font-medium">ロゴを検出できませんでした</p>
+                  <p className="mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    ロゴが大きく鮮明に写った別の画像をお試しください。
+                  </p>
+                </div>
+              )}
+
+            {(fileError || detectError || analyzeError || matchError) && (
+              <p
+                role="alert"
+                className="text-xs"
+                style={{ color: "var(--color-bear)" }}
+              >
+                {fileError ?? detectError ?? analyzeError ?? matchError}
               </p>
             )}
 

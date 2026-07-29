@@ -5,17 +5,27 @@ import { Upload, Image as ImageIcon } from "lucide-react";
 
 interface LogoDropzoneProps {
   onFile: (file: File) => void;
+  onValidationError: (message: string | null) => void;
   isLoading: boolean;
   preview: string | null;
 }
 
-export function LogoDropzone({ onFile, isLoading, preview }: LogoDropzoneProps) {
+export function LogoDropzone({
+  onFile,
+  onValidationError,
+  isLoading,
+  preview,
+}: LogoDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFile = (file: File) => {
     if (isLoading) return;
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) {
+      onValidationError("画像ファイルを選択してください");
+      return;
+    }
+    onValidationError(null);
     onFile(file);
   };
 

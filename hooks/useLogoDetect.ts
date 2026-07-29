@@ -42,6 +42,7 @@ export function useLogoDetect() {
 
   return {
     results: data ?? [],
+    hasSearched: data !== undefined,
     isLoading: isMutating,
     error: error instanceof Error ? error.message : error ? "ロゴ検出に失敗しました" : null,
     detect: trigger,
