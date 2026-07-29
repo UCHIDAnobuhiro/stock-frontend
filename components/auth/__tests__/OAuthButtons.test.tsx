@@ -29,7 +29,10 @@ describe("OAuthButtons", () => {
       expect(selectedLink.classList.contains("opacity-70")).toBe(true);
       expect(otherLink.classList.contains("opacity-70")).toBe(true);
 
-      fireEvent(window, new Event("pageshow"));
+      fireEvent(
+        window,
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
 
       expect(selectedLink.getAttribute("aria-disabled")).toBe("false");
       expect(otherLink.getAttribute("aria-disabled")).toBe("false");
