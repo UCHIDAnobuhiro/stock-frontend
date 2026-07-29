@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { API_BASE } from "@/lib/api";
@@ -28,23 +28,48 @@ function GitHubIcon() {
 
 export function OAuthButtons() {
   const [loading, setLoading] = useState<"google" | "github" | null>(null);
+  const isLoading = loading !== null;
+
+  useEffect(() => {
+    const resetLoading = () => setLoading(null);
+
+    window.addEventListener("pageshow", resetLoading);
+    return () => window.removeEventListener("pageshow", resetLoading);
+  }, []);
+
+  const handleClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    provider: "google" | "github",
+  ) => {
+    if (isLoading) {
+      event.preventDefault();
+      return;
+    }
+    setLoading(provider);
+  };
 
   return (
     <div className="flex flex-col gap-2">
       <a
         href={`${API_BASE}/v1/auth/oauth/google`}
-        className={cn(buttonClass, loading === "google" && "pointer-events-none opacity-70")}
-        onClick={() => setLoading("google")}
-        aria-disabled={loading !== null}
+        className={cn(
+          buttonClass,
+          isLoading && "pointer-events-none opacity-70",
+        )}
+        onClick={(event) => handleClick(event, "google")}
+        aria-disabled={isLoading}
       >
         <GoogleIcon />
         <span>Googleで続ける</span>
       </a>
       <a
         href={`${API_BASE}/v1/auth/oauth/github`}
-        className={cn(buttonClass, loading === "github" && "pointer-events-none opacity-70")}
-        onClick={() => setLoading("github")}
-        aria-disabled={loading !== null}
+        className={cn(
+          buttonClass,
+          isLoading && "pointer-events-none opacity-70",
+        )}
+        onClick={(event) => handleClick(event, "github")}
+        aria-disabled={isLoading}
       >
         <GitHubIcon />
         <span>GitHubで続ける</span>
