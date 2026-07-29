@@ -14,7 +14,7 @@ describe("Error", () => {
 
   it("タイトルと説明文が表示される", () => {
     const error = new Error("boom")
-    render(<ErrorPage error={error} reset={vi.fn()} />)
+    render(<ErrorPage error={error} unstable_retry={vi.fn()} />)
 
     expect(
       screen.getByRole("heading", { name: "エラーが発生しました" })
@@ -26,27 +26,27 @@ describe("Error", () => {
     ).not.toBeNull()
   })
 
-  it("再試行ボタンをクリックすると reset が呼ばれる", async () => {
+  it("再試行ボタンをクリックすると unstable_retry が呼ばれる", async () => {
     const user = userEvent.setup()
-    const reset = vi.fn()
+    const unstableRetry = vi.fn()
     const error = new Error("boom")
-    render(<ErrorPage error={error} reset={reset} />)
+    render(<ErrorPage error={error} unstable_retry={unstableRetry} />)
 
     await user.click(screen.getByRole("button", { name: "再試行" }))
 
-    expect(reset).toHaveBeenCalledTimes(1)
+    expect(unstableRetry).toHaveBeenCalledTimes(1)
   })
 
   it("digest がある場合エラーコードを表示する", () => {
     const error = Object.assign(new Error("boom"), { digest: "abc123" })
-    render(<ErrorPage error={error} reset={vi.fn()} />)
+    render(<ErrorPage error={error} unstable_retry={vi.fn()} />)
 
     expect(screen.getByText("エラーコード: abc123")).not.toBeNull()
   })
 
   it("digest がない場合表示しない", () => {
     const error = new Error("boom")
-    render(<ErrorPage error={error} reset={vi.fn()} />)
+    render(<ErrorPage error={error} unstable_retry={vi.fn()} />)
 
     expect(screen.queryByText(/エラーコード:/)).toBeNull()
   })
