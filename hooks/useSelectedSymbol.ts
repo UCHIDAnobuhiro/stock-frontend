@@ -14,7 +14,7 @@ export function useSelectedSymbol() {
   const pathname = usePathname();
 
   const rawSymbol = searchParams.get("symbol");
-  const symbol = rawSymbol?.trim() ? rawSymbol : null;
+  const symbol = rawSymbol?.trim() || null;
   const rawInterval = searchParams.get("interval");
   const interval: Interval = isInterval(rawInterval) ? rawInterval : "1day";
 

@@ -29,6 +29,14 @@ describe("useSelectedSymbol", () => {
     expect(result.current.interval).toBe("1week");
   });
 
+  it("symbolの前後空白を除去して返す", () => {
+    mockUseSearchParams.mockReturnValue(new URLSearchParams("symbol=%20AAPL%20"));
+
+    const { result } = renderHook(() => useSelectedSymbol());
+
+    expect(result.current.symbol).toBe("AAPL");
+  });
+
   it("setSymbolは既存queryを保持してpushする", () => {
     mockUseSearchParams.mockReturnValue(
       new URLSearchParams("interval=1week&display=compact")

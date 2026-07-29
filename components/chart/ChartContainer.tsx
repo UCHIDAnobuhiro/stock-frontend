@@ -20,7 +20,7 @@ export function ChartContainer() {
     <div className="flex h-full flex-col overflow-hidden">
       <ChartToolbar smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} />
       <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
-        {isInitializing ? (
+        {isInitializing && !symbol ? (
           <ChartSkeleton />
         ) : !symbol ? (
           <ChartEmpty />

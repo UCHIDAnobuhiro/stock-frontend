@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
@@ -14,11 +14,19 @@ export function useDefaultWatchlistSymbol() {
   const { symbol, replaceSymbol } = useSelectedSymbol();
   const { items, isLoading, error } = useWatchlist();
   const defaultSymbol = items[0]?.symbol_code;
+  const hasAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (!symbol && !isLoading && !error && defaultSymbol) {
-      replaceSymbol(defaultSymbol);
-    }
+    if (
+      symbol ||
+      isLoading ||
+      error ||
+      !defaultSymbol ||
+      hasAttemptedRef.current
+    ) return;
+
+    hasAttemptedRef.current = true;
+    replaceSymbol(defaultSymbol);
   }, [defaultSymbol, error, isLoading, replaceSymbol, symbol]);
 
   return {

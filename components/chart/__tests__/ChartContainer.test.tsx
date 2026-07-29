@@ -80,6 +80,21 @@ describe("ChartContainer", () => {
     expect(screen.queryByTestId("chart-skeleton")).toBeNull();
   });
 
+  it("symbol選択済みならisInitializingがtrueでもチャート表示を優先する", () => {
+    mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1day" });
+    mockUseDefaultWatchlistSymbol.mockReturnValue({ isInitializing: true });
+    mockUseCandles.mockReturnValue({
+      candles: [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }],
+      isLoading: false,
+      error: undefined,
+    });
+
+    render(<ChartContainer />);
+
+    expect(screen.getByTestId("candlestick-chart")).toBeTruthy();
+    expect(screen.queryByTestId("chart-skeleton")).toBeNull();
+  });
+
   it("symbol選択済み・ローディング/エラーなし・candles が空のとき「データがありません」を表示し、CandlestickChart は描画しない（Issue #41 の回帰防止）", () => {
     mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1day" });
     mockUseCandles.mockReturnValue({ candles: [], isLoading: false, error: undefined });
