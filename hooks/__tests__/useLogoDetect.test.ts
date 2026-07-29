@@ -7,8 +7,12 @@ import { useLogoDetect } from "@/hooks/useLogoDetect";
 // useSWRMutation は fetcher をそのまま呼び出す簡易実装に差し替え、
 // detectLogo 内のステータス別エラーハンドリングを直接検証する。
 
-const { mockPost } = vi.hoisted(() => ({
+const { mockPost, mockMutationState } = vi.hoisted(() => ({
   mockPost: vi.fn(),
+  mockMutationState: {
+    data: undefined as unknown,
+    error: undefined as unknown,
+  },
 }));
 
 vi.mock("swr/mutation", () => ({
@@ -17,9 +21,9 @@ vi.mock("swr/mutation", () => ({
     fetcher: (key: string, opts: { arg: File }) => Promise<unknown>
   ) => ({
     trigger: (arg: File) => fetcher(key, { arg }),
-    data: undefined,
+    data: mockMutationState.data,
     isMutating: false,
-    error: undefined,
+    error: mockMutationState.error,
     reset: vi.fn(),
   }),
 }));
@@ -37,6 +41,23 @@ const fakeFile = () => new File(["dummy"], "logo.png", { type: "image/png" });
 describe("useLogoDetect", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMutationState.data = undefined;
+    mockMutationState.error = undefined;
+  });
+
+  it("検索前は hasSearched が false になる", () => {
+    const { result } = renderHook(() => useLogoDetect());
+
+    expect(result.current.hasSearched).toBe(false);
+  });
+
+  it("空配列の取得後は hasSearched が true になり、0件を検索前と区別できる", () => {
+    mockMutationState.data = [];
+
+    const { result } = renderHook(() => useLogoDetect());
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.hasSearched).toBe(true);
   });
 
   it("成功時は検出結果を返す", async () => {
