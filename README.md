@@ -201,7 +201,8 @@ Go バックエンド (stock_backend)
 
 ### 前提条件
 
-- Node.js 20 以上
+- Node.js 24.18.0（LTS、`.nvmrc` で固定）
+- npm 12.0.1
 - `stock_backend` が起動済みであること（デフォルト: `http://localhost:8080`）
 
 ### 手順
@@ -211,8 +212,11 @@ Go バックエンド (stock_backend)
 git clone https://github.com/UCHIDAnobuhiro/stock-frontend.git
 cd stock-frontend
 
+# nvm を使用している場合
+nvm use
+
 # 依存パッケージのインストール
-npm install
+npm ci
 
 # 環境変数の設定
 cp .env.example .env.local
