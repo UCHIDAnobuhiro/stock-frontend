@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button"
 
 export default function Error({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  unstable_retry: () => void
 }) {
   useEffect(() => {
     console.error(error)
@@ -28,7 +28,7 @@ export default function Error({
           エラーコード: {error.digest}
         </p>
       )}
-      <Button onClick={reset}>再試行</Button>
+      <Button onClick={unstable_retry}>再試行</Button>
     </ErrorPageShell>
   )
 }
