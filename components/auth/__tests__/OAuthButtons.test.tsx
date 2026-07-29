@@ -4,9 +4,11 @@ import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 type Provider = "Google" | "GitHub";
 
-function getOAuthLink(provider: Provider) {
+function getOAuthLink(provider: Provider, preventNavigation = false) {
   const link = screen.getByRole("link", { name: `${provider}で続ける` });
-  link.addEventListener("click", (event) => event.preventDefault());
+  if (preventNavigation) {
+    link.addEventListener("click", (event) => event.preventDefault());
+  }
   return link;
 }
 
@@ -15,7 +17,7 @@ describe("OAuthButtons", () => {
     "%s のOAuth遷移から戻るとボタンを再び操作できる",
     (provider) => {
       render(<OAuthButtons />);
-      const selectedLink = getOAuthLink(provider);
+      const selectedLink = getOAuthLink(provider, true);
       const otherLink = getOAuthLink(provider === "Google" ? "GitHub" : "Google");
 
       fireEvent.click(selectedLink);
@@ -40,7 +42,7 @@ describe("OAuthButtons", () => {
 
   it("OAuth遷移中は別のプロバイダーへの遷移を開始しない", () => {
     render(<OAuthButtons />);
-    const googleLink = getOAuthLink("Google");
+    const googleLink = getOAuthLink("Google", true);
     const githubLink = getOAuthLink("GitHub");
 
     fireEvent.click(googleLink);
