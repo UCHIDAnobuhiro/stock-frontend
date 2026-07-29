@@ -13,18 +13,33 @@ export function useSelectedSymbol() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const symbol = searchParams.get("symbol") ?? null;
+  const rawSymbol = searchParams.get("symbol");
+  const symbol = rawSymbol?.trim() || null;
   const rawInterval = searchParams.get("interval");
   const interval: Interval = isInterval(rawInterval) ? rawInterval : "1day";
 
-  const setSymbol = useCallback(
-    (code: string, keepInterval = true) => {
+  const createSymbolUrl = useCallback(
+    (code: string, keepInterval: boolean) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("symbol", code);
       if (!keepInterval) params.set("interval", "1day");
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      return `${pathname}?${params.toString()}`;
     },
-    [router, searchParams, pathname]
+    [pathname, searchParams]
+  );
+
+  const setSymbol = useCallback(
+    (code: string, keepInterval = true) => {
+      router.push(createSymbolUrl(code, keepInterval), { scroll: false });
+    },
+    [createSymbolUrl, router]
+  );
+
+  const replaceSymbol = useCallback(
+    (code: string, keepInterval = true) => {
+      router.replace(createSymbolUrl(code, keepInterval), { scroll: false });
+    },
+    [createSymbolUrl, router]
   );
 
   const setInterval = useCallback(
@@ -36,5 +51,5 @@ export function useSelectedSymbol() {
     [router, searchParams, pathname]
   );
 
-  return { symbol, interval, setSymbol, setInterval };
+  return { symbol, interval, setSymbol, replaceSymbol, setInterval };
 }
