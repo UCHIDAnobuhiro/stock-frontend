@@ -1,6 +1,7 @@
 "use client";
 
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
+import { useDefaultWatchlistSymbol } from "@/hooks/useDefaultWatchlistSymbol";
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators } from "@/hooks/useIndicators";
 import { ApiError } from "@/lib/api";
@@ -11,6 +12,7 @@ import { ChartEmpty } from "./ChartEmpty";
 
 export function ChartContainer() {
   const { symbol, interval } = useSelectedSymbol();
+  const { isInitializing } = useDefaultWatchlistSymbol();
   const { candles, isLoading, error } = useCandles(symbol, interval);
   const { smaEnabled, toggleSma, bollingerEnabled, toggleBollinger } = useIndicators();
 
@@ -18,7 +20,9 @@ export function ChartContainer() {
     <div className="flex h-full flex-col overflow-hidden">
       <ChartToolbar smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} />
       <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
-        {!symbol ? (
+        {isInitializing ? (
+          <ChartSkeleton />
+        ) : !symbol ? (
           <ChartEmpty />
         ) : isLoading ? (
           <ChartSkeleton />
