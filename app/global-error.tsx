@@ -6,10 +6,10 @@ import "./globals.css"
 
 export default function GlobalError({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  unstable_retry: () => void
 }) {
   useEffect(() => {
     console.error(error)
@@ -26,7 +26,7 @@ export default function GlobalError({
             アプリケーションで問題が発生しました。再読み込みしてください。
           </p>
           <button
-            onClick={reset}
+            onClick={unstable_retry}
             className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground"
           >
             再試行
