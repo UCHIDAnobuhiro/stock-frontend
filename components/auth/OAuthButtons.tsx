@@ -54,8 +54,7 @@ export function OAuthButtons() {
         href={`${API_BASE}/v1/auth/oauth/google`}
         className={cn(
           buttonClass,
-          isLoading && "pointer-events-none",
-          loading === "google" && "opacity-70",
+          isLoading && "pointer-events-none opacity-70",
         )}
         onClick={(event) => handleClick(event, "google")}
         aria-disabled={isLoading}
@@ -67,8 +66,7 @@ export function OAuthButtons() {
         href={`${API_BASE}/v1/auth/oauth/github`}
         className={cn(
           buttonClass,
-          isLoading && "pointer-events-none",
-          loading === "github" && "opacity-70",
+          isLoading && "pointer-events-none opacity-70",
         )}
         onClick={(event) => handleClick(event, "github")}
         aria-disabled={isLoading}

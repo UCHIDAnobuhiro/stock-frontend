@@ -25,7 +25,7 @@ describe("OAuthButtons", () => {
       expect(selectedLink.classList.contains("pointer-events-none")).toBe(true);
       expect(otherLink.classList.contains("pointer-events-none")).toBe(true);
       expect(selectedLink.classList.contains("opacity-70")).toBe(true);
-      expect(otherLink.classList.contains("opacity-70")).toBe(false);
+      expect(otherLink.classList.contains("opacity-70")).toBe(true);
 
       fireEvent(window, new Event("pageshow"));
 
@@ -34,6 +34,7 @@ describe("OAuthButtons", () => {
       expect(selectedLink.classList.contains("pointer-events-none")).toBe(false);
       expect(otherLink.classList.contains("pointer-events-none")).toBe(false);
       expect(selectedLink.classList.contains("opacity-70")).toBe(false);
+      expect(otherLink.classList.contains("opacity-70")).toBe(false);
     },
   );
 
@@ -47,6 +48,6 @@ describe("OAuthButtons", () => {
 
     expect(clickCompleted).toBe(false);
     expect(googleLink.classList.contains("opacity-70")).toBe(true);
-    expect(githubLink.classList.contains("opacity-70")).toBe(false);
+    expect(githubLink.classList.contains("opacity-70")).toBe(true);
   });
 });
