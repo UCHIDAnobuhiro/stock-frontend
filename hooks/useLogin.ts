@@ -67,7 +67,7 @@ export function useLogin() {
   /**
    * フォーム送信ハンドラー。
    * バリデーション通過後に /v1/login を呼び出し、
-   * 成功時はサーバーが Set-Cookie で auth_token・csrf_token を発行するため
+   * 成功時はサーバーが Set-Cookie で auth_token・refresh_token・csrf_token を発行するため
    * クライアント側での保存は不要。ホームへリダイレクトする。
    * 失敗時はステータスコードに応じたエラーメッセージを設定する。
    */

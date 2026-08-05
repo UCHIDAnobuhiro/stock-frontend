@@ -3,7 +3,7 @@ import { isTokenValid } from "@/lib/auth";
 
 /**
  * 認可ルーティングガード + nonce ベース CSP の付与。
- * auth_token Cookie の存在と exp（期限）を検査し、
+ * auth_token Cookie の存在と exp（期限）、refresh セッションの有無を検査し、
  * 未認証 × 保護ページ → /login、認証済み × /login,/signup → / にリダイレクトする。
  *
  * JWT の署名検証は行わない UX 目的のルーティング制御であり、真の認可は
@@ -40,12 +40,14 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("auth_token")?.value;
   const isAuthenticated = token !== undefined && isTokenValid(token);
+  const canRefresh =
+    request.cookies.has("refresh_token") && request.cookies.has("csrf_token");
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const csp = buildCsp(nonce);
 
-  if (!isAuthenticated && !isPublicPath) {
+  if (!isAuthenticated && !canRefresh && !isPublicPath) {
     const response = NextResponse.redirect(new URL("/login", request.url));
     response.headers.set("Content-Security-Policy", csp);
     return response;

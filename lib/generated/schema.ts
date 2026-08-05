@@ -72,6 +72,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 認証トークン更新
+         * @description refresh_token Cookieを一度だけ消費し、アクセストークン、リフレッシュトークン、
+         *     CSRFトークンをすべてローテーションします。
+         */
+        post: operations["refreshAuth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/oauth/{provider}": {
         parameters: {
             query?: never;
@@ -102,7 +123,7 @@ export interface paths {
         };
         /**
          * OAuthコールバック処理
-         * @description プロバイダーから受け取ったcodeとstateを検証し、JWTとCSRFトークンをCookieにセットして
+         * @description プロバイダーから受け取ったcodeとstateを検証し、JWT・refresh・CSRFトークンをCookieにセットして
          *     フロントエンドURLへリダイレクトします。
          *     エラー時は自動リンクや JSON 応答は行わず、フロントエンドのログイン画面へ
          *     `error` コード付きでリダイレクトします。
@@ -518,7 +539,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 認証成功（auth_token・csrf_token CookieをSet-Cookieで発行） */
+            /** @description 認証成功（auth_token・refresh_token・csrf_token CookieをSet-Cookieで発行） */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -585,13 +606,118 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ログアウト成功（auth_token・csrf_token Cookieを削除） */
+            /** @description ログアウト成功（認証セッションを失効し、auth_token・refresh_token・csrf_token Cookieを削除） */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description CSRFトークンがない、または不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 予期しないセッション失効処理エラー */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description セッション失効処理が一時的に利用不可 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    refreshAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 更新成功（新しいauth_token・refresh_token・csrf_token Cookieを発行） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description refresh_token Cookieがない、無効、期限切れ、または使用済み */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CSRFトークンがない、または不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 同じrefresh_tokenによる更新処理が並行している（短く待機して1回だけ再試行） */
+            409: {
+                headers: {
+                    /** @description 再試行までの秒数（1秒） */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description リクエスト過多（レートリミット超過） */
+            429: {
+                headers: {
+                    /** @description 再試行までの秒数 */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description サーバーエラー */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description セッション保存先の障害時 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -641,7 +767,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /**
-             * @description 成功時は `{FRONTEND_URL}` へリダイレクト（auth_token・csrf_token Cookieをセット）。
+             * @description 成功時は `{FRONTEND_URL}` へリダイレクト（auth_token・refresh_token・csrf_token Cookieをセット）。
              *     エラー時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト（Cookieはセットしない）。
              *     code は以下のいずれか:
              *       - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）

@@ -9,7 +9,7 @@ const POLL_INTERVAL_MS = 60_000;
 /**
  * セッション切れを検知するフック。
  * マウント直後および 60 秒ごとに csrf_token Cookie の存在を確認（能動的検知）し、
- * API から 401 が返った際のカスタムイベントも監視する（受動的検知）。
+ * refresh と再送後も API から 401 が返った際のカスタムイベントも監視する（受動的検知）。
  * いずれかが検知されると isExpired が true になる（一方通行ラッチ）。
  */
 export function useSessionExpiry() {
