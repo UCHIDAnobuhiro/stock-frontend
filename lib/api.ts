@@ -1,6 +1,7 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
 import { getCsrfToken } from "./auth";
+import { createAuthFetch, isRefreshEligible } from "./auth-refresh";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -13,6 +14,7 @@ const SAFE_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const apiClient = createClient<paths>({
   baseUrl: API_BASE,
   credentials: "include",
+  fetch: createAuthFetch(),
 });
 
 /**
@@ -38,11 +40,15 @@ export const SESSION_EXPIRED_EVENT = "session:expired" as const;
 
 /**
  * レスポンスミドルウェア。
- * 401 レスポンスを受け取った場合、セッション切れイベントを発火する。
+ * refresh と元リクエスト再送後も 401 の場合、セッション切れイベントを発火する。
  */
 apiClient.use({
-  onResponse({ response }) {
-    if (response.status === 401 && typeof window !== "undefined") {
+  onResponse({ request, response }) {
+    if (
+      response.status === 401 &&
+      isRefreshEligible(request) &&
+      typeof window !== "undefined"
+    ) {
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
     }
     return response;
