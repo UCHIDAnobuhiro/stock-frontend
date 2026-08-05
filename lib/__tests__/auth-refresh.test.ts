@@ -48,6 +48,33 @@ describe("createAuthFetch", () => {
     );
   });
 
+  it("既存Requestに第2引数のinitをマージしてfetchへ渡す", async () => {
+    const controller = new AbortController();
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    const authFetch = createAuthFetch({ fetchImpl });
+    const original = request("/v1/symbols", {
+      credentials: "same-origin",
+      headers: { "X-Original": "original" },
+    });
+
+    await authFetch(original, {
+      credentials: "include",
+      headers: { "X-Override": "override" },
+      signal: controller.signal,
+    });
+
+    const mergedRequest = fetchImpl.mock.calls[0][0] as Request;
+    expect(mergedRequest).not.toBe(original);
+    expect(mergedRequest.credentials).toBe("include");
+    expect(mergedRequest.headers.get("X-Override")).toBe("override");
+    expect(mergedRequest.headers.has("X-Original")).toBe(false);
+    expect(mergedRequest.signal.aborted).toBe(false);
+    controller.abort();
+    expect(mergedRequest.signal.aborted).toBe(true);
+  });
+
   it("refresh後の更新系リクエストにはローテーション後のCSRFトークンを設定する", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);

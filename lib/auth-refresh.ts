@@ -101,7 +101,7 @@ export function createAuthFetch({
   }
 
   return async (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
+    const request = new Request(input, init);
     const eligible = isRefreshEligible(request);
     const retryRequest = eligible ? request.clone() : null;
     const generationAtRequest = refreshGeneration;
