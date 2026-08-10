@@ -277,3 +277,64 @@ STOCK_BACKEND_DIR=/path/to/stock-backend npm run sync:api
 
 同期先は `openapi/openapi.yaml`、生成先は `lib/generated/schema.ts` です。
 どちらも直接編集せず、バックエンドの正本から同期してください。CIでは正本との完全一致と生成漏れを検証します。
+
+## デプロイ
+
+### 環境変数はビルド時に必要
+
+`NEXT_PUBLIC_API_BASE_URL` は `NEXT_PUBLIC_` プレフィックスを持つため、**Next.js のビルド時にバンドルへ文字列としてインライン化されます**。ランタイムの環境変数では上書きできません。
+
+```bash
+# 正しい: ビルド時に渡す
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run build
+npm run start
+
+# 誤り: ランタイムにだけ渡してもビルド成果物には反映されない
+npm run build
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run start
+```
+
+インライン化される箇所は以下の 3 つです。
+
+| 箇所 | 影響 |
+|---|---|
+| `lib/api.ts` の `API_BASE` | 全 API リクエストのベース URL |
+| `lib/auth-refresh.ts` の refresh URL | トークンローテーション先 |
+| `proxy.ts` の CSP `connect-src` | ブラウザが接続を許可するオリジン |
+
+未設定のままビルドすると `API_BASE` が空文字になり、全 API リクエストがフロントエンド自身へ飛んで機能しなくなります。CSP も同時に `connect-src 'self'` になるため、ブラウザ側では CSP 違反として現れず原因追跡が困難です。
+
+この事故を防ぐため、`next.config.ts` は**ビルドフェーズで `NEXT_PUBLIC_API_BASE_URL` が未設定ならビルドを失敗させます**。`next start` / `next dev` では検査しません（ビルド成果物に焼き込み済みのため、起動時には不要）。
+
+### Docker でビルドする場合
+
+`ARG` と `--build-arg` で渡します。`ENV` だけを設定してもビルド前に評価されなければ意味がありません。
+
+```dockerfile
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+RUN npm run build
+```
+
+```bash
+docker build --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com .
+```
+
+1 つのイメージを複数環境で使い回したい場合、この構成では実現できません。`NEXT_PUBLIC_` を使わないランタイム設定方式（Server Component からの受け渡し等）への変更が必要です。
+
+### バックエンド側に必要な設定
+
+フロントエンドとバックエンドが別オリジンになる構成では、Cookie 認証のために以下が必要です。
+
+- 認証 Cookie が `SameSite=None; Secure` で発行されていること
+- `Access-Control-Allow-Credentials: true` が返ること
+- `Access-Control-Allow-Origin` にフロントエンドのオリジンが設定されていること（`*` は資格情報付きリクエストで使用不可）
+- **フロントエンド・バックエンドともに HTTPS であること**（`Secure` Cookie はHTTPS でのみ送信される）
+
+フロントエンドとバックエンドを同一サイトのサブドメイン（例: `app.example.com` / `api.example.com`）に置く場合は、`SameSite=Lax` + `Domain=.example.com` でも動作します。
+
+### レンダリングモード
+
+`app/layout.tsx` が `headers()` から CSP の nonce を読み取るため、**全ページが動的レンダリング**になります（`npm run build` の出力で `ƒ (Dynamic)` と表示されます）。
+
+nonce はリクエストごとに変わるため静的生成とは原理的に両立しません。静的配信のみのホスティング（`next export` 相当）にはデプロイできず、Node.js ランタイムが必要です。

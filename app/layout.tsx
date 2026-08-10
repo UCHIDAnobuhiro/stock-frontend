@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -19,11 +20,20 @@ export const metadata: Metadata = {
   description: "株価チャート・ウォッチリスト管理",
 };
 
-export default function RootLayout({
+/**
+ * proxy.ts がリクエストごとに生成した nonce を `x-nonce` ヘッダーから受け取り、
+ * next-themes の inline script に渡す（CSP でブロックされないようにするため）。
+ *
+ * `headers()` の参照によりこのレイアウトを含む全ページが動的レンダリングになる。
+ * nonce はリクエストごとに変わるため静的生成とは元々両立せず、これは意図した挙動。
+ */
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="ja"
@@ -31,7 +41,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="h-full bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
       </body>
