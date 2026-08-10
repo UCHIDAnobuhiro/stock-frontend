@@ -103,7 +103,8 @@ export interface paths {
         /**
          * OAuthログイン開始
          * @description 指定プロバイダー（google/github）のOAuth2認可画面へリダイレクトします。
-         *     state + PKCEコードチャレンジを生成しRedisに保存します（TTL: 10分）。
+         *     state とコード検証用のランダム値を生成しRedisに保存します（TTL: 10分）。
+         *     GoogleではPKCE（S256）を使用し、PKCE非対応のGitHubではstateによるCSRF保護のみを使用します。
          */
         get: operations["beginOAuth"];
         put?: never;
@@ -734,9 +735,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description プロバイダー認可画面へリダイレクト */
+            /**
+             * @description 成功時はプロバイダー認可画面へリダイレクト。
+             *     レートリミット拒否時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト。
+             *     code は以下のいずれか:
+             *       - `rate_limited`: IPレートリミット超過
+             *       - `service_unavailable`: レートリミット基盤障害
+             */
             302: {
                 headers: {
+                    /** @description `rate_limited` の場合の再試行までの秒数 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -773,21 +782,16 @@ export interface operations {
              *       - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
              *       - `oauth_failed`: 上記以外のすべてのエラー（state不正・期限切れ、プロバイダーAPIエラー、
              *         未サポートのプロバイダー、内部エラー等）
+             *       - `rate_limited`: IPレートリミット超過
+             *       - `service_unavailable`: レートリミット基盤障害
              */
             302: {
                 headers: {
+                    /** @description `rate_limited` の場合の再試行までの秒数 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description サービス一時利用不可（レートリミット基盤障害時） */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
             };
         };
     };

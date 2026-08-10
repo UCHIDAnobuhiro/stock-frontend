@@ -16,6 +16,9 @@ interface FieldErrors {
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   account_conflict:
     "このメールアドレスは既に登録されています。メールアドレスとパスワードでログインしてください",
+  rate_limited: "試行回数が多すぎます。しばらく時間をおいて再度お試しください",
+  service_unavailable:
+    "サービスが一時的に利用できません。時間をおいて再度お試しください",
 };
 
 function getOAuthErrorMessage(code: string): string {

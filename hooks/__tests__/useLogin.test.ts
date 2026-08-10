@@ -272,6 +272,23 @@ describe("useLogin", () => {
       );
     });
 
+    it.each([
+      [
+        "rate_limited",
+        "試行回数が多すぎます。しばらく時間をおいて再度お試しください",
+      ],
+      [
+        "service_unavailable",
+        "サービスが一時的に利用できません。時間をおいて再度お試しください",
+      ],
+    ])("error=%s のとき対応するメッセージが初期表示される", (code, message) => {
+      mockUseSearchParams.mockReturnValue(new URLSearchParams(`error=${code}`));
+
+      const { result } = renderHook(() => useLogin());
+
+      expect(result.current.serverError).toBe(message);
+    });
+
     it("未知のエラーコードのとき汎用のソーシャルログイン失敗メッセージが初期表示される", () => {
       mockUseSearchParams.mockReturnValue(
         new URLSearchParams("error=some_unknown_code")
