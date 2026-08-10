@@ -40,6 +40,8 @@
 │   ├── api.ts                  # APIクライアント（openapi-fetch、Client Component 用）
 │   ├── api.server.ts           # Server Component 用APIフェッチ（cookies() からCookieヘッダーを付与）
 │   ├── auth.ts                 # 認証ヘルパー
+│   ├── auth-refresh.ts         # 401時のトークン更新・リクエスト再送
+│   ├── companyMatch.ts         # ロゴ検出結果と銘柄の照合
 │   ├── indicators.ts           # テクニカル指標の計算ロジック
 │   ├── utils.ts                # `cn()` などの汎用ユーティリティ
 │   └── generated/
@@ -70,7 +72,8 @@
 
 - **選択中の銘柄・期間** → URL の searchParams で管理（ブックマーク・共有に対応）
 - **サーバーデータ** → SWR（キャッシュ・ローディング・エラー管理）
-- **認証トークン** → HttpOnly Cookie（`auth_token`）でサーバーが管理
+- **認証トークン** → HttpOnly Cookie（`auth_token`・`refresh_token`）でサーバーが管理
+- **CSRFトークン** → `csrf_token` Cookie を変更系リクエストの `X-CSRF-Token` ヘッダーへ付与
 - グローバル状態管理ライブラリ（Zustand等）は必要になったタイミングで追加する
 
 ### 層の役割
@@ -90,8 +93,9 @@ Go バックエンド
 ## API
 
 - `NEXT_PUBLIC_API_BASE_URL` 環境変数でベースURLを管理
-- 認証: Cookie 認証（`auth_token` HttpOnly Cookie）+ CSRF トークン（`csrf_token` Cookie）
-- 状態変更リクエスト（POST/PUT/DELETE）は `X-CSRF-Token` ヘッダーが必要
+- 認証: Cookie 認証（`auth_token`・`refresh_token` HttpOnly Cookie）+ CSRF トークン（`csrf_token` Cookie）
+- Cookie認証を使う状態変更リクエストと認証Cookieの更新・削除には `X-CSRF-Token` ヘッダーが必要
+- 保護APIが401を返した場合は `/v1/auth/refresh` でCookieをローテーションし、元リクエストを1回再送する
 - 型定義は `schema.ts` から自動生成されるため、補完・型エラーが有効
 
 ### 主要エンドポイント
@@ -101,10 +105,12 @@ Go バックエンド
 | `GET /healthz` | 不要 | ヘルスチェック |
 | `POST /v1/signup` | 不要 | ユーザー登録 |
 | `POST /v1/login` | 不要 | ログイン（Cookie発行） |
-| `DELETE /v1/logout` | 不要 | ログアウト（Cookie削除） |
+| `DELETE /v1/logout` | CSRF | ログアウト（Cookie削除・セッション失効） |
+| `POST /v1/auth/refresh` | Refresh Cookie + CSRF | 認証Cookieのローテーション |
 | `GET /v1/auth/oauth/{provider}` | 不要 | OAuthログイン開始（プロバイダーへリダイレクト） |
 | `GET /v1/auth/oauth/{provider}/callback` | 不要 | OAuthコールバック（Cookie発行後フロントへリダイレクト） |
 | `GET /v1/candles/{code}` | Cookie | ローソク足データ取得 |
+| `GET /v1/quotes` | Cookie | 複数銘柄の価格サマリー取得 |
 | `GET /v1/symbols` | Cookie | アクティブ銘柄一覧 |
 | `GET /v1/watchlist` | Cookie | ウォッチリスト取得 |
 | `POST /v1/watchlist` | Cookie + CSRF | ウォッチリスト追加 |
@@ -115,10 +121,11 @@ Go バックエンド
 
 ## デザイン方針
 
-- テーマ: ライト、ミニマル（WealthNavi・Linear を参考）
-- テキスト: `#0f172a`
-- 上昇・プラス: `#16a34a`
-- 下落・マイナス: `#dc2626`
+- テーマ: GitHubを参考にしたライト / ダークテーマ（デフォルトはダーク）
+- ライトテーマのテキスト: `#1f2328`
+- ライトテーマの上昇・プラス: `#1a7f37`
+- ライトテーマの下落・マイナス: `#cf222e`
+- ダークテーマの各色は `app/globals.css` の `.dark` トークンを正本とする
 
 ## コーディング規約
 
@@ -132,20 +139,25 @@ Go バックエンド
 ```bash
 npm run dev           # 開発サーバー起動
 npm run build         # 本番ビルド
+npm run start         # 本番サーバー起動
 npm run lint          # ESLint 実行
+npm run typecheck     # TypeScript 型チェック
 npm run test          # テスト実行（Vitest）
 npm run test:watch    # テストウォッチモード
 npm run generate:api  # openapi.yaml から schema.ts を再生成
+npm run check:api     # schema.ts が OpenAPI と同期しているか確認
+npm run sync:api      # バックエンドの OpenAPI を同期して型を再生成
 ```
 
 ## 型定義の再生成
 
-バックエンドの `openapi.yaml` を更新したら以下を実行：
+バックエンドの `api/openapi.yaml` がAPIコントラクトの正本。バックエンドを同じ親ディレクトリにチェックアウトした状態で以下を実行する：
 
 ```bash
-npm run generate:api
-# = openapi-typescript openapi/openapi.yaml -o lib/generated/schema.ts
+npm run sync:api
 ```
+
+別の場所にあるバックエンドを使う場合は `STOCK_BACKEND_DIR=/path/to/stock-backend npm run sync:api` とする。`openapi/openapi.yaml` と `lib/generated/schema.ts` は直接編集しない。
 
 ## コミット・PR作成の言語ルール
 

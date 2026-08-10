@@ -11,20 +11,22 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 - **ユーザー認証**
 
   - メールアドレス/パスワードによるサインアップ・ログイン・ログアウト
-  - Cookie 認証（HttpOnly `auth_token`）+ Double Submit CSRF パターン
+  - Google / GitHub OAuth ログイン
+  - Cookie 認証（HttpOnly `auth_token`・`refresh_token`）+ Double Submit CSRF パターン
+  - アクセストークン期限切れ時の自動更新とリクエスト再送
   - セッション切れの自動検知とダイアログ通知
 
 - **株価チャート**
 
   - TradingView Lightweight Charts によるローソク足チャート
-  - 時間足・取得件数の切り替え（URL の searchParams で管理）
+  - 時間足の切り替え（URL の searchParams で管理、取得件数は各時間足200本）
   - ローディング・空状態のスケルトン表示
 
 - **ウォッチリスト**
 
   - 銘柄の追加・削除
   - @dnd-kit によるドラッグ&ドロップ並び替え
-  - SWR によるキャッシュとリアルタイム反映
+  - SWR によるキャッシュとオプティミスティック更新
 
 - **企業ロゴ分析**
 
@@ -64,32 +66,34 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │   └── signup/
 │       └── page.tsx                  # サインアップページ
 │
-├── components/                       # UIコンポーネント（表示専任）
+├── components/                       # UIコンポーネント（View層）
 │   ├── auth/
 │   │   ├── AuthPageShell.tsx         # 認証ページ共通レイアウト
 │   │   ├── LoginForm.tsx             # ログインフォーム
+│   │   ├── OAuthButtons.tsx           # Google / GitHub OAuth 導線
 │   │   └── SignupForm.tsx            # サインアップフォーム
 │   ├── chart/
 │   │   ├── CandlestickChart.tsx      # ローソク足チャート本体
 │   │   ├── ChartContainer.tsx        # チャートのデータ取得・状態管理
 │   │   ├── ChartEmpty.tsx            # データなし状態
+│   │   ├── IndicatorToolbar.tsx       # テクニカル指標の切り替えUI
 │   │   ├── ChartSkeleton.tsx         # ローディングスケルトン
-│   │   └── ChartToolbar.tsx          # 時間足・件数の切り替えUI
+│   │   └── ChartToolbar.tsx          # 銘柄情報・時間足の切り替えUI
 │   ├── layout/
 │   │   ├── DashboardLayout.tsx       # ダッシュボード全体レイアウト
-│   │   ├── Sidebar.tsx               # サイドバー（ウォッチリスト・ロゴ検索）
-│   │   ├── Topbar.tsx                # トップバー（銘柄選択・テーマ切り替え）
+│   │   ├── Sidebar.tsx               # ウォッチリスト用サイドバー
+│   │   ├── Topbar.tsx                # トップバー（テーマ・ロゴ検索・ログアウト）
 │   │   ├── BottomNav.tsx             # モバイル用ボトムナビ
 │   │   └── SessionExpiredDialog.tsx  # セッション切れダイアログ
 │   ├── logo/
 │   │   ├── LogoDropzone.tsx          # 画像ドラッグ&ドロップUI
 │   │   ├── LogoDetectResults.tsx     # ロゴ検出結果リスト
-│   │   ├── LogoSearchSheet.tsx       # ロゴ検索シート（モバイル）
+│   │   ├── LogoSearchSheet.tsx       # レスポンシブなロゴ検索シート
 │   │   └── CompanyAnalysisCard.tsx   # 企業分析サマリーカード
 │   ├── watchlist/
 │   │   ├── WatchlistPanel.tsx        # ウォッチリスト全体パネル
 │   │   ├── WatchlistItem.tsx         # ウォッチリスト1件（ドラッグ対応）
-│   │   ├── WatchlistAddButton.tsx    # 銘柄追加ボタン
+│   │   ├── WatchlistSparkline.tsx    # 銘柄ごとの価格推移
 │   │   └── WatchlistEmpty.tsx        # 空状態
 │   ├── providers/
 │   │   └── ThemeProvider.tsx         # next-themes プロバイダー
@@ -110,8 +114,11 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │
 ├── hooks/                            # カスタムフック（ロジック・データ取得）
 │   ├── useCandles.ts                 # ローソク足データ取得（SWR）
+│   ├── useQuotes.ts                  # 複数銘柄の価格サマリー取得（SWR）
 │   ├── useSymbols.ts                 # 銘柄一覧取得（SWR、app/page.tsx が渡す SSR 初期データでハイドレート）
 │   ├── useWatchlist.ts               # ウォッチリスト操作（取得・追加・削除・並び替え）
+│   ├── useDefaultWatchlistSymbol.ts  # URL未指定時の初期銘柄選択
+│   ├── useIndicators.ts              # テクニカル指標の表示状態
 │   ├── useSelectedSymbol.ts          # 選択中の銘柄（URL searchParams）
 │   ├── useLogin.ts                   # ログイン処理
 │   ├── useLogout.ts                  # ログアウト処理
@@ -125,6 +132,9 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │   ├── api.ts                        # API クライアント（openapi-fetch・CSRF ミドルウェア、ブラウザ専用）
 │   ├── api.server.ts                 # Server Component 用 API 呼び出し（cookies() から Cookie ヘッダーを付与）
 │   ├── auth.ts                       # CSRF トークン取得・JWT 検証ユーティリティ
+│   ├── auth-refresh.ts               # 401時のトークン更新・リクエスト再送
+│   ├── companyMatch.ts               # ロゴ検出結果と銘柄の照合
+│   ├── indicators.ts                 # テクニカル指標の計算ロジック
 │   ├── utils.ts                      # 汎用ユーティリティ（cn 等）
 │   └── generated/
 │       └── schema.ts                 # 自動生成の型定義（直接編集禁止）
@@ -134,6 +144,7 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │
 ├── .env.example                      # 環境変数テンプレート
 ├── next.config.ts
+├── proxy.ts                           # 認証ルーティングガード・CSP
 ├── tsconfig.json
 ├── vitest.config.ts
 └── vitest.setup.ts
@@ -143,16 +154,20 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 
 ### Cookie 認証 + Double Submit CSRF パターン
 
-- **ログイン時**: バックエンドが `auth_token`（HttpOnly）と `csrf_token` の 2 つの Cookie を発行
+- **ログイン時**: バックエンドが `auth_token`・`refresh_token`（ともに HttpOnly）と `csrf_token` の 3 つの Cookie を発行
 - **認証済みリクエスト**: `credentials: "include"` で Cookie を自動送信
 - **状態変更（GET / HEAD / OPTIONS 以外）**: `csrf_token` Cookie を読み取り `X-CSRF-Token` ヘッダーに付与
-- **セッション切れ（401）**: `SESSION_EXPIRED_EVENT` カスタムイベントを発火し、ダイアログで通知
+- **アクセストークン期限切れ（401）**: `refresh_token` と CSRF トークンで Cookie をローテーションし、元リクエストを1回再送
+- **セッション切れ**: refresh後も最終的に401となった場合、`SESSION_EXPIRED_EVENT` を発火してダイアログで通知
 
 ```
 lib/api.ts（Client Component から使用）
   → credentials: "include"（全リクエスト、ブラウザが Cookie を自動送信）
   → X-CSRF-Token ヘッダー付与（GET / HEAD / OPTIONS 以外）
-  → 401 検知 → SESSION_EXPIRED_EVENT 発火
+  → 保護APIから401
+      → POST /v1/auth/refresh（同時実行は単一化、409は1回再試行）
+      → 成功: ローテーション後のCookieで元リクエストを1回再送
+      → refresh非成功で元の401を返す、または再送後も401: SESSION_EXPIRED_EVENT 発火
 ```
 
 **Server Component からの認証付きフェッチ**: `credentials: "include"` はブラウザ専用のオプションであり、Server Component（Node ランタイム）では Cookie が自動送信されない。銘柄一覧（`app/page.tsx`）は `lib/api.server.ts` の `fetchSymbolsServer()` が `next/headers` の `cookies()` から `auth_token` を明示的に読み取り、`Cookie` ヘッダーとして付与して `/v1/symbols` を取得する。取得結果は SWR の `SWRConfig` の `fallback` としてクライアントへ渡され、`useSymbols()` はマウント時点で即座にこのデータでハイドレートされる（初回ローディング状態を経由しない）。取得に失敗した場合は空配列を返し、クライアント側の再検証・セッション切れフローに委ねる。
@@ -160,13 +175,14 @@ lib/api.ts（Client Component から使用）
 ### ルーティングガード（proxy.ts）
 
 - `proxy.ts`（リポジトリルート）が全ページリクエストで `auth_token` Cookie の存在と exp（期限）を検査する
+- 有効な `auth_token` がなくても、`refresh_token` と `csrf_token` が揃っていればクライアント側で更新できるセッションとして扱う
 - `auth_token` は HttpOnly Cookie だが、proxy はサーバー側で実行されるため `request.cookies` から読み取れる
 
 | 条件                                  | 挙動                 |
 | ------------------------------------- | -------------------- |
-| 未認証 × 保護ページ                   | `/login` へリダイレクト |
-| 認証済み × `/login` `/signup`         | `/` へリダイレクト      |
-| それ以外                              | 素通し                |
+| 有効なアクセストークンなし・refresh不可 × 保護ページ | `/login` へリダイレクト |
+| 有効なアクセストークンあり × `/login` `/signup`      | `/` へリダイレクト      |
+| refresh可能なセッション、または上記以外              | 素通し                  |
 
 公開パスは `PUBLIC_PATHS`（`/login`, `/signup`）で列挙し、それ以外のパスはデフォルトで保護対象として扱う。
 
@@ -180,7 +196,8 @@ lib/api.ts（Client Component から使用）
 | ------------------ | ----------------------------------------- |
 | 選択中の銘柄・期間 | URL の searchParams（ブックマーク対応）   |
 | サーバーデータ     | SWR（キャッシュ・ローディング・エラー）   |
-| 認証トークン       | HttpOnly Cookie（サーバー管理）           |
+| 認証トークン       | `auth_token`・`refresh_token` HttpOnly Cookie（サーバー管理） |
+| CSRFトークン       | `csrf_token` Cookie + `X-CSRF-Token`ヘッダー |
 | テーマ             | next-themes（localStorage）              |
 
 ## 層の役割
@@ -235,6 +252,7 @@ npm run dev           # 開発サーバー起動
 npm run build         # 本番ビルド
 npm run start         # 本番サーバー起動
 npm run lint          # ESLint 実行
+npm run typecheck     # TypeScript 型チェック
 npm run test          # テスト実行（Vitest）
 npm run test:watch    # テストウォッチモード
 npm run generate:api  # openapi.yaml から schema.ts を再生成
