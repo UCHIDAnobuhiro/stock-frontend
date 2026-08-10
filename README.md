@@ -280,6 +280,46 @@ STOCK_BACKEND_DIR=/path/to/stock-backend npm run sync:api
 
 ## デプロイ
 
+### デプロイ先
+
+フロントエンドの本番デプロイ先には **Vercel** を使用します。
+
+- Next.js の App Router、動的レンダリング、`proxy.ts` を追加設定なしで実行できる
+- GitHub と連携すると、Pull Request ごとの Preview Deployment と `main` の Production Deployment が自動作成される
+- CDN、HTTPS 証明書、ビルドキャッシュを個別に構築する必要がない
+
+Go バックエンドは Vercel とは別に、HTTPS で公開された環境へデプロイします。フロントエンドから直接 API を呼ぶため、後述する Cookie / CORS 設定も必要です。
+
+### Vercel へのデプロイ手順
+
+1. バックエンドをデプロイし、HTTPS の API URL（例: `https://api.example.com`）を確定する
+2. [Vercel](https://vercel.com/) で **Add New Project** を選び、この GitHub リポジトリを Import する
+3. Framework Preset が `Next.js`、Production Branch が `main` であることを確認する
+4. Project Settings の Environment Variables に、次の変数を Production と Preview の両方へ登録する
+
+   | 変数 | 値の例 | 評価タイミング |
+   |---|---|---|
+   | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` | ビルド時（ランタイムでの変更不可） |
+
+5. **Deploy** を実行する。以後は `main` への push で本番、Pull Request の push で Preview が自動デプロイされる
+6. 発行された HTTPS URL でログイン、株価データ取得、ログアウトが成功することを確認する
+
+ローカルからデプロイする場合は、リポジトリルートで以下を実行します。初回実行時は Vercel のプロジェクト選択と連携設定を求められます。
+
+```bash
+# Production と同じ環境変数でローカルビルドを検証
+npm ci
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run build
+
+# Preview Deployment
+npx vercel@latest
+
+# Production Deployment
+npx vercel@latest --prod
+```
+
+> Preview Deployment の URL はブランチごとに変わります。Preview でも認証機能を検証する場合は、使用する Preview のオリジンをバックエンドの CORS 許可リストへ追加してください。
+
 ### 環境変数はビルド時に必要
 
 `NEXT_PUBLIC_API_BASE_URL` は `NEXT_PUBLIC_` プレフィックスを持つため、**Next.js のビルド時にバンドルへ文字列としてインライン化されます**。ランタイムの環境変数では上書きできません。
@@ -305,6 +345,12 @@ NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run start
 未設定のままビルドすると `API_BASE` が空文字になり、全 API リクエストがフロントエンド自身へ飛んで機能しなくなります。CSP も同時に `connect-src 'self'` になるため、ブラウザ側では CSP 違反として現れず原因追跡が困難です。
 
 この事故を防ぐため、`next.config.ts` は**ビルドフェーズで `NEXT_PUBLIC_API_BASE_URL` が未設定ならビルドを失敗させます**。`next start` / `next dev` では検査しません（ビルド成果物に焼き込み済みのため、起動時には不要）。
+
+### `output: "standalone"` を設定しない理由
+
+現在のデプロイ先は Vercel であり、Vercel が Next.js のビルド成果物と実行環境を管理するため、`next.config.ts` に `output: "standalone"` は設定しません。
+
+将来 Cloud Run などへコンテナとしてセルフホストする場合は、イメージへ `node_modules` 全体を含めないよう `output: "standalone"` を有効化し、`.next/standalone` と `.next/static` をランタイムイメージへコピーします。その移行時には Dockerfile の追加と、`node .next/standalone/server.js` での起動確認も行ってください。
 
 ### Docker でビルドする場合
 
