@@ -92,7 +92,7 @@ Go バックエンド
 
 ## API
 
-- `NEXT_PUBLIC_API_BASE_URL` 環境変数でベースURLを管理
+- `NEXT_PUBLIC_API_BASE_URL` 環境変数でベースURLを管理（**ビルド時にバンドルへインライン化されるため、ランタイム設定では反映されない**。未設定時は `next.config.ts` がビルドを失敗させる）
 - 認証: Cookie 認証（`auth_token`・`refresh_token` HttpOnly Cookie）+ CSRF トークン（`csrf_token` Cookie）
 - Cookie認証を使う状態変更リクエストと認証Cookieの更新・削除には `X-CSRF-Token` ヘッダーが必要
 - 保護APIが401を返した場合は `/v1/auth/refresh` でCookieをローテーションし、元リクエストを1回再送する
