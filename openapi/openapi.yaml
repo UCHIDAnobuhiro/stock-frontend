@@ -236,7 +236,8 @@ paths:
       summary: OAuthログイン開始
       description: |
         指定プロバイダー（google/github）のOAuth2認可画面へリダイレクトします。
-        state + PKCEコードチャレンジを生成しRedisに保存します（TTL: 10分）。
+        state とコード検証用のランダム値を生成しRedisに保存します（TTL: 10分）。
+        GoogleではPKCE（S256）を使用し、PKCE非対応のGitHubではstateによるCSRF保護のみを使用します。
       operationId: beginOAuth
       tags:
         - auth
@@ -251,7 +252,17 @@ paths:
           description: OAuthプロバイダー名
       responses:
         "302":
-          description: プロバイダー認可画面へリダイレクト
+          description: |
+            成功時はプロバイダー認可画面へリダイレクト。
+            レートリミット拒否時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト。
+            code は以下のいずれか:
+              - `rate_limited`: IPレートリミット超過
+              - `service_unavailable`: レートリミット基盤障害
+          headers:
+            Retry-After:
+              description: "`rate_limited` の場合の再試行までの秒数"
+              schema:
+                type: integer
         "400":
           description: 未サポートのプロバイダー
           content:
@@ -297,12 +308,13 @@ paths:
               - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
               - `oauth_failed`: 上記以外のすべてのエラー（state不正・期限切れ、プロバイダーAPIエラー、
                 未サポートのプロバイダー、内部エラー等）
-        "503":
-          description: サービス一時利用不可（レートリミット基盤障害時）
-          content:
-            application/json:
+              - `rate_limited`: IPレートリミット超過
+              - `service_unavailable`: レートリミット基盤障害
+          headers:
+            Retry-After:
+              description: "`rate_limited` の場合の再試行までの秒数"
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                type: integer
 
   /v1/candles/{code}:
     get:
