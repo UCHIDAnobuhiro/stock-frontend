@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 // NOTE: Content-Security-Policy はリクエストごとの nonce が必要なため
 // ここではなく proxy.ts で付与している。
 const nextConfig: NextConfig = {
+  // `next dev` は AI コーディングエージェントを検知すると AGENTS.md / CLAUDE.md に
+  // 管理ブロック（<!-- BEGIN:nextjs-agent-rules -->）を自動追記する。
+  // このリポジトリでは AGENTS.md を正本、CLAUDE.md をその参照（@AGENTS.md）として
+  // 明示的に管理しているため、自動追記を無効化して記述の責任範囲を保つ。
+  agentRules: false,
+
   async headers() {
     return [
       {
