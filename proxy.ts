@@ -24,6 +24,10 @@ function buildCsp(nonce: string) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    // next/font の <style>、React の style prop（@dnd-kit の transform を含む）、
+    // next-themes の disableTransitionOnChange が inline style を必要とする。
+    // style prop には nonce を付与できないため、script-src は nonce で制限したまま
+    // style-src に限って 'unsafe-inline' を許容する。
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://api.twelvedata.com https://logo.twelvedata.com",
     `connect-src 'self' ${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}`,
