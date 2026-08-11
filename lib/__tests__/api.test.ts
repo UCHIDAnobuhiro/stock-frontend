@@ -1,5 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { ApiError, createApiError } from "@/lib/api";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
+
+describe("API_BASE", () => {
+  it.each([
+    "https://api.example.com",
+    "https://api.example.com/",
+  ])("%s を末尾スラッシュなしに正規化する", async (apiBaseUrl) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.resetModules();
+
+    const { API_BASE } = await import("@/lib/api");
+
+    expect(API_BASE).toBe("https://api.example.com");
+  });
+});
 
 describe("ApiError", () => {
   it("status と message を保持する", () => {

@@ -1,9 +1,10 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
 import { getCsrfToken } from "./auth";
+import { API_BASE } from "./api-base";
 import { createAuthFetch, isRefreshEligible } from "./auth-refresh";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+export { API_BASE } from "./api-base";
 
 const SAFE_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
