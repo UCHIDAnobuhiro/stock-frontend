@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
-import { proxy } from "@/proxy";
+import { config, proxy } from "@/proxy";
 
 /** base64url エンコードされた JWT ペイロードを持つテスト用トークンを生成する */
 function makeToken(payload: object): string {
@@ -108,5 +108,26 @@ describe("proxy", () => {
       makeRequest("/login", undefined, { refresh: true, csrf: true }),
     );
     expect(res.headers.get("x-middleware-next")).toBe("1");
+  });
+});
+
+describe("proxy matcher", () => {
+  const matcher = new RegExp(`^${config.matcher[0]}$`);
+
+  it("ドットを含むアプリケーションルートを対象にする", () => {
+    expect(matcher.test("/symbols/7203.T")).toBe(true);
+    expect(matcher.test("/foo.bar")).toBe(true);
+  });
+
+  it.each([
+    "/_next/static/chunks/app.js",
+    "/_next/image",
+    "/favicon.ico",
+    "/icon.svg",
+    "/images/company-logo.webp",
+    "/fonts/app.woff2",
+    "/manifest.json",
+  ])("静的アセット %s を対象外にする", (path) => {
+    expect(matcher.test(path)).toBe(false);
   });
 });
