@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthFetch } from "@/lib/auth-refresh";
 
 const { mockGetCsrfToken } = vi.hoisted(() => ({
@@ -21,6 +21,26 @@ describe("createAuthFetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCsrfToken.mockReturnValue("csrf-before");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("末尾スラッシュを除去したAPIベースURLでrefreshする", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.com/");
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    const authFetch = createAuthFetch({ fetchImpl });
+
+    await authFetch(request("/v1/symbols"));
+
+    expect(requestUrl(fetchImpl.mock.calls[1][0])).toBe(
+      "https://api.example.com/v1/auth/refresh",
+    );
   });
 
   it("保護APIの401後にrefreshし、成功したら元リクエストを1回再送する", async () => {

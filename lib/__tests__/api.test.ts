@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { ApiError, createApiError } from "@/lib/api";
+import { normalizeApiBaseUrl } from "@/lib/api-base";
+
+describe("normalizeApiBaseUrl", () => {
+  it.each([
+    ["https://api.example.com", "https://api.example.com"],
+    ["https://api.example.com/", "https://api.example.com"],
+    [undefined, ""],
+  ])("%s を %s に正規化する", (input, expected) => {
+    expect(normalizeApiBaseUrl(input)).toBe(expected);
+  });
+});
 
 describe("ApiError", () => {
   it("status と message を保持する", () => {

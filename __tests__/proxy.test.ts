@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { config, proxy } from "@/proxy";
 
@@ -29,6 +29,20 @@ function makeRequest(
 }
 
 describe("proxy", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("CSPのconnect-srcには末尾スラッシュを除去したAPIオリジンを設定する", () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.com/");
+
+    const res = proxy(makeRequest("/login"));
+
+    expect(res.headers.get("Content-Security-Policy")).toContain(
+      "connect-src 'self' https://api.example.com;",
+    );
+  });
+
   it("Cookie なしで / にアクセスすると /login へリダイレクトする", () => {
     const res = proxy(makeRequest("/"));
     expect(res.status).toBe(307);
