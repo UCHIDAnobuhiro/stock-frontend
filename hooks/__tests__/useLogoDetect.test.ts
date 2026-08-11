@@ -28,9 +28,10 @@ vi.mock("swr/mutation", () => ({
   }),
 }));
 
-vi.mock("@/lib/api", () => ({
-  default: { POST: mockPost },
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return { ...actual, default: { POST: mockPost } };
+});
 
 // ---- ヘルパー ----
 
@@ -83,7 +84,7 @@ describe("useLogoDetect", () => {
     const { result } = renderHook(() => useLogoDetect());
 
     await expect(result.current.detect(fakeFile())).rejects.toThrow(
-      "画像サイズが大きすぎます（最大10MB）"
+      "ファイルサイズが大きすぎます。10MB以下の画像を選択してください"
     );
   });
 

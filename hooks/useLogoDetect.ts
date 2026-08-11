@@ -1,7 +1,7 @@
 "use client";
 
 import useSWRMutation from "swr/mutation";
-import apiClient from "@/lib/api";
+import apiClient, { createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
 
 export type DetectedLogoResponse = components["schemas"]["DetectedLogoResponse"];
@@ -18,7 +18,7 @@ async function detectLogo(_key: string, { arg }: { arg: File }) {
   if (error) {
     switch (response.status) {
       case 413:
-        throw new Error("画像サイズが大きすぎます（最大10MB）");
+        throw createApiError(response.status, "ロゴ検出に失敗しました");
       case 429:
         throw new Error(
           "リクエストが多すぎます。しばらく時間をおいてから再度お試しください",
