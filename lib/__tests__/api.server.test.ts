@@ -39,19 +39,29 @@ describe("fetchSymbolsServer", () => {
     ]);
   });
 
-  it("auth_token Cookie が無い場合、API を呼ばずに空配列を返す", async () => {
+  it("auth_token Cookie が無い場合、API を呼ばずに null を返す", async () => {
     mockCookiesGet.mockReturnValue(undefined);
 
     const { fetchSymbolsServer } = await import("@/lib/api.server");
     const symbols = await fetchSymbolsServer();
 
     expect(mockGet).not.toHaveBeenCalled();
-    expect(symbols).toEqual([]);
+    expect(symbols).toBeNull();
   });
 
-  it("API がエラーを返す場合、空配列を返す", async () => {
+  it("API がエラーを返す場合、null を返す", async () => {
     mockCookiesGet.mockReturnValue({ value: "token123" });
     mockGet.mockResolvedValue({ data: undefined, error: { message: "unauthorized" } });
+
+    const { fetchSymbolsServer } = await import("@/lib/api.server");
+    const symbols = await fetchSymbolsServer();
+
+    expect(symbols).toBeNull();
+  });
+
+  it("API が成功してデータが無い場合、空配列を返す", async () => {
+    mockCookiesGet.mockReturnValue({ value: "token123" });
+    mockGet.mockResolvedValue({ data: undefined, error: undefined });
 
     const { fetchSymbolsServer } = await import("@/lib/api.server");
     const symbols = await fetchSymbolsServer();

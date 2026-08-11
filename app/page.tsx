@@ -7,9 +7,10 @@ import { fetchSymbolsServer } from "@/lib/api.server";
 
 export default async function Home() {
   const symbols = await fetchSymbolsServer();
+  const fallback = symbols === null ? {} : { "/v1/symbols": symbols };
 
   return (
-    <SWRConfig value={{ fallback: { "/v1/symbols": symbols } }}>
+    <SWRConfig value={{ fallback }}>
       <Suspense fallback={<ChartSkeleton />}>
         <DashboardLayout>
           <Suspense fallback={<ChartSkeleton />}>
