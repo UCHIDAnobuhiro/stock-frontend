@@ -25,16 +25,24 @@ describe("createAuthFetch", () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.resetModules();
   });
 
-  it("末尾スラッシュを除去したAPIベースURLでrefreshする", async () => {
-    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.com/");
+  it.each([
+    "https://api.example.com",
+    "https://api.example.com/",
+  ])("%s から正規化したrefresh URLを生成する", async (apiBaseUrl) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.resetModules();
+    const { createAuthFetch: createAuthFetchWithEnv } = await import(
+      "@/lib/auth-refresh"
+    );
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(new Response(null, { status: 200 }));
-    const authFetch = createAuthFetch({ fetchImpl });
+    const authFetch = createAuthFetchWithEnv({ fetchImpl });
 
     await authFetch(request("/v1/symbols"));
 

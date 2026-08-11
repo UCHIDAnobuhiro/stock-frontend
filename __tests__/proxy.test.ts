@@ -12,6 +12,11 @@ function makeToken(payload: object): string {
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
+
 function makeRequest(
   path: string,
   token?: string,
@@ -29,14 +34,15 @@ function makeRequest(
 }
 
 describe("proxy", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
+  it.each([
+    "https://api.example.com",
+    "https://api.example.com/",
+  ])("%s を正規化してCSPのconnect-srcへ設定する", async (apiBaseUrl) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.resetModules();
+    const { proxy: proxyWithEnv } = await import("@/proxy");
 
-  it("CSPのconnect-srcには末尾スラッシュを除去したAPIオリジンを設定する", () => {
-    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.com/");
-
-    const res = proxy(makeRequest("/login"));
+    const res = proxyWithEnv(makeRequest("/login"));
 
     expect(res.headers.get("Content-Security-Policy")).toContain(
       "connect-src 'self' https://api.example.com;",

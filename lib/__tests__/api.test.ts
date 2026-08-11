@@ -1,14 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { ApiError, createApiError } from "@/lib/api";
-import { normalizeApiBaseUrl } from "@/lib/api-base";
 
-describe("normalizeApiBaseUrl", () => {
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
+
+describe("API_BASE", () => {
   it.each([
-    ["https://api.example.com", "https://api.example.com"],
-    ["https://api.example.com/", "https://api.example.com"],
-    [undefined, ""],
-  ])("%s を %s に正規化する", (input, expected) => {
-    expect(normalizeApiBaseUrl(input)).toBe(expected);
+    "https://api.example.com",
+    "https://api.example.com/",
+  ])("%s を末尾スラッシュなしに正規化する", async (apiBaseUrl) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.resetModules();
+
+    const { API_BASE } = await import("@/lib/api");
+
+    expect(API_BASE).toBe("https://api.example.com");
   });
 });
 
@@ -38,6 +46,13 @@ describe("createApiError", () => {
   it("404 のとき「データが見つかりませんでした」を返す", () => {
     const error = createApiError(404, "デフォルトメッセージ");
     expect(error.message).toBe("データが見つかりませんでした");
+  });
+
+  it("413 のときファイルサイズ超過メッセージを返す", () => {
+    const error = createApiError(413, "デフォルトメッセージ");
+    expect(error.message).toBe(
+      "ファイルサイズが大きすぎます。10MB以下の画像を選択してください",
+    );
   });
 
   it.each([500, 502, 503])("%i 番のときサーバーエラーメッセージを返す", (status) => {

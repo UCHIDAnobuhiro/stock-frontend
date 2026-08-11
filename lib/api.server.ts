@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
-import { API_BASE } from "./api-base";
+import { API_BASE } from "./api";
 import type { SymbolItem } from "@/hooks/useSymbols";
 
 /**

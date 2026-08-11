@@ -8,6 +8,10 @@ const POLL_INTERVAL_MS = 60_000;
 
 /**
  * セッション切れを検知するフック。
+ * バックエンドは csrf_token を refresh_token と同じ有効期限で発行し、refresh API では
+ * 両 Cookie と X-CSRF-Token ヘッダーを必須とする。そのため csrf_token がない状態は
+ * refresh 不可能なセッションとして扱える。
+ *
  * マウント直後および 60 秒ごとに csrf_token Cookie の存在を確認（能動的検知）し、
  * refresh と再送後も API から 401 が返った際のカスタムイベントも監視する（受動的検知）。
  * いずれかが検知されると isExpired が true になる（一方通行ラッチ）。

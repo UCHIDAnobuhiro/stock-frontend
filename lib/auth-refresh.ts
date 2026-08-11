@@ -1,5 +1,5 @@
 import { getCsrfToken } from "./auth";
-import { getApiBaseUrl } from "./api-base";
+import { API_BASE } from "./api-base";
 
 const REFRESH_PATH = "/v1/auth/refresh";
 const PUBLIC_AUTH_PATHS = new Set([
@@ -75,7 +75,7 @@ export function createAuthFetch({
   let refreshGeneration = 0;
 
   async function requestRefresh(): Promise<boolean> {
-    const refreshUrl = `${getApiBaseUrl()}${REFRESH_PATH}`;
+    const refreshUrl = `${API_BASE}${REFRESH_PATH}`;
     let response = await fetchImpl(refreshUrl, createRefreshRequestInit());
 
     if (response.status === 409) {

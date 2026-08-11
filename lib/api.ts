@@ -1,10 +1,10 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
 import { getCsrfToken } from "./auth";
-import { createAuthFetch, isRefreshEligible } from "./auth-refresh";
 import { API_BASE } from "./api-base";
+import { createAuthFetch, isRefreshEligible } from "./auth-refresh";
 
-export { API_BASE };
+export { API_BASE } from "./api-base";
 
 const SAFE_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -75,11 +75,12 @@ const STATUS_MESSAGES: Record<number, string> = {
   401: "セッションの有効期限が切れました。再度ログインしてください",
   403: "リクエストが拒否されました。ページを再読み込みして再度お試しください",
   404: "データが見つかりませんでした",
+  413: "ファイルサイズが大きすぎます。10MB以下の画像を選択してください",
 };
 
 /**
  * HTTP ステータスに応じたメッセージを持つ ApiError を生成する。
- * 401/403/404 は共通メッセージ、500番台はサーバーエラーメッセージ、
+ * 401/403/404/413 は共通メッセージ、500番台はサーバーエラーメッセージ、
  * それ以外は呼び出し元が指定する defaultMessage を使う。
  */
 export function createApiError(status: number, defaultMessage: string): ApiError {
