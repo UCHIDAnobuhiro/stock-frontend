@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { config, proxy } from "@/proxy";
 
@@ -11,6 +11,11 @@ function makeToken(payload: object): string {
 }
 
 const nowSec = () => Math.floor(Date.now() / 1000);
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
 
 function makeRequest(
   path: string,
@@ -29,6 +34,21 @@ function makeRequest(
 }
 
 describe("proxy", () => {
+  it.each([
+    "https://api.example.com",
+    "https://api.example.com/",
+  ])("%s を正規化してCSPのconnect-srcへ設定する", async (apiBaseUrl) => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.resetModules();
+    const { proxy: proxyWithEnv } = await import("@/proxy");
+
+    const res = proxyWithEnv(makeRequest("/login"));
+
+    expect(res.headers.get("Content-Security-Policy")).toContain(
+      "connect-src 'self' https://api.example.com;",
+    );
+  });
+
   it("Cookie なしで / にアクセスすると /login へリダイレクトする", () => {
     const res = proxy(makeRequest("/"));
     expect(res.status).toBe(307);
