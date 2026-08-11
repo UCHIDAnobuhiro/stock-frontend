@@ -37,11 +37,8 @@ jobs:
       - name: Check generated API types
         run: npm run check:api
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Audit all dependencies for critical vulnerabilities
-        run: npm audit --audit-level=critical
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
       - name: Lint
         run: npm run lint
