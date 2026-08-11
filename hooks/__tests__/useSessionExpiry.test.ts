@@ -23,7 +23,7 @@ describe("useSessionExpiry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    // デフォルト: csrf_token Cookie あり（セッション有効）
+    // デフォルト: csrf_token Cookie あり（refresh 可能）
     mockGetCsrfToken.mockReturnValue("csrf-token-value");
   });
 
@@ -36,7 +36,7 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(false);
   });
 
-  it("即時チェック: マウント直後に csrf_token Cookie が null のとき isExpired が true になる", () => {
+  it("即時チェック: マウント直後に csrf_token Cookie がなく refresh 不可なら isExpired が true になる", () => {
     mockGetCsrfToken.mockReturnValue(null);
 
     const { result } = renderHook(() => useSessionExpiry());
@@ -44,7 +44,7 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(true);
   });
 
-  it("ポーリング: csrf_token Cookie が null のとき isExpired が true になる", () => {
+  it("ポーリング: csrf_token Cookie がなく refresh 不可なら isExpired が true になる", () => {
     const { result } = renderHook(() => useSessionExpiry());
 
     expect(result.current.isExpired).toBe(false);
@@ -58,7 +58,7 @@ describe("useSessionExpiry", () => {
     expect(result.current.isExpired).toBe(true);
   });
 
-  it("ポーリング: csrf_token Cookie が存在するとき isExpired は false のまま", () => {
+  it("ポーリング: csrf_token Cookie が存在して refresh 可能なら isExpired は false のまま", () => {
     mockGetCsrfToken.mockReturnValue("valid-csrf");
 
     const { result } = renderHook(() => useSessionExpiry());

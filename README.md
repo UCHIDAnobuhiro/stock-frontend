@@ -155,6 +155,7 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 ### Cookie 認証 + Double Submit CSRF パターン
 
 - **ログイン時**: バックエンドが `auth_token`・`refresh_token`（ともに HttpOnly）と `csrf_token` の 3 つの Cookie を発行
+- **Cookie の有効期限**: `auth_token` は 10 分、`refresh_token` と `csrf_token` はともに 30 日。refresh API は `refresh_token`・`csrf_token`・`X-CSRF-Token` を必須とするため、`csrf_token` の消失は refresh 不可を意味する
 - **認証済みリクエスト**: `credentials: "include"` で Cookie を自動送信
 - **状態変更（GET / HEAD / OPTIONS 以外）**: `csrf_token` Cookie を読み取り `X-CSRF-Token` ヘッダーに付与
 - **アクセストークン期限切れ（401）**: `refresh_token` と CSRF トークンで Cookie をローテーションし、元リクエストを1回再送
