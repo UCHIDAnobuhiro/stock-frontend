@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isTokenValid } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/api-base";
 
 /**
  * 認可ルーティングガード + nonce ベース CSP の付与。
@@ -30,7 +31,7 @@ function buildCsp(nonce: string) {
     // style-src に限って 'unsafe-inline' を許容する。
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://api.twelvedata.com https://logo.twelvedata.com",
-    `connect-src 'self' ${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}`,
+    `connect-src 'self' ${getApiBaseUrl()}`,
     "font-src 'self'",
     "frame-src 'none'",
     "frame-ancestors 'none'",
