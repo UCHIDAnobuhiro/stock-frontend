@@ -29,6 +29,13 @@ describe("createApiError", () => {
     expect(error.message).toBe("データが見つかりませんでした");
   });
 
+  it("413 のときファイルサイズ超過メッセージを返す", () => {
+    const error = createApiError(413, "デフォルトメッセージ");
+    expect(error.message).toBe(
+      "ファイルサイズが大きすぎます。10MB以下の画像を選択してください",
+    );
+  });
+
   it.each([500, 502, 503])("%i 番のときサーバーエラーメッセージを返す", (status) => {
     const error = createApiError(status, "デフォルトメッセージ");
     expect(error.message).toBe("サーバーエラーが発生しました。時間をおいて再度お試しください");

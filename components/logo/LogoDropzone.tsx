@@ -10,6 +10,18 @@ interface LogoDropzoneProps {
   preview: string | null;
 }
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+function validateFile(file: File): string | null {
+  if (!file.type.startsWith("image/")) {
+    return "画像ファイルを選択してください";
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return "ファイルサイズは10MB以下にしてください";
+  }
+  return null;
+}
+
 export function LogoDropzone({
   onFile,
   onValidationError,
@@ -21,8 +33,9 @@ export function LogoDropzone({
 
   const handleFile = (file: File) => {
     if (isLoading) return;
-    if (!file.type.startsWith("image/")) {
-      onValidationError("画像ファイルを選択してください");
+    const validationError = validateFile(file);
+    if (validationError) {
+      onValidationError(validationError);
       return;
     }
     onValidationError(null);
