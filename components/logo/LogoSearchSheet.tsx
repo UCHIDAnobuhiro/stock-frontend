@@ -18,7 +18,6 @@ import { useLogoAnalyze } from "@/hooks/useLogoAnalyze";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
-import { findBestMatch } from "@/lib/companyMatch";
 
 interface LogoSearchSheetProps {
   open: boolean;
@@ -28,7 +27,8 @@ interface LogoSearchSheetProps {
 export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [matchError, setMatchError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isAddingToWatchlist, setIsAddingToWatchlist] = useState(false);
   const {
     results,
     hasSearched,
@@ -38,9 +38,21 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
     reset: resetDetect,
   } = useLogoDetect();
   const { analysis, isLoading: isAnalyzing, error: analyzeError, analyze, reset: resetAnalysis } = useLogoAnalyze();
-  const { addSymbol } = useWatchlist();
-  const { symbols } = useSymbols();
+  const {
+    items: watchlistItems,
+    isLoading: isWatchlistLoading,
+    addSymbol,
+  } = useWatchlist();
+  const { symbols, isLoading: isSymbolsLoading } = useSymbols();
   const { setSymbol } = useSelectedSymbol();
+
+  const ticker = analysis?.ticker?.toUpperCase() ?? null;
+  const matchedSymbol = ticker
+    ? symbols.find((symbol) => symbol.code.toUpperCase() === ticker)
+    : undefined;
+  const isInWatchlist = matchedSymbol
+    ? watchlistItems.some((item) => item.symbol_code === matchedSymbol.code)
+    : false;
 
   useEffect(() => {
     return () => {
@@ -52,7 +64,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
     resetDetect();
     resetAnalysis();
     setFileError(null);
-    setMatchError(null);
+    setActionError(null);
     const url = URL.createObjectURL(file);
     setPreview(url);
     detect(file).catch(() => {});
@@ -60,6 +72,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
 
   const handleAnalyze = (name: string) => {
     resetAnalysis();
+    setActionError(null);
     analyze(name).catch(() => {});
   };
 
@@ -67,28 +80,33 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
     resetDetect();
     resetAnalysis();
     setFileError(null);
-    setMatchError(null);
+    setActionError(null);
     setPreview(null);
   };
 
-  const handleViewChart = (name: string) => {
-    const symbol = findBestMatch(name, symbols, (s) => s.name);
-    if (symbol) {
-      setMatchError(null);
-      setSymbol(symbol.code);
-      onOpenChange(false);
-    } else {
-      setMatchError(`「${name}」に対応する銘柄が見つかりませんでした`);
-    }
+  const handleViewChart = () => {
+    if (!matchedSymbol) return;
+
+    setActionError(null);
+    setSymbol(matchedSymbol.code);
+    onOpenChange(false);
   };
 
-  const handleAddToWatchlist = (name: string) => {
-    const symbol = findBestMatch(name, symbols, (s) => s.name);
-    if (symbol) {
-      setMatchError(null);
-      addSymbol(symbol.code);
-    } else {
-      setMatchError(`「${name}」に対応する銘柄が見つかりませんでした`);
+  const handleAddToWatchlist = async () => {
+    if (!matchedSymbol || isInWatchlist || isAddingToWatchlist) return;
+
+    setActionError(null);
+    setIsAddingToWatchlist(true);
+    try {
+      await addSymbol(matchedSymbol.code);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "ウォッチリストへの追加に失敗しました",
+      );
+    } finally {
+      setIsAddingToWatchlist(false);
     }
   };
 
@@ -126,9 +144,9 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
             {results.length > 0 && (
               <LogoDetectResults
                 results={results}
-                onViewChart={handleViewChart}
-                onAddToWatchlist={handleAddToWatchlist}
                 onAnalyze={handleAnalyze}
+                isAnalyzing={isAnalyzing}
+                hasAnalysis={analysis !== null}
               />
             )}
 
@@ -151,19 +169,26 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
                 </div>
               )}
 
-            {(fileError || detectError || analyzeError || matchError) && (
+            {(fileError || detectError || analyzeError || actionError) && (
               <p
                 role="alert"
                 className="text-xs"
                 style={{ color: "var(--color-bear)" }}
               >
-                {fileError ?? detectError ?? analyzeError ?? matchError}
+                {fileError ?? detectError ?? analyzeError ?? actionError}
               </p>
             )}
 
             <CompanyAnalysisCard
               analysis={analysis}
               isLoading={isAnalyzing}
+              symbolCode={matchedSymbol?.code ?? null}
+              isResolvingSymbol={Boolean(ticker) && isSymbolsLoading}
+              isInWatchlist={isInWatchlist}
+              isWatchlistLoading={isWatchlistLoading}
+              isAddingToWatchlist={isAddingToWatchlist}
+              onViewChart={handleViewChart}
+              onAddToWatchlist={handleAddToWatchlist}
             />
 
             {(results.length > 0 || preview) && (

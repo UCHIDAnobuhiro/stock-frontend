@@ -389,8 +389,10 @@ export interface components {
             confidence: number;
         };
         CompanyAnalysisResponse: {
-            /** @description 分析対象の企業名 */
+            /** @description 分析対象となる企業の正式名称 */
             company_name: string;
+            /** @description ティッカーシンボル。不明または非上場の場合はnull */
+            ticker: string | null;
             /** @description AI生成の企業分析サマリー */
             summary: string;
         };
