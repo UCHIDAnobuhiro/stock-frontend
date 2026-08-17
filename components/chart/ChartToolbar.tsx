@@ -33,19 +33,19 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-3 border-b px-4"
+      className="flex h-10 shrink-0 items-center gap-2 border-b px-2 sm:gap-3 sm:px-4"
       style={{
         backgroundColor: "var(--color-surface-2)",
         borderColor: "var(--color-border)",
       }}
     >
       {/* 銘柄名 */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         {selectedSymbol ? (
           <>
             <SymbolLogo code={selectedSymbol.code} logoUrl={selectedSymbol.logo_url} size={24} />
             <span
-              className="text-sm font-semibold truncate"
+              className="shrink-0 whitespace-nowrap text-sm font-semibold"
               style={{ color: "var(--color-text-primary)" }}
             >
               {selectedSymbol.code}

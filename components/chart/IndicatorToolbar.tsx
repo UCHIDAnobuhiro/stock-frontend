@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { BOLLINGER_COLORS } from "@/lib/indicators";
 
 const SMA_COLORS = ["#2962ff", "#ff6d00", "#ab47bc"] as const;
@@ -53,14 +54,19 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
   return (
     <div ref={containerRef} className="relative">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 whitespace-nowrap rounded px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-80"
+        aria-label="インジケーター"
+        aria-expanded={open}
+        title="インジケーター"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors hover:opacity-80 sm:px-2.5"
         style={{
           backgroundColor: open ? "var(--color-surface-3)" : "transparent",
           color: "var(--color-text-secondary)",
         }}
       >
-        インジケーター
+        <SlidersHorizontal aria-hidden="true" className="h-4 w-4 sm:hidden" />
+        <span className="hidden sm:inline">インジケーター</span>
         {activeCount > 0 && (
           <span
             className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
@@ -70,6 +76,8 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
           </span>
         )}
         <svg
+          aria-hidden="true"
+          className="hidden sm:block"
           width="10"
           height="10"
           viewBox="0 0 10 10"
