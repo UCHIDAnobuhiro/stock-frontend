@@ -1,15 +1,35 @@
 "use client";
 
+import { BarChart2, Check, LoaderCircle, Plus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { CompanyAnalysisResponse } from "@/hooks/useLogoAnalyze";
 
 interface CompanyAnalysisCardProps {
   analysis: CompanyAnalysisResponse | null;
   isLoading: boolean;
+  symbolCode: string | null;
+  isResolvingSymbol: boolean;
+  isInWatchlist: boolean;
+  isWatchlistLoading: boolean;
+  isAddingToWatchlist: boolean;
+  onViewChart: () => void;
+  onAddToWatchlist: () => void;
 }
 
-export function CompanyAnalysisCard({ analysis, isLoading }: CompanyAnalysisCardProps) {
+export function CompanyAnalysisCard({
+  analysis,
+  isLoading,
+  symbolCode,
+  isResolvingSymbol,
+  isInWatchlist,
+  isWatchlistLoading,
+  isAddingToWatchlist,
+  onViewChart,
+  onAddToWatchlist,
+}: CompanyAnalysisCardProps) {
   if (!isLoading && !analysis) return null;
 
   return (
@@ -38,12 +58,81 @@ export function CompanyAnalysisCard({ analysis, isLoading }: CompanyAnalysisCard
         </>
       ) : analysis ? (
         <>
-          <p
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {analysis.company_name}
-          </p>
+          <div className="flex items-start gap-2">
+            <p
+              className="min-w-0 flex-1 text-sm font-semibold"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {analysis.company_name}
+            </p>
+            {analysis.ticker && (
+              <Badge
+                variant="secondary"
+                className="shrink-0 font-mono text-[10px]"
+                style={{
+                  backgroundColor: "var(--color-surface-2)",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                {analysis.ticker}
+              </Badge>
+            )}
+          </div>
+
+          {symbolCode ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                style={{ color: "var(--color-accent)" }}
+                onClick={onViewChart}
+              >
+                <BarChart2 />
+                チャートを見る
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                style={{ color: "var(--color-bull)" }}
+                disabled={
+                  isInWatchlist ||
+                  isWatchlistLoading ||
+                  isAddingToWatchlist
+                }
+                onClick={onAddToWatchlist}
+              >
+                {isAddingToWatchlist ? (
+                  <LoaderCircle className="animate-spin" />
+                ) : isInWatchlist ? (
+                  <Check />
+                ) : (
+                  <Plus />
+                )}
+                {isAddingToWatchlist
+                  ? "追加中..."
+                  : isInWatchlist
+                    ? "追加済み"
+                    : isWatchlistLoading
+                      ? "確認中..."
+                      : "ウォッチリストに追加"}
+              </Button>
+            </div>
+          ) : (
+            <p
+              role="status"
+              className="text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {isResolvingSymbol
+                ? "銘柄情報を確認しています..."
+                : analysis.ticker
+                  ? `「${analysis.ticker}」は現在利用できる銘柄にありません`
+                  : "ティッカーを特定できなかったため、チャート操作を利用できません"}
+            </p>
+          )}
+
           <div
             className="text-xs leading-relaxed space-y-1 max-h-60 overflow-y-auto scrollbar-thin"
             style={{ color: "var(--color-text-secondary)" }}
