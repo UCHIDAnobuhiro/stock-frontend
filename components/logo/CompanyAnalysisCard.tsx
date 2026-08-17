@@ -134,7 +134,7 @@ export function CompanyAnalysisCard({
           )}
 
           <div
-            className="text-xs leading-relaxed space-y-1 max-h-60 overflow-y-auto scrollbar-thin"
+            className="min-h-0 space-y-1 text-xs leading-relaxed"
             style={{ color: "var(--color-text-secondary)" }}
           >
             <ReactMarkdown
