@@ -7,12 +7,24 @@ const {
   mockDetect,
   mockResetDetect,
   mockUseLogoDetect,
+  mockAnalyze,
   mockResetAnalysis,
+  mockUseLogoAnalyze,
+  mockAddSymbol,
+  mockUseWatchlist,
+  mockSetSymbol,
+  mockUseSymbols,
 } = vi.hoisted(() => ({
   mockDetect: vi.fn(),
   mockResetDetect: vi.fn(),
   mockUseLogoDetect: vi.fn(),
+  mockAnalyze: vi.fn(),
   mockResetAnalysis: vi.fn(),
+  mockUseLogoAnalyze: vi.fn(),
+  mockAddSymbol: vi.fn(),
+  mockUseWatchlist: vi.fn(),
+  mockSetSymbol: vi.fn(),
+  mockUseSymbols: vi.fn(),
 }));
 
 vi.mock("@/hooks/useLogoDetect", () => ({
@@ -20,25 +32,19 @@ vi.mock("@/hooks/useLogoDetect", () => ({
 }));
 
 vi.mock("@/hooks/useLogoAnalyze", () => ({
-  useLogoAnalyze: () => ({
-    analysis: null,
-    isLoading: false,
-    error: null,
-    analyze: vi.fn(),
-    reset: mockResetAnalysis,
-  }),
+  useLogoAnalyze: () => mockUseLogoAnalyze(),
 }));
 
 vi.mock("@/hooks/useWatchlist", () => ({
-  useWatchlist: () => ({ addSymbol: vi.fn() }),
+  useWatchlist: () => mockUseWatchlist(),
 }));
 
 vi.mock("@/hooks/useSelectedSymbol", () => ({
-  useSelectedSymbol: () => ({ setSymbol: vi.fn() }),
+  useSelectedSymbol: () => ({ setSymbol: mockSetSymbol }),
 }));
 
 vi.mock("@/hooks/useSymbols", () => ({
-  useSymbols: () => ({ symbols: [] }),
+  useSymbols: () => mockUseSymbols(),
 }));
 
 vi.mock("@/components/ui/sheet", () => ({
@@ -70,7 +76,28 @@ vi.mock("@/components/logo/LogoDropzone", () => ({
 }));
 
 vi.mock("@/components/logo/CompanyAnalysisCard", () => ({
-  CompanyAnalysisCard: () => null,
+  CompanyAnalysisCard: ({
+    analysis,
+    symbolCode,
+    onViewChart,
+    onAddToWatchlist,
+  }: {
+    analysis: { ticker: string | null } | null;
+    symbolCode: string | null;
+    onViewChart: () => void;
+    onAddToWatchlist: () => void;
+  }) =>
+    analysis ? (
+      <div>
+        <span>{symbolCode ?? "利用可能な銘柄なし"}</span>
+        <button type="button" disabled={!symbolCode} onClick={onViewChart}>
+          テスト用チャート
+        </button>
+        <button type="button" disabled={!symbolCode} onClick={onAddToWatchlist}>
+          テスト用ウォッチリスト追加
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/components/logo/LogoDetectResults", () => ({
@@ -89,6 +116,20 @@ describe("LogoSearchSheet", () => {
       reset: mockResetDetect,
     });
     mockDetect.mockResolvedValue([]);
+    mockUseLogoAnalyze.mockReturnValue({
+      analysis: null,
+      isLoading: false,
+      error: null,
+      analyze: mockAnalyze,
+      reset: mockResetAnalysis,
+    });
+    mockAddSymbol.mockResolvedValue(undefined);
+    mockUseWatchlist.mockReturnValue({
+      items: [],
+      isLoading: false,
+      addSymbol: mockAddSymbol,
+    });
+    mockUseSymbols.mockReturnValue({ symbols: [], isLoading: false });
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:logo-preview"),
       revokeObjectURL: vi.fn(),
@@ -177,5 +218,83 @@ describe("LogoSearchSheet", () => {
 
     expect(mockResetDetect).toHaveBeenCalledOnce();
     expect(mockResetAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("分析tickerと完全一致する銘柄でチャートを開く", () => {
+    mockUseLogoAnalyze.mockReturnValue({
+      analysis: {
+        company_name: "Alphabet Inc.",
+        ticker: "GOOGL",
+        summary: "分析結果",
+      },
+      isLoading: false,
+      error: null,
+      analyze: mockAnalyze,
+      reset: mockResetAnalysis,
+    });
+    mockUseSymbols.mockReturnValue({
+      symbols: [{ code: "GOOGL", name: "Alphabet Inc.", logo_url: null }],
+      isLoading: false,
+    });
+    const onOpenChange = vi.fn();
+    render(<LogoSearchSheet open onOpenChange={onOpenChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "テスト用チャート" }));
+
+    expect(mockSetSymbol).toHaveBeenCalledWith("GOOGL");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("分析tickerと完全一致する銘柄をウォッチリストへ追加する", async () => {
+    mockUseLogoAnalyze.mockReturnValue({
+      analysis: {
+        company_name: "Alphabet Inc.",
+        ticker: "GOOGL",
+        summary: "分析結果",
+      },
+      isLoading: false,
+      error: null,
+      analyze: mockAnalyze,
+      reset: mockResetAnalysis,
+    });
+    mockUseSymbols.mockReturnValue({
+      symbols: [{ code: "GOOGL", name: "Alphabet Inc.", logo_url: null }],
+      isLoading: false,
+    });
+    render(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "テスト用ウォッチリスト追加" }),
+    );
+
+    await waitFor(() => expect(mockAddSymbol).toHaveBeenCalledWith("GOOGL"));
+  });
+
+  it("tickerが銘柄一覧と一致しない場合は操作を無効化する", () => {
+    mockUseLogoAnalyze.mockReturnValue({
+      analysis: {
+        company_name: "Alphabet Inc.",
+        ticker: "GOOG",
+        summary: "分析結果",
+      },
+      isLoading: false,
+      error: null,
+      analyze: mockAnalyze,
+      reset: mockResetAnalysis,
+    });
+    mockUseSymbols.mockReturnValue({
+      symbols: [{ code: "GOOGL", name: "Alphabet Inc.", logo_url: null }],
+      isLoading: false,
+    });
+    render(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+
+    expect(screen.getByText("利用可能な銘柄なし")).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "テスト用チャート",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
   });
 });

@@ -1,22 +1,21 @@
 "use client";
 
-import { BarChart2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DetectedLogoResponse } from "@/hooks/useLogoDetect";
 
 interface LogoDetectResultsProps {
   results: DetectedLogoResponse[];
-  onViewChart: (name: string) => void;
-  onAddToWatchlist: (name: string) => void;
   onAnalyze: (name: string) => void;
+  isAnalyzing: boolean;
+  hasAnalysis: boolean;
 }
 
 export function LogoDetectResults({
   results,
-  onViewChart,
-  onAddToWatchlist,
   onAnalyze,
+  isAnalyzing,
+  hasAnalysis,
 }: LogoDetectResultsProps) {
   if (results.length === 0) return null;
 
@@ -55,30 +54,6 @@ export function LogoDetectResults({
                 信頼度: {Math.round(result.confidence * 100)}%
               </Badge>
             </div>
-            <div className="flex gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                style={{ color: "var(--color-accent)" }}
-                aria-label={`${result.name} のチャートを開く`}
-                title="チャートで見る"
-                onClick={() => onViewChart(result.name)}
-              >
-                <BarChart2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                style={{ color: "var(--color-bull)" }}
-                aria-label={`${result.name} をウォッチリストに追加`}
-                title="ウォッチリストに追加"
-                onClick={() => onAddToWatchlist(result.name)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
           </div>
         ))}
       </div>
@@ -91,9 +66,14 @@ export function LogoDetectResults({
           backgroundColor: "var(--color-surface-2)",
           color: "var(--color-text-secondary)",
         }}
+        disabled={isAnalyzing}
         onClick={() => onAnalyze(topResult.name)}
       >
-        企業分析を生成
+        {isAnalyzing
+          ? "企業分析を生成中..."
+          : hasAnalysis
+            ? "企業分析を再生成"
+            : "企業分析を生成"}
       </Button>
     </div>
   );
