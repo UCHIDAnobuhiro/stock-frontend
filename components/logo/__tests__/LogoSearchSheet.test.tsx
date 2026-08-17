@@ -101,7 +101,29 @@ vi.mock("@/components/logo/CompanyAnalysisCard", () => ({
 }));
 
 vi.mock("@/components/logo/LogoDetectResults", () => ({
-  LogoDetectResults: () => <div>検出結果</div>,
+  LogoDetectResults: ({
+    results,
+    onAnalyze,
+    analysisTarget,
+  }: {
+    results: { name: string }[];
+    onAnalyze: (name: string) => void;
+    analysisTarget: string | null;
+  }) => (
+    <div>
+      <span>検出結果</span>
+      <span>分析対象: {analysisTarget ?? "なし"}</span>
+      {results.map((result) => (
+        <button
+          key={result.name}
+          type="button"
+          onClick={() => onAnalyze(result.name)}
+        >
+          {result.name}を企業分析
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 describe("LogoSearchSheet", () => {
@@ -218,6 +240,30 @@ describe("LogoSearchSheet", () => {
 
     expect(mockResetDetect).toHaveBeenCalledOnce();
     expect(mockResetAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("選択した検出候補を分析対象にする", () => {
+    mockUseLogoDetect.mockReturnValue({
+      results: [
+        { name: "Google", confidence: 0.85 },
+        { name: "Facebook", confidence: 0.83 },
+      ],
+      hasSearched: true,
+      isLoading: false,
+      error: null,
+      detect: mockDetect,
+      reset: mockResetDetect,
+    });
+    mockAnalyze.mockResolvedValue(null);
+    render(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Facebookを企業分析" }),
+    );
+
+    expect(mockResetAnalysis).toHaveBeenCalledOnce();
+    expect(mockAnalyze).toHaveBeenCalledWith("Facebook");
+    expect(screen.getByText("分析対象: Facebook")).toBeTruthy();
   });
 
   it("分析tickerと完全一致する銘柄でチャートを開く", () => {

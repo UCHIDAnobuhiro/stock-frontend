@@ -33,6 +33,15 @@ describe("CompanyAnalysisCard", () => {
     ).toBeTruthy();
   });
 
+  it("Markdownを固定の高さに制限しない", () => {
+    render(<CompanyAnalysisCard {...defaultProps} />);
+
+    const markdownContainer = screen.getByText("企業分析サマリー").parentElement;
+
+    expect(markdownContainer?.className).not.toContain("max-h-60");
+    expect(markdownContainer?.className).not.toContain("overflow-y-auto");
+  });
+
   it("チャート・ウォッチリスト操作を通知する", () => {
     const onViewChart = vi.fn();
     const onAddToWatchlist = vi.fn();

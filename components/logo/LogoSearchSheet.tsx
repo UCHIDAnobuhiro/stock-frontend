@@ -28,6 +28,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [analysisTarget, setAnalysisTarget] = useState<string | null>(null);
   const [isAddingToWatchlist, setIsAddingToWatchlist] = useState(false);
   const {
     results,
@@ -63,6 +64,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleFile = (file: File) => {
     resetDetect();
     resetAnalysis();
+    setAnalysisTarget(null);
     setFileError(null);
     setActionError(null);
     const url = URL.createObjectURL(file);
@@ -72,6 +74,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
 
   const handleAnalyze = (name: string) => {
     resetAnalysis();
+    setAnalysisTarget(name);
     setActionError(null);
     analyze(name).catch(() => {});
   };
@@ -79,6 +82,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
   const handleReset = () => {
     resetDetect();
     resetAnalysis();
+    setAnalysisTarget(null);
     setFileError(null);
     setActionError(null);
     setPreview(null);
@@ -132,8 +136,8 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1">
-          <div className="space-y-4 p-4">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-h-full space-y-4 p-4">
             <LogoDropzone
               onFile={handleFile}
               onValidationError={setFileError}
@@ -146,6 +150,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
                 results={results}
                 onAnalyze={handleAnalyze}
                 isAnalyzing={isAnalyzing}
+                analysisTarget={analysisTarget}
                 hasAnalysis={analysis !== null}
               />
             )}
