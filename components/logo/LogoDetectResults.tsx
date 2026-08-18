@@ -54,7 +54,7 @@ export function LogoDetectResults({
                 </p>
                 <Badge
                   variant="secondary"
-                  className="mt-0.5 px-1.5 py-0 text-[10px]"
+                  className="mt-0.5 px-1.5 py-0 text-[11px] sm:text-[10px]"
                   style={{
                     backgroundColor: "var(--color-surface-2)",
                     color: "var(--color-text-muted)",

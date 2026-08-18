@@ -33,7 +33,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
 
   return (
     <div
-      className="flex h-12 shrink-0 items-center gap-2 border-b px-2 sm:h-10 sm:gap-3 sm:px-4"
+      className="flex h-11 shrink-0 items-center gap-2 border-b px-2 sm:h-10 sm:gap-3 sm:px-4"
       style={{
         backgroundColor: "var(--color-surface-2)",
         borderColor: "var(--color-border)",
@@ -118,25 +118,23 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
             <button
               key={item.value}
               onClick={() => setInterval(item.value)}
+              aria-pressed={interval === item.value}
               className={cn(
-                "min-h-11 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors sm:min-h-0 sm:px-2.5",
-                interval === item.value
-                  ? "text-white"
-                  : "hover:opacity-80"
+                "flex min-h-11 items-center whitespace-nowrap px-1 text-xs font-medium transition-opacity hover:opacity-80 sm:min-h-0 sm:px-0",
+                interval === item.value && "text-white"
               )}
-              style={
-                interval === item.value
-                  ? {
-                      backgroundColor: "var(--color-accent)",
-                      color: "#ffffff",
-                    }
-                  : {
-                      backgroundColor: "transparent",
-                      color: "var(--color-text-secondary)",
-                    }
-              }
+              style={{
+                color: interval === item.value ? "#ffffff" : "var(--color-text-secondary)",
+              }}
             >
-              {item.label}
+              <span
+                className="rounded-md px-2 py-1.5 sm:px-2.5 sm:py-1"
+                style={{
+                  backgroundColor: interval === item.value ? "var(--color-accent)" : "transparent",
+                }}
+              >
+                {item.label}
+              </span>
             </button>
           ))}
         </div>

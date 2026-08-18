@@ -55,7 +55,7 @@ export function CompanyAnalysisCard({
             {analysis.ticker && (
               <Badge
                 variant="secondary"
-                className="shrink-0 font-mono text-[10px]"
+                className="shrink-0 font-mono text-[11px] sm:text-[10px]"
                 style={{
                   backgroundColor: "var(--color-surface-2)",
                   color: "var(--color-text-secondary)",
