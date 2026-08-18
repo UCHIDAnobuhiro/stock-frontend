@@ -75,12 +75,12 @@ export function WatchlistItem({
         {...listeners}
         aria-label="並び替え"
         className={cn(
-          "-ml-2 flex w-10 shrink-0 touch-none cursor-grab items-center justify-center self-stretch active:cursor-grabbing transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          "-ml-2 flex w-10 shrink-0 touch-none cursor-grab items-center justify-center self-stretch transition-opacity opacity-100 active:cursor-grabbing md:ml-0 md:w-auto md:opacity-0 md:group-hover:opacity-100"
         )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4 md:h-3.5 md:w-3.5" />
       </button>
 
       {/* 銘柄情報 */}
@@ -130,8 +130,7 @@ export function WatchlistItem({
         type="button"
         aria-label={`${code} をウォッチリストから削除`}
         className={cn(
-          "shrink-0 transition-opacity rounded p-0.5 hover:bg-[var(--color-surface-3)] opacity-100 md:opacity-0 md:group-hover:opacity-100",
-          viewMode === "chart" ? "self-stretch flex items-center" : ""
+          "-mr-2 flex w-10 shrink-0 items-center justify-center self-stretch rounded transition-opacity opacity-100 hover:bg-[var(--color-surface-3)] md:mr-0 md:w-auto md:p-0.5 md:opacity-0 md:group-hover:opacity-100"
         )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => {
@@ -139,7 +138,7 @@ export function WatchlistItem({
           onRemove();
         }}
       >
-        <X className="h-3 w-3" />
+        <X className="h-4 w-4 md:h-3 md:w-3" />
       </button>
     </div>
   );

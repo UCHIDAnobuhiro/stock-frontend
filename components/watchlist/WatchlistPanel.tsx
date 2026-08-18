@@ -161,13 +161,13 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
           type="button"
           onClick={toggleViewMode}
           aria-label={viewMode === "compact" ? "スパークラインを表示" : "コンパクト表示に切り替え"}
-          className="shrink-0 rounded p-0.5 hover:bg-[var(--color-surface-3)] transition-colors"
+          className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded transition-colors hover:bg-[var(--color-surface-3)] md:mr-0 md:size-auto md:p-0.5"
           style={{ color: "var(--color-text-muted)" }}
         >
           {viewMode === "compact" ? (
-            <BarChart2 className="h-3.5 w-3.5" />
+            <BarChart2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
           ) : (
-            <List className="h-3.5 w-3.5" />
+            <List className="h-4 w-4 md:h-3.5 md:w-3.5" />
           )}
         </button>
       </div>
