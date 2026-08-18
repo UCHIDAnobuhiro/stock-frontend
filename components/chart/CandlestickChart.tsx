@@ -90,6 +90,16 @@ function isSameRange(range: VisibleLogicalRange, defaultRange: VisibleLogicalRan
     && Math.abs(range.to - defaultRange.to) < 0.5;
 }
 
+function getDefaultRange(total: number, width: number): VisibleLogicalRange {
+  const visibleCount = width < MOBILE_BREAKPOINT
+    ? VISIBLE_CANDLES_MOBILE
+    : VISIBLE_CANDLES_DESKTOP;
+  return {
+    from: Math.max(0, total - visibleCount),
+    to: total - 1,
+  };
+}
+
 export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabled }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const smaLegendRef = useRef<HTMLDivElement>(null);
@@ -98,6 +108,8 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const defaultRangeRef = useRef<VisibleLogicalRange | null>(null);
+  const dataLengthRef = useRef(0);
+  const isRangeModifiedRef = useRef(false);
   const [selectedCandle, setSelectedCandle] = useState<SelectedCandle | null>(null);
   const [isRangeModified, setIsRangeModified] = useState(false);
   const { resolvedTheme } = useTheme();
@@ -140,6 +152,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
   const restoreDefaultRange = useCallback(() => {
     if (!chartRef.current || !defaultRangeRef.current) return;
+    isRangeModifiedRef.current = false;
     chartRef.current.timeScale().setVisibleLogicalRange(defaultRangeRef.current);
     setIsRangeModified(false);
   }, []);
@@ -149,7 +162,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
     const c = resolvedThemeRef.current === "light" ? lightColors : darkColors;
 
-    const isMobile = containerRef.current.clientWidth < MOBILE_BREAKPOINT;
+    let isMobile = containerRef.current.clientWidth < MOBILE_BREAKPOINT;
     const chart = createChart(containerRef.current, {
       layout: {
         background: { color: c.background },
@@ -296,7 +309,9 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
     const handleVisibleRangeChange = (range: LogicalRange | null) => {
       if (!range || !defaultRangeRef.current) return;
-      setIsRangeModified(!isSameRange(range, defaultRangeRef.current));
+      const isModified = !isSameRange(range, defaultRangeRef.current);
+      isRangeModifiedRef.current = isModified;
+      setIsRangeModified(isModified);
     };
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -310,16 +325,39 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
     const observer = new ResizeObserver(() => {
       if (containerRef.current) {
+        const width = containerRef.current.clientWidth;
+        const nextIsMobile = width < MOBILE_BREAKPOINT;
         chart.applyOptions({
-          width: containerRef.current.clientWidth,
+          width,
           height: containerRef.current.clientHeight,
           handleScale: {
-            axisPressedMouseMove: containerRef.current.clientWidth >= MOBILE_BREAKPOINT,
+            axisPressedMouseMove: !nextIsMobile,
           },
           handleScroll: {
-            vertTouchDrag: containerRef.current.clientWidth >= MOBILE_BREAKPOINT,
+            vertTouchDrag: !nextIsMobile,
           },
         });
+
+        if (nextIsMobile !== isMobile) {
+          isMobile = nextIsMobile;
+
+          if (dataLengthRef.current > 0) {
+            const wasRangeModified = isRangeModifiedRef.current;
+            const nextDefaultRange = getDefaultRange(dataLengthRef.current, width);
+            defaultRangeRef.current = nextDefaultRange;
+
+            if (!wasRangeModified) {
+              chart.timeScale().setVisibleLogicalRange(nextDefaultRange);
+            } else {
+              const currentRange = chart.timeScale().getVisibleLogicalRange();
+              if (currentRange) {
+                const isModified = !isSameRange(currentRange, nextDefaultRange);
+                isRangeModifiedRef.current = isModified;
+                setIsRangeModified(isModified);
+              }
+            }
+          }
+        }
       }
     });
     observer.observe(containerRef.current);
@@ -332,6 +370,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       chart.remove();
       chartRef.current = null;
       defaultRangeRef.current = null;
+      dataLengthRef.current = 0;
       setChartReady(false);
     };
   }, [smaSeriesMapRef, bbSeriesMapRef]);
@@ -363,6 +402,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       candleSeriesRef.current.setData([]);
       volumeSeriesRef.current.setData([]);
       defaultRangeRef.current = null;
+      dataLengthRef.current = 0;
       return;
     }
 
@@ -386,13 +426,9 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
     const total = sorted.length;
-    const visibleCount = (containerRef.current?.clientWidth ?? MOBILE_BREAKPOINT) < MOBILE_BREAKPOINT
-      ? VISIBLE_CANDLES_MOBILE
-      : VISIBLE_CANDLES_DESKTOP;
-    const defaultRange = {
-      from: Math.max(0, total - visibleCount),
-      to: total - 1,
-    };
+    const width = containerRef.current?.clientWidth ?? MOBILE_BREAKPOINT;
+    const defaultRange = getDefaultRange(total, width);
+    dataLengthRef.current = total;
     defaultRangeRef.current = defaultRange;
     chartRef.current?.timeScale().setVisibleLogicalRange(defaultRange);
   }, [candles, resolvedTheme]);

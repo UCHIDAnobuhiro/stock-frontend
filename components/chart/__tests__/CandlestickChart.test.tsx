@@ -13,6 +13,7 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock } = vi.ho
 
   const mockTimeScale = {
     setVisibleLogicalRange: vi.fn(),
+    getVisibleLogicalRange: vi.fn(),
     subscribeVisibleLogicalRangeChange: vi.fn(),
     unsubscribeVisibleLogicalRangeChange: vi.fn(),
   };
@@ -50,8 +51,14 @@ vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light" }),
 }));
 
-// jsdom に ResizeObserver が無いためスタブを用意する
+let resizeObserverCallback: ResizeObserverCallback | undefined;
+let mockClientWidth = 375;
+
+// jsdom に ResizeObserver が無いため、コールバックをテストから発火できるスタブを用意する
 class ResizeObserverStub {
+  constructor(callback: ResizeObserverCallback) {
+    resizeObserverCallback = callback;
+  }
   observe() {}
   unobserve() {}
   disconnect() {}
@@ -64,12 +71,23 @@ const candlesWithData: CandleResponse[] = [
   { time: "2024-01-02", open: 105, high: 115, low: 95, close: 110, volume: 1200 },
 ];
 
+const candlesForRangeTest: CandleResponse[] = Array.from({ length: 100 }, (_, index) => {
+  const date = new Date(Date.UTC(2024, 0, index + 1)).toISOString().slice(0, 10);
+  return { time: date, open: 100 + index, high: 110 + index, low: 90 + index, close: 105 + index, volume: 1000 };
+});
+
 // ---- テスト ----
 
 describe("CandlestickChart", () => {
   beforeEach(() => {
     mockSeriesInstances.length = 0;
+    mockClientWidth = 375;
+    resizeObserverCallback = undefined;
     vi.clearAllMocks();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => mockClientWidth,
+    });
     // @ts-expect-error jsdom に ResizeObserver が存在しないためグローバルへ追加する
     global.ResizeObserver = ResizeObserverStub;
   });
@@ -174,5 +192,39 @@ describe("CandlestickChart", () => {
         handleScroll: expect.objectContaining({ horzTouchDrag: true, vertTouchDrag: false }),
       }),
     );
+  });
+
+  it("未操作のままPC幅からスマホ幅へ変わったら初期表示を60本から30本へ更新する", async () => {
+    mockClientWidth = 800;
+    render(
+      <CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 40, to: 99 });
+
+    mockClientWidth = 390;
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 70, to: 99 });
+  });
+
+  it("操作済みでスマホ幅へ変わったら現在範囲を維持し、リセット先だけ30本へ更新する", async () => {
+    mockClientWidth = 800;
+    render(
+      <CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    const rangeChangeHandler = mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0];
+    act(() => rangeChangeHandler({ from: 75, to: 99 }));
+    mockTimeScale.getVisibleLogicalRange.mockReturnValue({ from: 75, to: 99 });
+
+    mockClientWidth = 390;
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "表示範囲を初期状態に戻す" }));
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 70, to: 99 });
   });
 });
