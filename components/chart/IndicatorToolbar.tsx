@@ -69,7 +69,7 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
         <span className="hidden sm:inline">インジケーター</span>
         {activeCount > 0 && (
           <span
-            className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
+            className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[11px] font-semibold text-white sm:text-[10px]"
             style={{ backgroundColor: "var(--color-accent)" }}
           >
             {activeCount}
@@ -94,7 +94,7 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
         >
           <div className="border-b px-3 py-2" style={{ borderColor: "var(--color-border)" }}>
             <p
-              className="text-[10px] font-semibold uppercase tracking-widest"
+              className="text-[11px] font-semibold uppercase tracking-widest sm:text-[10px]"
               style={{ color: "var(--color-text-muted)" }}
             >
               テクニカル指標
@@ -114,7 +114,7 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
                 </div>
                 <div className="text-left">
                   <div className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>SMA</div>
-                  <div className="text-[10px] leading-tight" style={{ color: "var(--color-text-muted)" }}>移動平均線</div>
+                  <div className="text-[11px] leading-tight sm:text-[10px]" style={{ color: "var(--color-text-muted)" }}>移動平均線</div>
                 </div>
               </div>
               <ToggleSwitch checked={smaEnabled} color={SMA_COLORS[0]} />
@@ -132,7 +132,7 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
                 </div>
                 <div className="text-left">
                   <div className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>BB</div>
-                  <div className="text-[10px] leading-tight" style={{ color: "var(--color-text-muted)" }}>ボリンジャーバンド</div>
+                  <div className="text-[11px] leading-tight sm:text-[10px]" style={{ color: "var(--color-text-muted)" }}>ボリンジャーバンド</div>
                 </div>
               </div>
               <ToggleSwitch checked={bollingerEnabled} color={BOLLINGER_COLORS.sigma3} />

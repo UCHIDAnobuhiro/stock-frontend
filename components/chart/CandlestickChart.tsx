@@ -445,32 +445,35 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       {/* スマホではチャート外の固定ストリップ、PCでは従来どおりチャート上へ重ねる */}
       <div
         data-testid="candle-info"
-        className="z-10 shrink-0 border-b bg-[var(--color-surface-1)] px-3 py-2 sm:pointer-events-none sm:absolute sm:left-3 sm:right-20 sm:top-3 sm:border-0 sm:bg-transparent sm:p-0"
+        className="z-10 shrink-0 border-b bg-[var(--color-surface-1)] px-3 py-2.5 sm:pointer-events-none sm:absolute sm:left-3 sm:right-20 sm:top-3 sm:border-0 sm:bg-transparent sm:p-0"
         style={{ borderColor: "var(--color-border)" }}
       >
         {displayedCandle ? (
           <>
-            <div className="mb-1 flex items-center justify-between gap-3 text-[11px] sm:mb-0 sm:justify-start sm:text-xs">
-              <span className="font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="grid grid-cols-4 items-center text-[12px] leading-none sm:flex sm:justify-start sm:gap-3 sm:text-xs">
+              <span className="col-span-3 font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
                 {displayedCandle.time.replaceAll("-", "/")}
               </span>
               {displayedCandle.volume !== undefined && (
-                <span className="tabular-nums" style={{ color: "var(--color-text-muted)" }}>
+                <span className="col-start-4 whitespace-nowrap text-[11px] tabular-nums" style={{ color: "var(--color-text-muted)" }}>
                   出来高 {Math.round(displayedCandle.volume).toLocaleString()}
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-x-3 font-mono sm:flex sm:flex-wrap sm:gap-x-2">
+            <div className="mt-2 grid grid-cols-4 font-mono sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-2">
               {([
                 ["始値", displayedCandle.open],
                 ["高値", displayedCandle.high],
                 ["安値", displayedCandle.low],
                 ["終値", displayedCandle.close],
               ] as const).map(([label, value]) => (
-                <span key={label} className="flex min-w-0 flex-col sm:block sm:whitespace-nowrap">
-                  <span className="text-[10px] sm:text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</span>
+                <span
+                  key={label}
+                  className="flex min-w-0 flex-col text-left sm:block sm:whitespace-nowrap"
+                >
+                  <span className="text-[11px] leading-none sm:text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</span>
                   <b
-                    className="truncate text-xs tabular-nums sm:ml-1"
+                    className="mt-1 truncate text-sm leading-none tabular-nums sm:ml-1 sm:mt-0 sm:text-xs"
                     style={{ color: label === "終値" ? candleDirectionColor : "var(--color-text-primary)" }}
                   >
                     {value.toFixed(2)}
