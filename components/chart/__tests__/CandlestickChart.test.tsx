@@ -43,6 +43,7 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock } = vi.ho
 vi.mock("lightweight-charts", () => ({
   createChart: createChartMock,
   CandlestickSeries: {},
+  CrosshairMode: { Magnet: 1, Hidden: 2 },
   HistogramSeries: {},
   LineSeries: {},
 }));
@@ -138,7 +139,33 @@ describe("CandlestickChart", () => {
     expect(candleInfo.textContent).toContain("出来高 1,200");
   });
 
-  it("ローソク足をタップしたら選択した足の4本値を保持する", async () => {
+  it("スマホではローソク足をタップしても最新足の4本値を表示する", async () => {
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    const [candleSeries, volumeSeries] = mockSeriesInstances;
+    const clickHandler = mockChart.subscribeClick.mock.calls[0][0];
+
+    act(() => {
+      clickHandler({
+        time: "2024-01-01",
+        seriesData: new Map([
+          [candleSeries, { open: 100, high: 110, low: 90, close: 105 }],
+          [volumeSeries, { value: 1000 }],
+        ]),
+      });
+    });
+
+    const candleInfo = screen.getByTestId("candle-info");
+    expect(candleInfo.textContent).toContain("2024/01/02");
+    expect(candleInfo.textContent).toContain("始値105.00");
+    expect(candleInfo.textContent).toContain("終値110.00");
+  });
+
+  it("PCではローソク足を選択するとその足の4本値を表示する", async () => {
+    mockClientWidth = 800;
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
@@ -180,7 +207,7 @@ describe("CandlestickChart", () => {
     expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
   });
 
-  it("スマホ幅では価格軸のドラッグと縦方向のタッチ移動を無効にする", () => {
+  it("スマホ幅では横スクロールだけを有効にし、クロスヘアを非表示にする", () => {
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
@@ -188,9 +215,44 @@ describe("CandlestickChart", () => {
     expect(createChartMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        handleScale: expect.objectContaining({ axisPressedMouseMove: false, pinch: true }),
+        crosshair: expect.objectContaining({ mode: 2 }),
+        handleScale: expect.objectContaining({
+          axisPressedMouseMove: false,
+          axisDoubleClickReset: false,
+          mouseWheel: false,
+          pinch: false,
+        }),
         handleScroll: expect.objectContaining({ horzTouchDrag: true, vertTouchDrag: false }),
       }),
+    );
+  });
+
+  it("PCで足を選択した後にスマホ幅へ変わると最新足の4本値へ戻す", async () => {
+    mockClientWidth = 800;
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    const [candleSeries, volumeSeries] = mockSeriesInstances;
+    const clickHandler = mockChart.subscribeClick.mock.calls[0][0];
+    act(() => {
+      clickHandler({
+        time: "2024-01-01",
+        seriesData: new Map([
+          [candleSeries, { open: 100, high: 110, low: 90, close: 105 }],
+          [volumeSeries, { value: 1000 }],
+        ]),
+      });
+    });
+    expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/01");
+
+    mockClientWidth = 390;
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+
+    expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/02");
+    expect(mockChart.applyOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ crosshair: { mode: 2 } }),
     );
   });
 
