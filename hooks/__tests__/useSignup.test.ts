@@ -140,6 +140,7 @@ describe("useSignup", () => {
       });
 
       expect(mockReplace).toHaveBeenCalledWith("/login");
+      expect(result.current.isLoading).toBe(true);
     });
   });
 
@@ -165,6 +166,7 @@ describe("useSignup", () => {
       expect(result.current.serverError).toBe(
         "このメールアドレスはすでに登録されています"
       );
+      expect(result.current.isLoading).toBe(false);
     });
 
     it("400 のときサーバーメッセージが表示される", async () => {

@@ -338,7 +338,7 @@ describe("useLogin", () => {
 
   // ローディング状態
   describe("isLoading", () => {
-    it("API 呼び出し完了後は isLoading が false に戻る", async () => {
+    it("ログイン成功後は画面遷移完了まで isLoading を維持する", async () => {
       mockPost.mockResolvedValue({
         data: { message: "ログインしました" },
         error: null,
@@ -350,6 +350,26 @@ describe("useLogin", () => {
       await act(async () => {
         result.current.setEmail("user@example.com");
         result.current.setPassword("password");
+      });
+      await act(async () => {
+        await result.current.handleSubmit(fakeEvent());
+      });
+
+      expect(result.current.isLoading).toBe(true);
+    });
+
+    it("ログイン失敗後は isLoading が false に戻る", async () => {
+      mockPost.mockResolvedValue({
+        data: null,
+        error: null,
+        response: { status: 401 },
+      });
+
+      const { result } = renderHook(() => useLogin());
+
+      await act(async () => {
+        result.current.setEmail("user@example.com");
+        result.current.setPassword("wrong-password");
       });
       await act(async () => {
         await result.current.handleSubmit(fakeEvent());

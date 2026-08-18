@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LoaderCircle } from "lucide-react";
 import { useLogin } from "@/hooks/useLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,7 @@ export default function LoginForm() {
       </div>
 
       <Button type="submit" size="lg" disabled={isLoading} className="w-full">
+        {isLoading && <LoaderCircle aria-hidden="true" className="animate-spin" />}
         {isLoading ? "ログイン中..." : "ログイン"}
       </Button>
 

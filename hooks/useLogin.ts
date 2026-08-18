@@ -3,7 +3,6 @@
 import { useState, type SubmitEventHandler } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import apiClient from "@/lib/api";
-import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 interface FieldErrors {
   email?: string;
@@ -38,7 +37,6 @@ function getOAuthErrorMessage(code: string): string {
 export function useLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { startNavigation } = useNavigationLoading();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -89,7 +87,8 @@ export function useLogin() {
       });
 
       if (data) {
-        startNavigation("page", () => router.replace("/"));
+        // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
+        router.replace("/");
         return;
       }
 
@@ -113,9 +112,8 @@ export function useLogin() {
       }
     } catch {
       setServerError("ネットワークエラーが発生しました");
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   return {
