@@ -22,6 +22,21 @@ const defaultProps = {
 };
 
 describe("CompanyAnalysisCard", () => {
+  it("AI分析中は処理内容が分かるローディング表示を出す", () => {
+    const { container } = render(
+      <CompanyAnalysisCard
+        {...defaultProps}
+        analysis={null}
+        isLoading
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toContain(
+      "AIが企業情報を分析しています...",
+    );
+    expect(container.firstElementChild?.getAttribute("aria-busy")).toBe("true");
+  });
+
   it("正式企業名・ticker・操作ボタンを要約より前に表示する", () => {
     render(<CompanyAnalysisCard {...defaultProps} />);
 

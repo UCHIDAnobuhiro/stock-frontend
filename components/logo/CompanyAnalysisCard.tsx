@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/LoadingIndicator";
 import type { CompanyAnalysisResponse } from "@/hooks/useLogoAnalyze";
 
 interface CompanyAnalysisCardProps {
@@ -34,28 +35,14 @@ export function CompanyAnalysisCard({
 
   return (
     <div
+      aria-busy={isLoading}
       className="rounded-lg p-3 space-y-2"
       style={{ backgroundColor: "var(--color-surface-3)" }}
     >
       {isLoading ? (
-        <>
-          <div
-            className="h-4 w-24 rounded animate-pulse"
-            style={{ backgroundColor: "var(--color-surface-2)" }}
-          />
-          <div className="space-y-1.5">
-            {[100, 80, 90, 70].map((w, i) => (
-              <div
-                key={i}
-                className="h-3 rounded animate-pulse"
-                style={{
-                  width: `${w}%`,
-                  backgroundColor: "var(--color-surface-2)",
-                }}
-              />
-            ))}
-          </div>
-        </>
+        <div className="flex min-h-36 items-center justify-center py-6">
+          <LoadingIndicator label="AIが企業情報を分析しています..." />
+        </div>
       ) : analysis ? (
         <>
           <div className="flex items-start gap-2">
