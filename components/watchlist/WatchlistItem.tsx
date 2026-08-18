@@ -75,13 +75,12 @@ export function WatchlistItem({
         {...listeners}
         aria-label="並び替え"
         className={cn(
-          "shrink-0 cursor-grab active:cursor-grabbing transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100",
-          viewMode === "chart" ? "self-stretch flex items-center" : "mt-0"
+          "-ml-2 flex w-10 shrink-0 touch-none cursor-grab items-center justify-center self-stretch active:cursor-grabbing transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
         )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical className="h-3.5 w-3.5" />
+        <GripVertical className="h-4 w-4" />
       </button>
 
       {/* 銘柄情報 */}
