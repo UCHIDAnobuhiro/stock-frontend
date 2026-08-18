@@ -109,7 +109,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
             <CommandInput
               value={query}
               placeholder="銘柄コード・企業名で検索..."
-              className="text-xs"
+              className="text-base sm:text-xs"
               style={{ color: "var(--color-text-primary)" }}
               onValueChange={setQuery}
             />
