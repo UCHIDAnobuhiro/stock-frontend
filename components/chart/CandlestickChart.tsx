@@ -6,6 +6,7 @@ import { RotateCcw } from "lucide-react";
 import {
   createChart,
   CandlestickSeries,
+  CrosshairMode,
   HistogramSeries,
   type IChartApi,
   type LogicalRange,
@@ -173,6 +174,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
         horzLines: { color: c.grid },
       },
       crosshair: {
+        mode: isMobile ? CrosshairMode.Hidden : CrosshairMode.Magnet,
         vertLine: { color: c.crosshair },
         horzLine: { color: c.crosshair },
       },
@@ -187,10 +189,10 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
         dateFormat: "yyyy/MM/dd",
       },
       handleScale: {
-        mouseWheel: true,
-        pinch: true,
+        mouseWheel: !isMobile,
+        pinch: !isMobile,
         axisPressedMouseMove: !isMobile,
-        axisDoubleClickReset: true,
+        axisDoubleClickReset: !isMobile,
       },
       handleScroll: {
         mouseWheel: true,
@@ -222,6 +224,8 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     });
 
     const selectCandleFromEvent = (param: MouseEventParams<Time>) => {
+      // スマホでは足を選択せず、4本値を常に最新足へ固定する。
+      if (isMobile) return;
       if (!param.time) return;
 
       const data = param.seriesData.get(candleSeries) as
@@ -330,8 +334,14 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
         chart.applyOptions({
           width,
           height: containerRef.current.clientHeight,
+          crosshair: {
+            mode: nextIsMobile ? CrosshairMode.Hidden : CrosshairMode.Magnet,
+          },
           handleScale: {
+            mouseWheel: !nextIsMobile,
+            pinch: !nextIsMobile,
             axisPressedMouseMove: !nextIsMobile,
+            axisDoubleClickReset: !nextIsMobile,
           },
           handleScroll: {
             vertTouchDrag: !nextIsMobile,
@@ -340,6 +350,10 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
         if (nextIsMobile !== isMobile) {
           isMobile = nextIsMobile;
+
+          if (nextIsMobile) {
+            setSelectedCandle(null);
+          }
 
           if (dataLengthRef.current > 0) {
             const wasRangeModified = isRangeModifiedRef.current;
