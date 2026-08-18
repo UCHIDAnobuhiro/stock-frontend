@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act } from "@testing-library/react";
+import { render, act, fireEvent, screen } from "@testing-library/react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import type { CandleResponse } from "@/hooks/useCandles";
 
 // ---- モック設定 ----
 
-const { mockSeriesInstances, createChartMock } = vi.hoisted(() => {
+const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock } = vi.hoisted(() => {
   const mockSeriesInstances: Array<{
     setData: ReturnType<typeof vi.fn>;
     applyOptions: ReturnType<typeof vi.fn>;
   }> = [];
+
+  const mockTimeScale = {
+    setVisibleLogicalRange: vi.fn(),
+    subscribeVisibleLogicalRangeChange: vi.fn(),
+    unsubscribeVisibleLogicalRangeChange: vi.fn(),
+  };
 
   const mockChart = {
     addSeries: vi.fn(() => {
@@ -19,15 +25,18 @@ const { mockSeriesInstances, createChartMock } = vi.hoisted(() => {
     }),
     removeSeries: vi.fn(),
     priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
-    timeScale: vi.fn(() => ({ setVisibleLogicalRange: vi.fn() })),
+    timeScale: vi.fn(() => mockTimeScale),
     subscribeCrosshairMove: vi.fn(),
+    unsubscribeCrosshairMove: vi.fn(),
+    subscribeClick: vi.fn(),
+    unsubscribeClick: vi.fn(),
     applyOptions: vi.fn(),
     remove: vi.fn(),
   };
 
   const createChartMock = vi.fn(() => mockChart);
 
-  return { mockSeriesInstances, createChartMock };
+  return { mockSeriesInstances, mockChart, mockTimeScale, createChartMock };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -93,5 +102,77 @@ describe("CandlestickChart", () => {
     expect(candleSeries.setData).toHaveBeenLastCalledWith([]);
     expect(volumeSeries.setData).toHaveBeenCalledTimes(2);
     expect(volumeSeries.setData).toHaveBeenLastCalledWith([]);
+  });
+
+  it("初期状態では最新ローソク足の4本値を固定表示する", async () => {
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+
+    const candleInfo = screen.getByTestId("candle-info");
+    expect(candleInfo.textContent).toContain("2024/01/02");
+    expect(candleInfo.textContent).toContain("始値105.00");
+    expect(candleInfo.textContent).toContain("高値115.00");
+    expect(candleInfo.textContent).toContain("安値95.00");
+    expect(candleInfo.textContent).toContain("終値110.00");
+    expect(candleInfo.textContent).toContain("出来高 1,200");
+  });
+
+  it("ローソク足をタップしたら選択した足の4本値を保持する", async () => {
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    const [candleSeries, volumeSeries] = mockSeriesInstances;
+    const clickHandler = mockChart.subscribeClick.mock.calls[0][0];
+
+    act(() => {
+      clickHandler({
+        time: "2024-01-01",
+        seriesData: new Map([
+          [candleSeries, { open: 100, high: 110, low: 90, close: 105 }],
+          [volumeSeries, { value: 1000 }],
+        ]),
+      });
+    });
+
+    const candleInfo = screen.getByTestId("candle-info");
+    expect(candleInfo.textContent).toContain("2024/01/01");
+    expect(candleInfo.textContent).toContain("始値100.00");
+    expect(candleInfo.textContent).toContain("終値105.00");
+  });
+
+  it("表示範囲を変更したときだけリセットボタンを表示し、初期範囲へ戻せる", async () => {
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
+
+    const rangeChangeHandler = mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0];
+    act(() => rangeChangeHandler({ from: -5, to: 1 }));
+
+    fireEvent.click(screen.getByRole("button", { name: "表示範囲を初期状態に戻す" }));
+
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 0, to: 1 });
+    expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
+  });
+
+  it("スマホ幅では価格軸のドラッグと縦方向のタッチ移動を無効にする", () => {
+    render(
+      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
+    );
+
+    expect(createChartMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        handleScale: expect.objectContaining({ axisPressedMouseMove: false, pinch: true }),
+        handleScroll: expect.objectContaining({ horzTouchDrag: true, vertTouchDrag: false }),
+      }),
+    );
   });
 });

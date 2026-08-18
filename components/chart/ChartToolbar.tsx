@@ -33,7 +33,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-2 border-b px-2 sm:gap-3 sm:px-4"
+      className="flex h-12 shrink-0 items-center gap-2 border-b px-2 sm:h-10 sm:gap-3 sm:px-4"
       style={{
         backgroundColor: "var(--color-surface-2)",
         borderColor: "var(--color-border)",
@@ -84,7 +84,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
                   }
                 }}
                 aria-label={isWatched ? "ウォッチリストから削除" : "ウォッチリストに追加"}
-                className="rounded p-0.5 hover:bg-[var(--color-surface-3)] transition-colors"
+                className="flex size-11 items-center justify-center rounded transition-colors hover:bg-[var(--color-surface-3)] sm:size-auto sm:p-0.5"
                 style={{ color: isWatched ? "var(--color-accent)" : "var(--color-text-muted)" }}
               >
                 <Bookmark className="h-3.5 w-3.5" fill={isWatched ? "currentColor" : "none"} />
@@ -119,7 +119,7 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
               key={item.value}
               onClick={() => setInterval(item.value)}
               className={cn(
-                "whitespace-nowrap rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                "min-h-11 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors sm:min-h-0 sm:px-2.5",
                 interval === item.value
                   ? "text-white"
                   : "hover:opacity-80"
