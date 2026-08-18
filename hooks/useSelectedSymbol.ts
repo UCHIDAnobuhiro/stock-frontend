@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 export type Interval = "1day" | "1week" | "1month";
 
@@ -12,6 +13,7 @@ export function useSelectedSymbol() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { startNavigation } = useNavigationLoading();
 
   const rawSymbol = searchParams.get("symbol");
   const symbol = rawSymbol?.trim() || null;
@@ -30,25 +32,31 @@ export function useSelectedSymbol() {
 
   const setSymbol = useCallback(
     (code: string, keepInterval = true) => {
-      router.push(createSymbolUrl(code, keepInterval), { scroll: false });
+      startNavigation("chart", () => {
+        router.push(createSymbolUrl(code, keepInterval), { scroll: false });
+      });
     },
-    [createSymbolUrl, router]
+    [createSymbolUrl, router, startNavigation]
   );
 
   const replaceSymbol = useCallback(
     (code: string, keepInterval = true) => {
-      router.replace(createSymbolUrl(code, keepInterval), { scroll: false });
+      startNavigation("chart", () => {
+        router.replace(createSymbolUrl(code, keepInterval), { scroll: false });
+      });
     },
-    [createSymbolUrl, router]
+    [createSymbolUrl, router, startNavigation]
   );
 
   const setInterval = useCallback(
     (value: Interval) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("interval", value);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      startNavigation("chart", () => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     },
-    [router, searchParams, pathname]
+    [router, searchParams, pathname, startNavigation]
   );
 
   return { symbol, interval, setSymbol, replaceSymbol, setInterval };

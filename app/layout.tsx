@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { NavigationLoadingProvider } from "@/components/providers/NavigationLoadingProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,7 +43,9 @@ export default async function RootLayout({
     >
       <body className="h-full bg-[var(--color-bg)] text-[var(--color-text-primary)]">
         <ThemeProvider nonce={nonce}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <NavigationLoadingProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </NavigationLoadingProvider>
         </ThemeProvider>
       </body>
     </html>

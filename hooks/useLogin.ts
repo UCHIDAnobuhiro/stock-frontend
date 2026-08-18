@@ -3,6 +3,7 @@
 import { useState, type SubmitEventHandler } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import apiClient from "@/lib/api";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 interface FieldErrors {
   email?: string;
@@ -37,6 +38,7 @@ function getOAuthErrorMessage(code: string): string {
 export function useLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationLoading();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -87,7 +89,7 @@ export function useLogin() {
       });
 
       if (data) {
-        router.replace("/");
+        startNavigation("page", () => router.replace("/"));
         return;
       }
 

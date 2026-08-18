@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 interface FieldErrors {
   email?: string;
@@ -15,6 +16,7 @@ interface FieldErrors {
  */
 export function useSignup() {
   const router = useRouter();
+  const { startNavigation } = useNavigationLoading();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,7 +65,7 @@ export function useSignup() {
       });
 
       if (response.ok) {
-        router.replace("/login");
+        startNavigation("page", () => router.replace("/login"));
         return;
       }
 

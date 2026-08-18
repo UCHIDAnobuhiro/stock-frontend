@@ -5,6 +5,8 @@ import { useDefaultWatchlistSymbol } from "@/hooks/useDefaultWatchlistSymbol";
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators } from "@/hooks/useIndicators";
 import { ApiError } from "@/lib/api";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
+import { ChartLoadingOverlay } from "@/components/ui/LoadingIndicator";
 import { ChartToolbar } from "./ChartToolbar";
 import { CandlestickChart } from "./CandlestickChart";
 import { ChartSkeleton } from "./ChartSkeleton";
@@ -15,11 +17,12 @@ export function ChartContainer() {
   const { isInitializing } = useDefaultWatchlistSymbol();
   const { candles, isLoading, error } = useCandles(symbol, interval);
   const { smaEnabled, toggleSma, bollingerEnabled, toggleBollinger } = useIndicators();
+  const { isChartPending } = useNavigationLoading();
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <ChartToolbar smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} />
-      <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
+      <div className="relative flex-1 overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
         {isInitializing && !symbol ? (
           <ChartSkeleton />
         ) : !symbol ? (
@@ -38,6 +41,7 @@ export function ChartContainer() {
         ) : (
           <CandlestickChart candles={candles} interval={interval} smaEnabled={smaEnabled} bollingerEnabled={bollingerEnabled} />
         )}
+        {isChartPending && <ChartLoadingOverlay />}
       </div>
     </div>
   );
