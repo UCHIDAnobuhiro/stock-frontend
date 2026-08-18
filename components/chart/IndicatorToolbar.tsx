@@ -59,7 +59,7 @@ export function IndicatorToolbar({ smaEnabled, toggleSma, bollingerEnabled, togg
         aria-label="インジケーター"
         aria-expanded={open}
         title="インジケーター"
-        className="flex items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors hover:opacity-80 sm:px-2.5"
+        className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium transition-colors hover:opacity-80 sm:min-h-0 sm:min-w-0 sm:px-2.5"
         style={{
           backgroundColor: open ? "var(--color-surface-3)" : "transparent",
           color: "var(--color-text-secondary)",
