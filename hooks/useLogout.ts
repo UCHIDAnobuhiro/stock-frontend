@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useSWRConfig } from "swr";
 import apiClient from "@/lib/api";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 /**
  * ログアウト処理を提供するフック。
@@ -14,6 +15,7 @@ import apiClient from "@/lib/api";
 export function useLogout() {
   const router = useRouter();
   const { mutate } = useSWRConfig();
+  const { startNavigation } = useNavigationLoading();
 
   async function handleLogout() {
     try {
@@ -25,7 +27,7 @@ export function useLogout() {
     // 前ユーザーのデータが次のログインユーザーに見えないよう、
     // SWR のグローバルキャッシュを全破棄する
     await mutate(() => true, undefined, { revalidate: false });
-    router.replace("/login");
+    startNavigation("page", () => router.replace("/login"));
   }
 
   return { handleLogout };

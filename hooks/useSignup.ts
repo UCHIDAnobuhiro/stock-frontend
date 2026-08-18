@@ -63,6 +63,7 @@ export function useSignup() {
       });
 
       if (response.ok) {
+        // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
         router.replace("/login");
         return;
       }
@@ -87,9 +88,8 @@ export function useSignup() {
       }
     } catch {
       setServerError("ネットワークエラーが発生しました");
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   return {

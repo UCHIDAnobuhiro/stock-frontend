@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
-import { RotateCcw } from "lucide-react";
 import {
   createChart,
   CandlestickSeries,
@@ -112,7 +111,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
   const dataLengthRef = useRef(0);
   const isRangeModifiedRef = useRef(false);
   const [selectedCandle, setSelectedCandle] = useState<SelectedCandle | null>(null);
-  const [isRangeModified, setIsRangeModified] = useState(false);
   const { resolvedTheme } = useTheme();
   // resolvedTheme は SSR/ハイドレーション前は undefined になる。
   // ThemeProvider は CandlestickChart より先にマウントされるため、
@@ -150,13 +148,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
   const displayedCandle = selectedCandleExists
     ? selectedCandle
     : latestCandle ? candleToSelected(latestCandle) : null;
-
-  const restoreDefaultRange = useCallback(() => {
-    if (!chartRef.current || !defaultRangeRef.current) return;
-    isRangeModifiedRef.current = false;
-    chartRef.current.timeScale().setVisibleLogicalRange(defaultRangeRef.current);
-    setIsRangeModified(false);
-  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -315,7 +306,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       if (!range || !defaultRangeRef.current) return;
       const isModified = !isSameRange(range, defaultRangeRef.current);
       isRangeModifiedRef.current = isModified;
-      setIsRangeModified(isModified);
     };
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -367,7 +357,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
               if (currentRange) {
                 const isModified = !isSameRange(currentRange, nextDefaultRange);
                 isRangeModifiedRef.current = isModified;
-                setIsRangeModified(isModified);
               }
             }
           }
@@ -499,18 +488,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
       <div className="relative min-h-0 flex-1">
         <div ref={containerRef} className="h-full w-full" />
-        {isRangeModified && candles.length > 0 && (
-          <button
-            type="button"
-            onClick={restoreDefaultRange}
-            aria-label="表示範囲を初期状態に戻す"
-            className="absolute bottom-8 right-20 z-20 flex min-h-11 items-center gap-1.5 rounded-lg border bg-[var(--color-surface-1)] px-3 text-xs font-medium shadow-md transition-colors hover:bg-[var(--color-surface-2)]"
-            style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border)" }}
-          >
-            <RotateCcw className="h-4 w-4" />
-            表示を戻す
-          </button>
-        )}
       </div>
     </div>
   );

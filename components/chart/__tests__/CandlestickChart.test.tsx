@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act, fireEvent, screen } from "@testing-library/react";
+import { render, act, screen } from "@testing-library/react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import type { CandleResponse } from "@/hooks/useCandles";
 
@@ -190,7 +190,7 @@ describe("CandlestickChart", () => {
     expect(candleInfo.textContent).toContain("終値105.00");
   });
 
-  it("表示範囲を変更したときだけリセットボタンを表示し、初期範囲へ戻せる", async () => {
+  it("表示範囲を変更してもリセットボタンを表示しない", async () => {
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
@@ -201,9 +201,6 @@ describe("CandlestickChart", () => {
     const rangeChangeHandler = mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0];
     act(() => rangeChangeHandler({ from: -5, to: 1 }));
 
-    fireEvent.click(screen.getByRole("button", { name: "表示範囲を初期状態に戻す" }));
-
-    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 0, to: 1 });
     expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
   });
 
@@ -271,7 +268,7 @@ describe("CandlestickChart", () => {
     expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 70, to: 99 });
   });
 
-  it("操作済みでスマホ幅へ変わったら現在範囲を維持し、リセット先だけ30本へ更新する", async () => {
+  it("操作済みでスマホ幅へ変わったら現在範囲を維持する", async () => {
     mockClientWidth = 800;
     render(
       <CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />
@@ -286,7 +283,5 @@ describe("CandlestickChart", () => {
     act(() => resizeObserverCallback?.([], {} as ResizeObserver));
 
     expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "表示範囲を初期状態に戻す" }));
-    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 70, to: 99 });
   });
 });

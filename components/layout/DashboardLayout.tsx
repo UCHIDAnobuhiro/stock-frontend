@@ -9,6 +9,7 @@ import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
+import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
+  const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { isExpired } = useSessionExpiry();
@@ -24,8 +26,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // 前ユーザーのデータが次のログインユーザーに見えないよう、
     // SWR のグローバルキャッシュを全破棄する
     await mutate(() => true, undefined, { revalidate: false });
-    router.replace("/login");
-  }, [router, mutate]);
+    startNavigation("page", () => router.replace("/login"));
+  }, [router, mutate, startNavigation]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

@@ -87,6 +87,7 @@ export function useLogin() {
       });
 
       if (data) {
+        // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
         router.replace("/");
         return;
       }
@@ -111,9 +112,8 @@ export function useLogin() {
       }
     } catch {
       setServerError("ネットワークエラーが発生しました");
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   return {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LoaderCircle } from "lucide-react";
 import { useSignup } from "@/hooks/useSignup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,7 @@ export default function SignupForm() {
       </div>
 
       <Button type="submit" size="lg" disabled={isLoading} className="w-full">
+        {isLoading && <LoaderCircle aria-hidden="true" className="animate-spin" />}
         {isLoading ? "登録中..." : "アカウント登録"}
       </Button>
 
