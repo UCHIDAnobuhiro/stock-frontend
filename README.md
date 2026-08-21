@@ -133,7 +133,6 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │   ├── api.server.ts                 # Server Component 用 API 呼び出し（cookies() から Cookie ヘッダーを付与）
 │   ├── auth.ts                       # CSRF トークン取得・JWT 検証ユーティリティ
 │   ├── auth-refresh.ts               # 401時のトークン更新・リクエスト再送
-│   ├── companyMatch.ts               # ロゴ検出結果と銘柄の照合
 │   ├── indicators.ts                 # テクニカル指標の計算ロジック
 │   ├── utils.ts                      # 汎用ユーティリティ（cn 等）
 │   └── generated/
@@ -230,8 +229,12 @@ Go バックエンド (stock_backend)
 git clone https://github.com/UCHIDAnobuhiro/stock-frontend.git
 cd stock-frontend
 
-# nvm を使用している場合
+# Volta を使用する場合（package.json のバージョンへ自動で切り替わる）
+volta install node@24.18.0 npm@12.0.1
+
+# nvm を使用する場合
 nvm use
+npm install --global npm@12.0.1
 
 # 依存パッケージのインストール
 npm ci
@@ -240,15 +243,34 @@ npm ci
 cp .env.example .env.local
 # .env.local を編集して NEXT_PUBLIC_API_BASE_URL を設定
 
+# Node.js / npm・依存関係・環境変数を確認
+npm run doctor
+
 # 開発サーバーの起動
 npm run dev
 ```
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開く。
 
+### Codex の worktree
+
+Codex でこのプロジェクトのローカル環境を選んで worktree を作成すると、`.codex/environments/environment.toml` のセットアップスクリプトが自動実行されます。
+
+1. `.worktreeinclude` がローカルチェックアウトの `.env.local` をコピーする
+2. `.env.local` がなければ `.env.example` から作成する
+3. `node_modules` がなければ `npm ci` を実行する
+4. Node.js / npm のバージョンが不正なら、必要なバージョンを表示して初期化を停止する
+
+Codex の上部ツールバーには「開発サーバー」と「検証」アクションが表示されます。「検証」は API 型同期、lint、型チェック、テスト、本番ビルドを直列実行します。依存関係を変更した場合は、その worktree で改めて `npm ci` を実行してください。
+
+`doctor` はローカルでは Node.js / npm の両方を検査します。Vercelではビルドランナーのnpm差異を許容しますが、Node.js・依存関係・環境変数の検査は継続します。
+
+`npm run build` は `next build --webpack` を実行します。Next.js 16 の Turbopack は Codex sandbox 内で内部ポートを bind できない場合があるため、エージェントが worktree 内で確実に本番ビルドを検証できる構成にしています。開発サーバーは Codex のアクション（統合ターミナル）から通常どおり Turbopack で起動します。
+
 ## コマンド
 
 ```bash
+npm run doctor        # Node/npm・依存関係・環境変数を確認
 npm run dev           # 開発サーバー起動
 npm run build         # 本番ビルド
 npm run start         # 本番サーバー起動
@@ -258,6 +280,7 @@ npm run test          # テスト実行（Vitest）
 npm run test:watch    # テストウォッチモード
 npm run generate:api  # openapi.yaml から schema.ts を再生成
 npm run check:api     # schema.ts が OpenAPI と同期しているか確認
+npm run verify        # CI相当の検証を直列実行
 npm run sync:api      # バックエンドの OpenAPI を同期して型を再生成
 ```
 

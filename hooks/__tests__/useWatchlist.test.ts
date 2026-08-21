@@ -55,10 +55,13 @@ describe("useWatchlist", () => {
     });
 
     it("初回フェッチ完了前は items が空配列を返す", () => {
-      const { result } = renderHook(() => useWatchlist(), { wrapper });
+      mockGet.mockReturnValue(new Promise(() => {}));
+      const { result, unmount } = renderHook(() => useWatchlist(), { wrapper });
 
       expect(result.current.items).toEqual([]);
       expect(result.current.isLoading).toBe(true);
+
+      unmount();
     });
   });
 

@@ -41,7 +41,6 @@
 │   ├── api.server.ts           # Server Component 用APIフェッチ（cookies() からCookieヘッダーを付与）
 │   ├── auth.ts                 # 認証ヘルパー
 │   ├── auth-refresh.ts         # 401時のトークン更新・リクエスト再送
-│   ├── companyMatch.ts         # ロゴ検出結果と銘柄の照合
 │   ├── indicators.ts           # テクニカル指標の計算ロジック
 │   ├── utils.ts                # `cn()` などの汎用ユーティリティ
 │   └── generated/
@@ -137,6 +136,7 @@ Go バックエンド
 ## よく使うコマンド
 
 ```bash
+npm run doctor        # Node/npm・依存関係・環境変数を確認
 npm run dev           # 開発サーバー起動
 npm run build         # 本番ビルド
 npm run start         # 本番サーバー起動
@@ -147,7 +147,18 @@ npm run test:watch    # テストウォッチモード
 npm run generate:api  # openapi.yaml から schema.ts を再生成
 npm run check:api     # schema.ts が OpenAPI と同期しているか確認
 npm run sync:api      # バックエンドの OpenAPI を同期して型を再生成
+npm run verify        # CI相当の検証を直列実行
 ```
+
+### Codex の worktree
+
+- Codex のローカル環境設定は `.codex/environments/environment.toml` を使用する
+- `.worktreeinclude` でローカルチェックアウトの `.env.local` を新しい Codex 管理 worktree へコピーする
+- セットアップスクリプトは `.env.local` がなければ `.env.example` から作成し、`node_modules` がなければ `npm ci` を実行する
+- ローカルの Node.js / npm が `package.json` と異なる場合、初期化と `npm run doctor` は明示的に失敗する（Vercelではビルドランナーのnpm差異を許容）
+- Codex 上部の「開発サーバー」「検証」アクションから、dev server と CI 相当の検証を実行できる
+- 本番ビルドは Codex sandbox 内での Turbopack のローカル bind 制約を避けるため、Next.js が公式対応する `--webpack` を使用する
+- 検証はリソース競合によるテスト timeout を避けるため `npm run verify` で直列実行する
 
 ## 型定義の再生成
 

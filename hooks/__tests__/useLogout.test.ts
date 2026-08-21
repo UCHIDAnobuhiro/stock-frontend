@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useLogout } from "@/hooks/useLogout";
 
@@ -25,10 +25,17 @@ vi.mock("swr", () => ({
 // ---- テスト ----
 
 describe("useLogout", () => {
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockDelete.mockResolvedValue({ data: { message: "ok" }, response: { status: 200 } });
     mockMutate.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
   });
 
   it("handleLogout で DELETE /v1/logout が呼ばれる", async () => {
@@ -61,6 +68,7 @@ describe("useLogout", () => {
     });
 
     expect(mockReplace).toHaveBeenCalledWith("/login");
+    expect(consoleWarnSpy).toHaveBeenCalledWith("Logout request failed:", expect.any(Error));
   });
 
   it("handleLogout で SWR キャッシュが全破棄される", async () => {
@@ -92,5 +100,6 @@ describe("useLogout", () => {
     expect(mockMutate).toHaveBeenCalledWith(expect.any(Function), undefined, {
       revalidate: false,
     });
+    expect(consoleWarnSpy).toHaveBeenCalledWith("Logout request failed:", expect.any(Error));
   });
 });
