@@ -72,21 +72,45 @@ describe("useQuotes", () => {
         { code: "AAPL", time: "2024-01-15", close: 150, prev_close: 148, change: 2, change_percent: 1.35 },
         { code: "GOOGL", time: "2024-01-15", close: 2800, prev_close: 2750, change: 50, change_percent: 1.82 },
       ];
-      mockUseSWR.mockReturnValue({ data: quotes, isLoading: false, error: undefined });
+      mockUseSWR.mockReturnValue({
+        data: { quotes, failures: [] },
+        isLoading: false,
+        error: undefined,
+      });
 
       const { result } = renderHook(() => useQuotes(["AAPL", "GOOGL"]));
 
       expect(result.current.quotes.get("AAPL")).toEqual(quotes[0]);
       expect(result.current.quotes.get("GOOGL")).toEqual(quotes[1]);
       expect(result.current.quotes.size).toBe(2);
+      expect(result.current.failures.size).toBe(0);
     });
 
-    it("data が undefined のとき quotes は空の Map を返す", () => {
+    it("銘柄単位の失敗を code をキーにした Map で返す", () => {
+      const failures = [
+        { code: "BAD", reason: "fetch_failed" as const },
+        { code: "ONE", reason: "insufficient_data" as const },
+      ];
+      mockUseSWR.mockReturnValue({
+        data: { quotes: [], failures },
+        isLoading: false,
+        error: undefined,
+      });
+
+      const { result } = renderHook(() => useQuotes(["BAD", "ONE"]));
+
+      expect(result.current.failures.get("BAD")).toEqual(failures[0]);
+      expect(result.current.failures.get("ONE")).toEqual(failures[1]);
+      expect(result.current.quotes.size).toBe(0);
+    });
+
+    it("data が undefined のとき quotes と failures は空の Map を返す", () => {
       mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined });
 
       const { result } = renderHook(() => useQuotes(["AAPL"]));
 
       expect(result.current.quotes.size).toBe(0);
+      expect(result.current.failures.size).toBe(0);
     });
 
     it("isLoading と error が useSWR の値をそのまま返す", () => {
@@ -119,19 +143,28 @@ describe("useQuotes", () => {
       return fetcher as (key: [string, string, string, number]) => Promise<unknown>;
     }
 
-    it("成功時は data をそのまま返す", async () => {
+    it("成功時は成功銘柄と失敗銘柄を返す", async () => {
       const quotes = [
         { code: "AAPL", time: "2024-01-15", close: 150, prev_close: 148, change: 2, change_percent: 1.35 },
       ];
-      mockGet.mockResolvedValue({ data: quotes, error: undefined, response: { status: 200 } });
+      const failures = [{ code: "BAD", reason: "fetch_failed" }];
+      mockGet.mockResolvedValue({
+        data: { quotes, failures },
+        error: undefined,
+        response: { status: 200 },
+      });
 
       const result = await getFetcher()(["/v1/quotes", "AAPL", "1day", 0]);
 
-      expect(result).toEqual(quotes);
+      expect(result).toEqual({ quotes, failures });
     });
 
     it("リクエストパラメータに codes・interval・bars を渡す", async () => {
-      mockGet.mockResolvedValue({ data: [], error: undefined, response: { status: 200 } });
+      mockGet.mockResolvedValue({
+        data: { quotes: [], failures: [] },
+        error: undefined,
+        response: { status: 200 },
+      });
 
       await getFetcher()(["/v1/quotes", "AAPL,GOOGL", "1week", 60]);
 
@@ -166,25 +199,36 @@ describe("useQuotes", () => {
       expect((error as ApiError).message).toBe("株価サマリーの取得に失敗しました");
     });
 
-    it("codes が51件以上のとき50件ずつのチャンクに分割してリクエストし、結果をマージした Map を返す", async () => {
+    it("codes が51件以上のとき50件ずつのチャンクに分割し、成功・失敗結果をマージする", async () => {
       const codesList = Array.from({ length: 51 }, (_, i) => `CODE${i}`);
 
       mockGet.mockImplementation(async (_path: string, options: { params: { query: { codes: string } } }) => {
         const requestedCodes = options.params.query.codes.split(",");
-        const data = requestedCodes.map((code) => ({
-          code,
-          time: "2024-01-15",
-          close: 100,
-          prev_close: 99,
-          change: 1,
-          change_percent: 1.01,
-        }));
-        return { data, error: undefined, response: { status: 200 } };
+        const quotes = requestedCodes
+          .filter((code) => code !== "CODE50")
+          .map((code) => ({
+            code,
+            time: "2024-01-15",
+            close: 100,
+            prev_close: 99,
+            change: 1,
+            change_percent: 1.01,
+          }));
+        const failures = requestedCodes.includes("CODE50")
+          ? [{ code: "CODE50", reason: "fetch_failed" }]
+          : [];
+        return { data: { quotes, failures }, error: undefined, response: { status: 200 } };
       });
 
-      const result = (await getFetcher(codesList)(["/v1/quotes", codesList.join(","), "1day", 0])) as Array<{
-        code: string;
-      }>;
+      const result = (await getFetcher(codesList)([
+        "/v1/quotes",
+        codesList.join(","),
+        "1day",
+        0,
+      ])) as {
+        quotes: Array<{ code: string }>;
+        failures: Array<{ code: string; reason: string }>;
+      };
 
       expect(mockGet).toHaveBeenCalledTimes(2);
       const requestedCodesPerCall = mockGet.mock.calls.map(
@@ -197,8 +241,9 @@ describe("useQuotes", () => {
         expect(requestedCodes.length).toBeLessThanOrEqual(50);
       }
 
-      expect(result).toHaveLength(51);
-      expect(new Set(result.map((q) => q.code))).toEqual(new Set(codesList));
+      expect(result.quotes).toHaveLength(50);
+      expect(new Set(result.quotes.map((q) => q.code))).toEqual(new Set(codesList.slice(0, 50)));
+      expect(result.failures).toEqual([{ code: "CODE50", reason: "fetch_failed" }]);
     });
   });
 });

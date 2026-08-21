@@ -7,6 +7,8 @@ import type { components } from "@/lib/generated/schema";
 import type { Interval } from "./useSelectedSymbol";
 
 export type QuoteResponse = components["schemas"]["QuoteResponse"];
+export type QuoteFailureResponse = components["schemas"]["QuoteFailureResponse"];
+type QuoteBatchResponse = components["schemas"]["QuoteBatchResponse"];
 
 interface UseQuotesOptions {
   /** 時間間隔（省略時は "1day"） */
@@ -31,14 +33,14 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 /**
  * SWR のフェッチャー関数。
- * `/v1/quotes` にリクエストし、複数銘柄分の株価サマリー配列を返す。
+ * `/v1/quotes` にリクエストし、複数銘柄分の株価サマリーと失敗銘柄を返す。
  * タプルの第 0 要素は SWR キャッシュキーのプレフィックスなので無視する。
  *
  * `codes` は API 仕様上 1 リクエストあたり最大 {@link MAX_CODES_PER_REQUEST} 件までのため、
- * 51 件以上のときはチャンクに分割して並列リクエストし、結果をマージして返す。
- * いずれかのチャンクが失敗した場合はそのエラーを throw する。
+ * 51 件以上のときはチャンクに分割して並列リクエストし、成功・失敗をそれぞれマージして返す。
+ * HTTPリクエスト自体が失敗したチャンクがある場合はそのエラーをthrowする。
  */
-async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteResponse[]> {
+async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteBatchResponse> {
   const codeChunks = chunk(codes.split(","), MAX_CODES_PER_REQUEST);
 
   const results = await Promise.all(
@@ -49,11 +51,17 @@ async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteR
         },
       });
       if (error) throw createApiError(response.status, "株価サマリーの取得に失敗しました");
-      return data ?? [];
+      return data ?? { quotes: [], failures: [] };
     })
   );
 
-  return results.flat();
+  return results.reduce<QuoteBatchResponse>(
+    (merged, result) => ({
+      quotes: [...merged.quotes, ...result.quotes],
+      failures: [...merged.failures, ...result.failures],
+    }),
+    { quotes: [], failures: [] }
+  );
 }
 
 /**
@@ -80,10 +88,18 @@ export function useQuotes(codes: string[], options: UseQuotesOptions = {}) {
   });
 
   // data が変わらない限り Map インスタンスを再生成しない（参照同一性を保つ）
-  const quotes = useMemo(() => new Map((data ?? []).map((quote) => [quote.code, quote])), [data]);
+  const quotes = useMemo(
+    () => new Map((data?.quotes ?? []).map((quote) => [quote.code, quote])),
+    [data]
+  );
+  const failures = useMemo(
+    () => new Map((data?.failures ?? []).map((failure) => [failure.code, failure])),
+    [data]
+  );
 
   return {
     quotes,
+    failures,
     isLoading,
     error,
   };

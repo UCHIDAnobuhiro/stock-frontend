@@ -335,6 +335,21 @@ export interface components {
              */
             volume: number;
         };
+        QuoteBatchResponse: {
+            /** @description 取得に成功した銘柄の株価サマリー（入力順） */
+            quotes: components["schemas"]["QuoteResponse"][];
+            /** @description 取得できなかった銘柄と理由（入力順） */
+            failures: components["schemas"]["QuoteFailureResponse"][];
+        };
+        QuoteFailureResponse: {
+            /** @description 取得できなかった銘柄コード（例: AAPL, 7203.T） */
+            code: string;
+            /**
+             * @description 取得失敗理由。fetch_failedはデータ取得エラー、insufficient_dataは前日比計算に必要なローソク足が2本未満
+             * @enum {string}
+             */
+            reason: "fetch_failed" | "insufficient_data";
+        };
         QuoteResponse: {
             /** @description 銘柄コード（例: AAPL, 7203.T） */
             code: string;
@@ -866,13 +881,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 銘柄ごとの最新終値・前日比一覧（ローソク足2本未満の銘柄は除外。順序は保証しない） */
+            /** @description 銘柄ごとの最新終値・前日比と、取得できなかった銘柄の一覧 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QuoteResponse"][];
+                    "application/json": components["schemas"]["QuoteBatchResponse"];
                 };
             };
             /** @description バリデーションエラー（codes未指定/空/51件以上/パターン不一致、未対応のinterval、barsに整数以外/範囲外等） */

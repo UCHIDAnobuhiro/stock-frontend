@@ -26,8 +26,9 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
   const { symbol, interval, setInterval } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
-  const { quotes } = useQuotes(symbol ? [symbol] : []);
+  const { quotes, failures } = useQuotes(symbol ? [symbol] : []);
   const priceInfo = symbol ? quotes.get(symbol) : undefined;
+  const quoteFailure = symbol ? failures.get(symbol) : undefined;
   const selectedSymbol = symbols.find((s) => s.code === symbol);
   const isWatched = symbol !== null && items.some((i) => i.symbol_code === symbol);
 
@@ -71,6 +72,14 @@ export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBo
                   {priceInfo.change >= 0 ? "+" : ""}{priceInfo.change_percent.toFixed(2)}%
                 </span>
               </>
+            )}
+            {!priceInfo && quoteFailure && (
+              <span
+                className="text-xs hidden sm:block"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                {quoteFailure.reason === "insufficient_data" ? "データ不足" : "価格取得失敗"}
+              </span>
             )}
             {symbol && (
               <button

@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 import { WatchlistSparkline } from "./WatchlistSparkline";
-import type { QuoteResponse } from "@/hooks/useQuotes";
+import type { QuoteFailureResponse, QuoteResponse } from "@/hooks/useQuotes";
 
 interface WatchlistItemProps {
   id: string;
@@ -19,6 +19,8 @@ interface WatchlistItemProps {
   viewMode: "compact" | "chart";
   /** `/v1/quotes` から取得した株価サマリー。未取得時は undefined */
   quote?: QuoteResponse;
+  /** `/v1/quotes` が返した銘柄単位の取得失敗。成功時は undefined */
+  quoteFailure?: QuoteFailureResponse;
   /** 株価サマリーの取得中かどうか（スパークラインのプレースホルダー表示に使用） */
   isQuoteLoading: boolean;
 }
@@ -33,6 +35,7 @@ export function WatchlistItem({
   onRemove,
   viewMode,
   quote,
+  quoteFailure,
   isQuoteLoading,
 }: WatchlistItemProps) {
   const {
@@ -117,6 +120,19 @@ export function WatchlistItem({
               >
                 {quote.change >= 0 ? "+" : ""}{quote.change_percent.toFixed(2)}%
               </div>
+            </div>
+          )}
+          {!quote && quoteFailure && (
+            <div
+              className="justify-self-end whitespace-nowrap text-right text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+              title={
+                quoteFailure.reason === "insufficient_data"
+                  ? "前日比の計算に必要なデータが不足しています"
+                  : "株価サマリーを取得できませんでした"
+              }
+            >
+              {quoteFailure.reason === "insufficient_data" ? "データ不足" : "取得失敗"}
             </div>
           )}
         </div>
