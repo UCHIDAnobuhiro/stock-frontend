@@ -204,10 +204,12 @@ describe("CandlestickChart", () => {
     expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
   });
 
-  it("スマホ幅では横スクロールだけを有効にし、クロスヘアを非表示にする", () => {
+  it("スマホ幅では横スクロールだけを有効にし、クロスヘアを非表示にする", async () => {
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
+
+    await act(async () => {});
 
     expect(createChartMock).toHaveBeenCalledWith(
       expect.anything(),
