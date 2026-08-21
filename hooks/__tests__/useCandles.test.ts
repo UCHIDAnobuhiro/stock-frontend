@@ -51,18 +51,24 @@ describe("useCandles", () => {
       const candles = [
         { time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 },
       ];
-      mockUseSWR.mockReturnValue({ data: candles, isLoading: false, error: undefined });
+      mockUseSWR.mockReturnValue({
+        data: { ticker: "AAPL", candles },
+        isLoading: false,
+        error: undefined,
+      });
 
       const { result } = renderHook(() => useCandles("AAPL", "1day"));
 
+      expect(result.current.ticker).toBe("AAPL");
       expect(result.current.candles).toEqual(candles);
     });
 
-    it("data が undefined のとき candles は空配列を返す", () => {
+    it("data が undefined のとき ticker は null、candles は空配列を返す", () => {
       mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined });
 
       const { result } = renderHook(() => useCandles("AAPL", "1day"));
 
+      expect(result.current.ticker).toBeNull();
       expect(result.current.candles).toEqual([]);
     });
 
@@ -96,13 +102,14 @@ describe("useCandles", () => {
       return fetcher as (key: [string, string, string]) => Promise<unknown>;
     }
 
-    it("成功時は data をそのまま返す", async () => {
+    it("成功時は ticker と candles を含む data をそのまま返す", async () => {
       const candles = [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }];
-      mockGet.mockResolvedValue({ data: candles, error: undefined, response: { status: 200 } });
+      const data = { ticker: "AAPL", candles };
+      mockGet.mockResolvedValue({ data, error: undefined, response: { status: 200 } });
 
       const result = await getFetcher()(["/v1/candles", "AAPL", "1day"]);
 
-      expect(result).toEqual(candles);
+      expect(result).toEqual(data);
     });
 
     it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {

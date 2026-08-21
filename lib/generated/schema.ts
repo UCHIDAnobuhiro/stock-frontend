@@ -297,6 +297,12 @@ export interface components {
             /** @description パスワード */
             password: string;
         };
+        CandlesResponse: {
+            /** @description ティッカーシンボル（例: AAPL, 7203.T） */
+            ticker: string;
+            /** @description ローソク足データ一覧（新しい順） */
+            candles: components["schemas"]["CandleResponse"][];
+        };
         CandleResponse: {
             /**
              * @description 日付（YYYY-MM-DD形式）
@@ -814,13 +820,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ローソク足データ一覧 */
+            /** @description 銘柄コードとローソク足データ一覧 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CandleResponse"][];
+                    "application/json": components["schemas"]["CandlesResponse"];
                 };
             };
             /** @description バリデーションエラー（outputsizeに整数以外、outputsize範囲外、未対応のinterval等） */
