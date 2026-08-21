@@ -5,6 +5,7 @@ import process from "node:process";
 const REQUIRED_NODE = ">=24.18.0 <25";
 const REQUIRED_NPM = ">=12.0.1 <13";
 const API_BASE_KEY = "NEXT_PUBLIC_API_BASE_URL";
+const IS_VERCEL = process.env.VERCEL === "1";
 
 function parseVersion(rawVersion) {
   const match = rawVersion.trim().match(/^v?(\d+)\.(\d+)\.(\d+)/);
@@ -60,7 +61,7 @@ function collectRuntimeErrors() {
   if (!isSupportedNode(process.version)) {
     errors.push(`Node.js ${REQUIRED_NODE} が必要です（現在: ${process.version}）。`);
   }
-  if (!isSupportedNpm(npmVersion)) {
+  if (!IS_VERCEL && !isSupportedNpm(npmVersion)) {
     errors.push(`npm ${REQUIRED_NPM} が必要です（現在: ${npmVersion}）。`);
   }
 

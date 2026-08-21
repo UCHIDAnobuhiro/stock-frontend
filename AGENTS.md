@@ -155,7 +155,7 @@ npm run verify        # CI相当の検証を直列実行
 - Codex のローカル環境設定は `.codex/environments/environment.toml` を使用する
 - `.worktreeinclude` でローカルチェックアウトの `.env.local` を新しい Codex 管理 worktree へコピーする
 - セットアップスクリプトは `.env.local` がなければ `.env.example` から作成し、`node_modules` がなければ `npm ci` を実行する
-- Node.js / npm のバージョンが `package.json` と異なる場合、初期化と `npm run doctor` は明示的に失敗する
+- ローカルの Node.js / npm が `package.json` と異なる場合、初期化と `npm run doctor` は明示的に失敗する（Vercelではビルドランナーのnpm差異を許容）
 - Codex 上部の「開発サーバー」「検証」アクションから、dev server と CI 相当の検証を実行できる
 - 本番ビルドは Codex sandbox 内での Turbopack のローカル bind 制約を避けるため、Next.js が公式対応する `--webpack` を使用する
 - 検証はリソース競合によるテスト timeout を避けるため `npm run verify` で直列実行する
