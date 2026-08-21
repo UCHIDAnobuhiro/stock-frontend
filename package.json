@@ -7,9 +7,21 @@
     "node": ">=24.18.0 <25",
     "npm": ">=12.0.1 <13"
   },
+  "volta": {
+    "node": "24.18.0",
+    "npm": "12.0.1"
+  },
+  "allowScripts": {
+    "fsevents": false,
+    "unrs-resolver": false
+  },
   "scripts": {
+    "doctor": "node scripts/dev-environment.mjs",
+    "setup:worktree": "node scripts/dev-environment.mjs --setup",
+    "predev": "npm run doctor",
     "dev": "next dev",
-    "build": "next build",
+    "prebuild": "npm run doctor",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -17,7 +29,8 @@
     "check:api": "openapi-typescript openapi/openapi.yaml -o lib/generated/schema.ts --check",
     "sync:api": "./scripts/sync-openapi.sh",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "npm run doctor && npm run check:api && npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -27,6 +40,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "geist": "^1.7.2",
     "lightweight-charts": "^5.2.1",
     "lucide-react": "^1.31.0",
     "next": "^16.3.1",
@@ -51,7 +65,7 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
-    "@types/node": "^26.2.0",
+    "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.5",
