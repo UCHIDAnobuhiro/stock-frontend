@@ -48,7 +48,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   // viewMode によらず常に bars: 60 で取得することで、compact ⇄ chart 切替でSWRキーが変わらないようにする
   // （切替のたびの再フェッチ・価格表示の一時消失・chartモード保存ユーザーの初回マウント時2回フェッチを防ぐ）
   const codes = useMemo(() => items.map((i) => i.symbol_code), [items]);
-  const { quotes, isLoading: quotesLoading } = useQuotes(codes, { bars: 60 });
+  const { quotes, failures, isLoading: quotesLoading } = useQuotes(codes, { bars: 60 });
 
   useEffect(() => {
     const stored = localStorage.getItem("watchlist-view-mode");
@@ -211,6 +211,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
                   onRemove={() => removeSymbol(item.symbol_code)}
                   viewMode={viewMode}
                   quote={quotes.get(item.symbol_code)}
+                  quoteFailure={failures.get(item.symbol_code)}
                   isQuoteLoading={quotesLoading}
                 />
               ))}
