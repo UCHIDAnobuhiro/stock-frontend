@@ -6,6 +6,7 @@ import type { components } from "@/lib/generated/schema";
 import type { Interval } from "./useSelectedSymbol";
 
 export type CandleResponse = components["schemas"]["CandleResponse"];
+export type CandlesResponse = components["schemas"]["CandlesResponse"];
 
 /** 各インターバルで取得するローソク足の本数（全区間共通で 200 本） */
 const INTERVAL_OUTPUTSIZE: Record<Interval, number> = {
@@ -16,10 +17,10 @@ const INTERVAL_OUTPUTSIZE: Record<Interval, number> = {
 
 /**
  * SWR のフェッチャー関数。
- * `/v1/candles/{code}` にリクエストし、ローソク足データの配列を返す。
+ * `/v1/candles/{code}` にリクエストし、ティッカーとローソク足データを返す。
  * タプルの第 0 要素は SWR キャッシュキーのプレフィックスなので無視する。
  */
-async function fetchCandles([, code, interval]: [string, string, Interval]): Promise<CandleResponse[]> {
+async function fetchCandles([, code, interval]: [string, string, Interval]): Promise<CandlesResponse> {
   const { data, error, response } = await apiClient.GET("/v1/candles/{code}", {
     params: {
       path: { code },
@@ -27,7 +28,7 @@ async function fetchCandles([, code, interval]: [string, string, Interval]): Pro
     },
   });
   if (error) throw createApiError(response.status, "チャートデータの取得に失敗しました");
-  return data ?? [];
+  return data ?? { ticker: code, candles: [] };
 }
 
 /**
@@ -43,7 +44,8 @@ export function useCandles(code: string | null, interval: Interval) {
   });
 
   return {
-    candles: data ?? [],
+    ticker: data?.ticker ?? null,
+    candles: data?.candles ?? [],
     isLoading,
     error,
   };
