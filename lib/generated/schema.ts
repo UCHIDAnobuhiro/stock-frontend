@@ -126,8 +126,10 @@ export interface paths {
          * OAuthコールバック処理
          * @description プロバイダーから受け取ったcodeとstateを検証し、JWT・refresh・CSRFトークンをCookieにセットして
          *     フロントエンドURLへリダイレクトします。
-         *     エラー時は自動リンクや JSON 応答は行わず、フロントエンドのログイン画面へ
-         *     `error` コード付きでリダイレクトします。
+         *     OpenAPI バリデーション通過後のエラーは、自動リンクや JSON 応答を行わず、
+         *     フロントエンドのログイン画面へ `error` コード付きでリダイレクトします。
+         *     provider が許可値以外、または code/state が欠落している場合は、ハンドラー到達前に
+         *     OpenAPI バリデーションが 400 JSON 応答を返します。
          */
         get: operations["oauthCallback"];
         put?: never;
@@ -285,7 +287,7 @@ export interface components {
              * @description メールアドレス
              */
             email: string;
-            /** @description パスワード（12文字以上） */
+            /** @description パスワード（12文字以上、UTF-8で1024バイト以下） */
             password: string;
         };
         LoginRequest: {
@@ -294,7 +296,7 @@ export interface components {
              * @description メールアドレス
              */
             email: string;
-            /** @description パスワード */
+            /** @description パスワード（UTF-8で1024バイト以下） */
             password: string;
         };
         CandlesResponse: {
@@ -397,7 +399,7 @@ export interface components {
             message: string;
         };
         CompanyAnalysisRequest: {
-            /** @description 分析対象の企業名 */
+            /** @description 分析対象の企業名（100文字以下。英数字・日本語・スペース・中黒・ハイフン・ピリオド・アンパサンド・カンマ・アポストロフィのみ） */
             company_name: string;
         };
         DetectedLogoResponse: {
@@ -510,7 +512,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description 登録失敗（メールアドレス重複等） */
+            /** @description 登録失敗（メールアドレス重複、パスワードの1024バイト上限超過等） */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -773,7 +775,11 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 未サポートのプロバイダー */
+            /**
+             * @description provider が google/github 以外、または指定プロバイダーが未設定。
+             *     OpenAPI バリデーションで拒否された場合は `{"error":"invalid request"}`、
+             *     ハンドラーで未設定と判定された場合は `{"error":"unsupported provider"}` を返す。
+             */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -815,6 +821,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description provider が許可値以外、または code/state が欠落している */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
