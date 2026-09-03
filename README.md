@@ -1,5 +1,7 @@
 # Stock View Frontend (Next.js / App Router)
 
+**公開URL:** [https://www.stockviewapp.com](https://www.stockviewapp.com)
+
 ## 概要
 
 **株式データ表示・ウォッチリスト管理フロントエンド**
