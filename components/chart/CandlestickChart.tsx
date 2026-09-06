@@ -450,12 +450,12 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       >
         {displayedCandle ? (
           <>
-            <div className="grid grid-cols-4 items-center text-[12px] leading-none sm:flex sm:justify-start sm:gap-3 sm:text-xs">
-              <span className="col-span-3 font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[12px] leading-none sm:justify-start sm:text-xs">
+              <span className="font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
                 {displayedCandle.time.replaceAll("-", "/")}
               </span>
               {displayedCandle.volume !== undefined && (
-                <span className="col-start-4 whitespace-nowrap text-[11px] tabular-nums" style={{ color: "var(--color-text-muted)" }}>
+                <span className="whitespace-nowrap text-[11px] tabular-nums" style={{ color: "var(--color-text-muted)" }}>
                   出来高 {Math.round(displayedCandle.volume).toLocaleString()}
                 </span>
               )}

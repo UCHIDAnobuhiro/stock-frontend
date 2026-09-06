@@ -4,9 +4,10 @@ import { WatchlistPanel } from "@/components/watchlist/WatchlistPanel";
 
 interface SidebarProps {
   onItemClick?: () => void;
+  onDragStateChange?: (dragging: boolean) => void;
 }
 
-export default function Sidebar({ onItemClick }: SidebarProps) {
+export default function Sidebar({ onItemClick, onDragStateChange }: SidebarProps) {
   return (
     <aside
       className="flex h-full w-full md:w-64 flex-col border-r"
@@ -15,7 +16,7 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
         borderColor: "var(--color-border)",
       }}
     >
-      <WatchlistPanel onItemClick={onItemClick} />
+      <WatchlistPanel onItemClick={onItemClick} onDragStateChange={onDragStateChange} />
     </aside>
   );
 }

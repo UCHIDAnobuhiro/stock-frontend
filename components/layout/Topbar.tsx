@@ -7,7 +7,7 @@ import { useLogout } from "@/hooks/useLogout";
 
 interface TopbarProps {
   onLogoSearchOpen: () => void;
-  onMobileSidebarOpen: () => void;
+  onMobileSidebarOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen }: TopbarProps) {

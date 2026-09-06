@@ -139,6 +139,25 @@ describe("CandlestickChart", () => {
     expect(candleInfo.textContent).toContain("出来高 1,200");
   });
 
+  it("長い出来高を省略せず、日付・4本値とともに表示する", async () => {
+    render(
+      <CandlestickChart
+        candles={[{ ...candlesWithData[0], volume: 28014700 }]}
+        interval="1month"
+        smaEnabled={false}
+        bollingerEnabled={false}
+      />
+    );
+    await act(async () => {});
+
+    expect(screen.getByText("出来高 28,014,700").textContent).toBe("出来高 28,014,700");
+    const info = screen.getByTestId("candle-info");
+    expect(info.textContent).toContain("2024/01/01");
+    for (const label of ["始値", "高値", "安値", "終値"]) {
+      expect(info.textContent).toContain(label);
+    }
+  });
+
   it("スマホではローソク足をタップしても最新足の4本値を表示する", async () => {
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
