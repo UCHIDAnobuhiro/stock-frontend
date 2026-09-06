@@ -220,7 +220,7 @@ Go バックエンド (stock_backend)
 
 ### 前提条件
 
-- Node.js 24.20.0（LTS、`.nvmrc` で固定）
+- Node.js 24.20.0（ローカル推奨のLTS、`.nvmrc` で固定。対応範囲は `>=24.18.0 <25`）
 - npm 12.0.2
 - `stock_backend` が起動済みであること（デフォルト: `http://localhost:8080`）
 
@@ -292,7 +292,7 @@ Codex でこのプロジェクトのローカル環境を選んで worktree を�
 
 Codex の上部ツールバーには「開発サーバー」と「検証」アクションが表示されます。「検証」は API 型同期、lint、型チェック、テスト、本番ビルドを直列実行します。依存関係を変更した場合は、その worktree で改めて `npm ci` を実行してください。
 
-`doctor` はローカルでは Node.js / npm の両方を検査します。Vercelではビルドランナーのnpm差異を許容しますが、Node.js・依存関係・環境変数の検査は継続します。
+`doctor` はローカルでは Node.js / npm の両方を検査します。Node.js の最低バージョンは 24.18.0 とし、推奨バージョンへの更新だけでは引き上げません。Vercel が提供する 24.19.0 も対応範囲に含みます。Vercelではビルドランナーのnpm差異を許容しますが、Node.js・依存関係・環境変数の検査は継続します。
 
 `npm run build` は `next build --webpack` を実行します。Next.js 16 の Turbopack は Codex sandbox 内で内部ポートを bind できない場合があるため、エージェントが worktree 内で確実に本番ビルドを検証できる構成にしています。開発サーバーは Codex のアクション（統合ターミナル）から通常どおり Turbopack で起動します。
 

@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 
-const REQUIRED_NODE = ">=24.20.0 <25";
+const REQUIRED_NODE = ">=24.18.0 <25";
 const REQUIRED_NPM = ">=12.0.2 <13";
 const API_BASE_KEY = "NEXT_PUBLIC_API_BASE_URL";
 const IS_VERCEL = process.env.VERCEL === "1";
@@ -26,7 +26,7 @@ function isAtLeast(version, minimum) {
 
 function isSupportedNode(rawVersion) {
   const version = parseVersion(rawVersion);
-  return version !== null && version.major === 24 && isAtLeast(version, { major: 24, minor: 20, patch: 0 });
+  return version !== null && version.major === 24 && isAtLeast(version, { major: 24, minor: 18, patch: 0 });
 }
 
 function getNpmVersion() {
