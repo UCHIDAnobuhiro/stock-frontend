@@ -34,9 +34,10 @@ import {
 
 interface WatchlistPanelProps {
   onItemClick?: () => void;
+  onDragStateChange?: (dragging: boolean) => void;
 }
 
-export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
+export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPanelProps) {
   const { items, isLoading, removeSymbol, reorder } = useWatchlist();
   const { symbols, isLoading: symbolsLoading } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
@@ -68,6 +69,7 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    onDragStateChange?.(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -190,6 +192,8 @@ export function WatchlistPanel({ onItemClick }: WatchlistPanelProps) {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={() => onDragStateChange?.(true)}
+            onDragCancel={() => onDragStateChange?.(false)}
             onDragEnd={handleDragEnd}
           >
             <SortableContext

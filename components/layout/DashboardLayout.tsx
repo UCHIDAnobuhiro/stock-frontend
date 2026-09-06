@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
@@ -21,6 +22,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const isSidebarDraggingRef = useRef(false);
+  const handleMobileSidebarOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    sidebarReturnFocusRef.current = event.currentTarget;
+    isSidebarDraggingRef.current = false;
+    setIsMobileSidebarOpen(true);
+  };
   const { isExpired } = useSessionExpiry();
   const handleSessionExpiredLogin = useCallback(async () => {
     // 前ユーザーのデータが次のログインユーザーに見えないよう、
@@ -33,7 +42,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex h-full flex-col overflow-hidden">
       <Topbar
         onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
-        onMobileSidebarOpen={() => setIsMobileSidebarOpen(true)}
+        onMobileSidebarOpen={handleMobileSidebarOpen}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* PC: 常時表示サイドバー */}
@@ -41,28 +50,51 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Sidebar />
         </div>
         {/* メインエリア */}
-        <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
+        <main ref={mainRef} tabIndex={-1} className="flex flex-1 flex-col overflow-hidden">{children}</main>
       </div>
       {/* モバイル: ボトムナビ */}
       <BottomNav
         onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
-        onSidebarOpen={() => setIsMobileSidebarOpen(true)}
+        onSidebarOpen={handleMobileSidebarOpen}
       />
       {/* モバイル: サイドバーSheet */}
-      {isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          onClick={() => setIsMobileSidebarOpen(false)}
+      <Sheet
+        open={isMobileSidebarOpen}
+        onOpenChange={(open, details) => {
+          // 並び替え中のEscapeはKeyboardSensorへ渡し、Sheetを閉じずに取消する。
+          if (details.reason === "escape-key" && isSidebarDraggingRef.current) {
+            details.cancel();
+            details.allowPropagation();
+            return;
+          }
+          setIsMobileSidebarOpen(open);
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="gap-0 data-[side=left]:w-64"
+          finalFocus={sidebarReturnFocusRef}
+          onKeyDown={(event) => {
+            // Sheetが止める矢印/確定キーをdocument上のKeyboardSensorへ届ける。
+            if (isSidebarDraggingRef.current && event.key !== "Escape" && event.key !== "Tab") {
+              event.preventBaseUIHandler();
+            }
+          }}
         >
-          <div className="absolute inset-0 bg-black/50" />
-          <div
-            className="absolute inset-y-0 left-0 w-64 bg-[var(--color-surface-1)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Sidebar onItemClick={() => setIsMobileSidebarOpen(false)} />
+          <SheetHeader className="shrink-0 pr-12">
+            <SheetTitle>銘柄</SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1">
+            <Sidebar
+              onDragStateChange={(dragging) => { isSidebarDraggingRef.current = dragging; }}
+              onItemClick={() => {
+                sidebarReturnFocusRef.current = mainRef.current;
+                setIsMobileSidebarOpen(false);
+              }}
+            />
           </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
       {/* ロゴ検索Sheet */}
       <LogoSearchSheet
         open={isLogoSearchOpen}

@@ -4,7 +4,7 @@ import { List, ScanSearch } from "lucide-react";
 
 interface BottomNavProps {
   onLogoSearchOpen: () => void;
-  onSidebarOpen: () => void;
+  onSidebarOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export default function BottomNav({ onLogoSearchOpen, onSidebarOpen }: BottomNavProps) {

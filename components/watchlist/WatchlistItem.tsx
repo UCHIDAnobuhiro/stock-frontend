@@ -42,6 +42,7 @@ export function WatchlistItem({
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -56,29 +57,21 @@ export function WatchlistItem({
     <div
       ref={setNodeRef}
       style={style}
-      role="button"
-      tabIndex={0}
       className={cn(
         "group flex gap-1 px-2 py-2 text-sm cursor-pointer select-none",
         viewMode === "chart" ? "items-start" : "items-center",
         isDragging && "opacity-50 z-50"
       )}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
     >
       {/* ドラッグハンドル */}
       <button
         type="button"
+        ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
         aria-label="並び替え"
         className={cn(
-          "-ml-2 flex w-10 shrink-0 touch-none cursor-grab items-center justify-center self-stretch transition-opacity opacity-100 active:cursor-grabbing md:ml-0 md:w-auto md:opacity-0 md:group-hover:opacity-100"
+          "-ml-2 flex w-10 shrink-0 touch-none cursor-grab items-center justify-center self-stretch transition-opacity opacity-100 active:cursor-grabbing md:ml-0 md:w-auto md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
         )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => e.stopPropagation()}
@@ -87,9 +80,13 @@ export function WatchlistItem({
       </button>
 
       {/* 銘柄情報 */}
-      <div
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`${code} を表示`}
+        aria-pressed={isActive}
         className={cn(
-          "flex flex-1 min-w-0 rounded px-1.5 py-0.5",
+          "flex flex-1 min-w-0 rounded px-1.5 py-0.5 text-left",
           viewMode === "chart" ? "flex-col gap-1" : "items-center gap-1.5"
         )}
         style={{
@@ -139,14 +136,14 @@ export function WatchlistItem({
         {viewMode === "chart" && (
           <WatchlistSparkline closes={quote?.closes ?? []} isLoading={isQuoteLoading} />
         )}
-      </div>
+      </button>
 
       {/* 削除ボタン */}
       <button
         type="button"
         aria-label={`${code} をウォッチリストから削除`}
         className={cn(
-          "-mr-2 flex w-10 shrink-0 items-center justify-center self-stretch rounded transition-opacity opacity-100 hover:bg-[var(--color-surface-3)] md:mr-0 md:w-auto md:p-0.5 md:opacity-0 md:group-hover:opacity-100"
+          "-mr-2 flex w-10 shrink-0 items-center justify-center self-stretch rounded transition-opacity opacity-100 hover:bg-[var(--color-surface-3)] md:mr-0 md:w-auto md:p-0.5 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
         )}
         style={{ color: "var(--color-text-muted)" }}
         onClick={(e) => {
