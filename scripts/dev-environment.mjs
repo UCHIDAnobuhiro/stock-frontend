@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import process from "node:process";
 
 const REQUIRED_NODE = ">=24.18.0 <25";
-const REQUIRED_NPM = ">=12.0.1 <13";
+const REQUIRED_NPM = ">=12.0.2 <13";
 const API_BASE_KEY = "NEXT_PUBLIC_API_BASE_URL";
 const IS_VERCEL = process.env.VERCEL === "1";
 
@@ -40,7 +40,7 @@ function getNpmVersion() {
 
 function isSupportedNpm(rawVersion) {
   const version = parseVersion(rawVersion);
-  return version !== null && version.major === 12 && isAtLeast(version, { major: 12, minor: 0, patch: 1 });
+  return version !== null && version.major === 12 && isAtLeast(version, { major: 12, minor: 0, patch: 2 });
 }
 
 function envFileDefinesApiBase(path) {
