@@ -45,7 +45,7 @@ export function ChartToolbar({ isPending = false, readoutRef, isLoading: isChart
         }}><Bookmark aria-hidden="true" className="size-4 text-[var(--color-accent)]" fill={isWatched ? "currentColor" : "none"} /></button>}
       </div>
       {symbol && <div className="col-start-2 row-start-1 flex flex-col items-end gap-x-3 tabular-nums sm:mt-3 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-y-1">
-        <span className="whitespace-nowrap text-2xl font-semibold tracking-tight sm:text-4xl">{quote ? quote.close.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</span>
+        <span className={`whitespace-nowrap text-2xl font-semibold tracking-tight sm:text-4xl sm:text-[var(--color-text-primary)] ${quote ? quote.change >= 0 ? "text-[var(--color-bull)]" : "text-[var(--color-bear)]" : "text-[var(--color-text-primary)]"}`}>{quote ? quote.close.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</span>
         {quote && <span className="text-sm font-medium" style={{ color: quote.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}>{quote.change >= 0 ? "+" : ""}{quote.change_percent.toFixed(2)}%</span>}
         <span className={quote ? "sr-only" : "text-xs text-[var(--color-text-muted)]"}>{quote ? "最新の日足終値・前日比" : isLoading ? "価格を取得中…" : failure?.reason === "insufficient_data" ? "価格データ不足" : "価格を取得できません"}</span>
       </div>}

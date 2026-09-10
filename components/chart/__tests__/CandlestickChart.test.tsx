@@ -162,7 +162,7 @@ describe("CandlestickChart", () => {
     }
   });
 
-  it("スマホは四本値を最新足で表示し、PCで有効な指標も表示しない", async () => {
+  it("スマホは始値・高値・安値・出来高を最新足で表示し、終値と指標は表示しない", async () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
     await act(async () => {});
@@ -175,13 +175,15 @@ describe("CandlestickChart", () => {
       mockChart.subscribeCrosshairMove.mock.calls[0][0](oldEvent);
     });
     expect(screen.getByTestId("candle-info").textContent).toContain("最新の足");
-    expect(screen.getByTestId("candle-info").textContent).toContain("終値204.00");
+    expect(screen.getByTestId("candle-info").textContent).toContain("始値199.00");
+    expect(screen.getByTestId("candle-info").textContent).toContain("出来高1,000");
+    expect(screen.queryByText("終値")).toBeNull();
     for (const name of ["前の足を表示", "次の足を表示", "最新の足と表示範囲に戻す"]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
-    const updated = candlesForRangeTest.map((c, i) => i === 99 ? { ...c, close: 209 } : c);
+    const updated = candlesForRangeTest.map((c, i) => i === 99 ? { ...c, volume: 28014700 } : c);
     rerender(<CandlestickChart candles={updated} interval="1day" smaEnabled bollingerEnabled />);
-    expect(screen.getByTestId("candle-info").textContent).toContain("終値209.00");
+    expect(screen.getByTestId("candle-info").textContent).toContain("出来高28,014,700");
     rerender(<CandlestickChart candles={updated} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
     expect(screen.queryByText(/SMA\(5\)/)).toBeNull();
     expect(screen.queryByText(/BB\(20\)/)).toBeNull();
