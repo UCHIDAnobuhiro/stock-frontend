@@ -85,7 +85,6 @@ Next.js（App Router）と TypeScript で構築し、`stock_backend`（Go / net/
 │   │   ├── DashboardLayout.tsx       # ダッシュボード全体レイアウト
 │   │   ├── Sidebar.tsx               # ウォッチリスト用サイドバー
 │   │   ├── Topbar.tsx                # トップバー（テーマ・ロゴ検索・ログアウト）
-│   │   ├── BottomNav.tsx             # モバイル用ボトムナビ
 │   │   └── SessionExpiredDialog.tsx  # セッション切れダイアログ
 │   ├── logo/
 │   │   ├── LogoDropzone.tsx          # 画像ドラッグ&ドロップUI

@@ -3,27 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import { IndicatorToolbar } from "@/components/chart/IndicatorToolbar";
 
 describe("IndicatorToolbar", () => {
-  it("SPではアイコン、PCではラベルを表示する", () => {
-    render(
-      <IndicatorToolbar
-        smaEnabled
-        toggleSma={vi.fn()}
-        bollingerEnabled={false}
-        toggleBollinger={vi.fn()}
-      />,
-    );
-
-    const button = screen.getByRole("button", { name: "インジケーター" });
-    const label = screen.getByText("インジケーター");
-    const mobileIcon = button.querySelector(".lucide-sliders-horizontal");
-    const desktopChevron = button.querySelector("svg:not(.lucide)");
-
-    expect(label.classList.contains("hidden")).toBe(true);
-    expect(label.classList.contains("sm:inline")).toBe(true);
-    expect(mobileIcon?.classList.contains("sm:hidden")).toBe(true);
-    expect(desktopChevron?.classList.contains("hidden")).toBe(true);
-    expect(desktopChevron?.classList.contains("sm:block")).toBe(true);
+  it("有効な指標の件数を表示し、チェックボックスで切り替えられる", () => {
+    const toggleSma = vi.fn();
+    render(<IndicatorToolbar smaEnabled toggleSma={toggleSma} bollingerEnabled={false} toggleBollinger={vi.fn()} />);
     expect(screen.getByText("1")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "インジケーター" }));
+    const checkbox = screen.getByRole("checkbox", { name: "移動平均線（SMA）" }) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    expect(toggleSma).toHaveBeenCalledOnce();
   });
 
   it("ボタンからメニューを開閉できる", () => {

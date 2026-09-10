@@ -33,13 +33,13 @@ export function PageLoadingScreen() {
   );
 }
 
-export function ChartLoadingOverlay() {
+export function ChartLoadingOverlay({ label = "チャートを読み込んでいます..." }: { label?: string }) {
   return (
     <div
       aria-busy="true"
       className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-bg)]/80 backdrop-blur-[1px]"
     >
-      <LoadingIndicator label="チャートを読み込んでいます..." />
+      <LoadingIndicator label={label} />
     </div>
   );
 }

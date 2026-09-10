@@ -140,4 +140,26 @@ describe("ChartContainer", () => {
       "チャートを読み込んでいます...",
     );
   });
+  it("銘柄・時間足変更ではチャートを作り直し、前の足の固定状態を引き継がない", () => {
+    mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1day" });
+    mockUseCandles.mockReturnValue({ candles: [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }], isLoading: false });
+    const { rerender } = render(<ChartContainer />);
+    const daily = screen.getByTestId("candlestick-chart");
+    mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1week" });
+    rerender(<ChartContainer />);
+    const weekly = screen.getByTestId("candlestick-chart");
+    expect(weekly).not.toBe(daily);
+    mockUseSelectedSymbol.mockReturnValue({ symbol: "MSFT", interval: "1week" });
+    rerender(<ChartContainer />);
+    expect(screen.getByTestId("candlestick-chart")).not.toBe(weekly);
+  });
+
+  it("API取得中は選択した銘柄と時間足を読み込み表示に明示する", () => {
+    mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1week" });
+    mockUseCandles.mockReturnValue({ candles: [], isLoading: true });
+    render(<ChartContainer />);
+    expect(screen.getByRole("status").textContent).toContain("AAPL・週足");
+    expect(screen.queryByTestId("candlestick-chart")).toBeNull();
+  });
+
 });

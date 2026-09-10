@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,7 +9,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { LogoDropzone } from "./LogoDropzone";
 import { LogoDetectResults } from "./LogoDetectResults";
 import { CompanyAnalysisCard } from "./CompanyAnalysisCard";
@@ -118,32 +117,29 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:w-96 p-0 flex flex-col"
+        showCloseButton={false}
+        className="logo-search-sheet gap-0 overflow-hidden p-0"
         style={{
           backgroundColor: "var(--color-surface-1)",
           borderColor: "var(--color-border)",
         }}
       >
-        <SheetHeader
-          className="px-4 py-3 border-b"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <SheetTitle
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            ロゴ検索
-          </SheetTitle>
+        <div aria-hidden="true" className="mx-auto mt-3 h-1 w-9 shrink-0 rounded-full bg-[var(--color-border)] md:hidden" />
+        <SheetHeader className="flex-row items-center justify-between gap-4 px-6 pt-6 pb-2 sm:px-8">
+          <SheetTitle className="text-xl font-semibold tracking-tight">ロゴから探す</SheetTitle>
+          <Button variant="ghost" className="min-h-11 shrink-0 gap-2 rounded-full px-3" onClick={() => onOpenChange(false)} aria-label="ロゴ検索を閉じる">
+            <span className="hidden md:inline">閉じる</span><X className="size-4" aria-hidden="true" />
+          </Button>
         </SheetHeader>
-
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="min-h-full space-y-4 p-4">
+        <div className="min-h-0 overflow-y-auto overscroll-contain">
+          <div className="space-y-5 px-6 pt-4 pb-8 sm:px-8">
             <LogoDropzone
               onFile={handleFile}
               onValidationError={setFileError}
               isLoading={isDetecting}
               preview={preview}
             />
+
 
             {results.length > 0 && (
               <LogoDetectResults
@@ -209,7 +205,7 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
               </Button>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -8,7 +8,6 @@ import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
-import BottomNav from "./BottomNav";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
 import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
@@ -21,6 +20,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { mutate } = useSWRConfig();
   const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
@@ -39,24 +39,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [router, mutate, startNavigation]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-dvh flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] md:pb-0">
       <Topbar
         onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
         onMobileSidebarOpen={handleMobileSidebarOpen}
+        isDesktopSidebarOpen={isDesktopSidebarOpen}
+        onDesktopSidebarToggle={() => setIsDesktopSidebarOpen((open) => !open)}
       />
-      <div className="flex flex-1 overflow-hidden">
-        {/* PC: 常時表示サイドバー */}
-        <div className="hidden md:flex">
+      <div className="flex min-h-0 flex-1 overflow-hidden md:gap-3 md:p-3">
+        {/* PC: 開閉可能なサイドバー */}
+        <div id="desktop-sidebar" className={isDesktopSidebarOpen ? "hidden md:flex" : "hidden"}>
           <Sidebar />
         </div>
         {/* メインエリア */}
-        <main ref={mainRef} tabIndex={-1} className="flex flex-1 flex-col overflow-hidden">{children}</main>
+        <main ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-y-auto md:rounded-3xl md:border md:border-[var(--color-border)]">{children}</main>
       </div>
-      {/* モバイル: ボトムナビ */}
-      <BottomNav
-        onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
-        onSidebarOpen={handleMobileSidebarOpen}
-      />
       {/* モバイル: サイドバーSheet */}
       <Sheet
         open={isMobileSidebarOpen}
@@ -72,7 +69,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <SheetContent
           side="left"
-          className="gap-0 data-[side=left]:w-64"
+          className="mobile-bottom-sheet gap-0 data-[side=left]:w-80"
           finalFocus={sidebarReturnFocusRef}
           onKeyDown={(event) => {
             // Sheetが止める矢印/確定キーをdocument上のKeyboardSensorへ届ける。
@@ -82,7 +79,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         >
           <SheetHeader className="shrink-0 pr-12">
-            <SheetTitle>銘柄</SheetTitle>
+            <SheetTitle>ウォッチリスト</SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1">
             <Sidebar
