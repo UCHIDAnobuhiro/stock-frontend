@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { List, ScanSearch } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
@@ -39,10 +41,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [router, mutate, startNavigation]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] md:pb-0">
+    <div className="flex h-dvh flex-col overflow-hidden">
       <Topbar
         onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
-        onMobileSidebarOpen={handleMobileSidebarOpen}
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         onDesktopSidebarToggle={() => setIsDesktopSidebarOpen((open) => !open)}
       />
@@ -54,6 +55,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* メインエリア */}
         <main ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-y-auto md:rounded-3xl md:border md:border-[var(--color-border)]">{children}</main>
       </div>
+      <nav aria-label="銘柄とロゴの検索" className="app-chrome shrink-0 border-t border-[var(--color-border)] px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden">
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={handleMobileSidebarOpen} aria-label="銘柄サイドバーを開く" aria-expanded={isMobileSidebarOpen}>
+            <List className="size-5" aria-hidden="true" />銘柄一覧
+          </Button>
+          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={() => setIsLogoSearchOpen(true)} aria-label="ロゴ検索を開く" aria-expanded={isLogoSearchOpen}>
+            <ScanSearch className="size-5" aria-hidden="true" />ロゴ検索
+          </Button>
+        </div>
+      </nav>
       {/* モバイル: サイドバーSheet */}
       <Sheet
         open={isMobileSidebarOpen}

@@ -375,6 +375,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     : "var(--color-text-primary)";
 
   const intervalLabel = interval === "1day" ? "日足" : interval === "1week" ? "週足" : "月足";
+  const volumeReadout = displayedCandle && <span className="whitespace-nowrap tabular-nums text-[var(--color-text-muted)]">出来高 {displayedCandle.volume === undefined ? "—" : Math.round(displayedCandle.volume).toLocaleString("ja-JP")}</span>;
 
   const indicatorValues = <>
             {indicatorData.sma.map(({ period, values }, index) => {
@@ -395,10 +396,11 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     <div data-testid="candle-info" className={readoutContainer ? "pt-3 lg:pt-0" : "shrink-0 border-b border-[var(--color-border-subtle)] px-4 py-3 sm:px-6"}>
         {displayedCandle ? (
           <>
-            <div className="flex items-center justify-between gap-1 sm:flex-wrap sm:gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
                 <span className={isMobile && mobileIntervals ? "sr-only" : "rounded-md bg-[var(--color-surface-3)] px-2 py-1 font-medium"}>{selectedCandleExists ? isPinned ? "固定中" : "選択中" : isMobile && mobileIntervals ? "最新" : "最新の足"}</span>
                 <span className="font-medium">{displayedCandle.time.replaceAll("-", "/")}</span>
+                {isMobile && volumeReadout}
                 {!isMobile && <span className="text-[var(--color-text-muted)]">{intervalLabel}</span>}
               </div>
               {isMobile && <div className="ml-auto flex shrink-0 items-center gap-1">{mobileIntervals}</div>}
@@ -419,9 +421,9 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
                 </div>
               ))}
             </dl>
-            <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
-              <span className="tabular-nums">出来高 {displayedCandle.volume === undefined ? "—" : Math.round(displayedCandle.volume).toLocaleString("ja-JP")}</span>
-              {!isMobile && <div className="flex items-center gap-1 sm:ml-auto">
+            {!isMobile && <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
+              {volumeReadout}
+              <div className="flex items-center gap-1 sm:ml-auto">
               <Popover
                 key={String(smaEnabled || bollingerEnabled)}
                 modal={false}
@@ -453,8 +455,8 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
                   </div>
                 </PopoverContent>
               </Popover>
-              </div>}
-            </div>
+              </div>
+            </div>}
           </>
         ) : <span className="text-xs text-[var(--color-text-muted)]">4本値を取得中</span>}
 

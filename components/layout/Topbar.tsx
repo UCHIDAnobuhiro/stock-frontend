@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, PanelLeft, ScanSearch } from "lucide-react";
+import { LogOut, PanelLeft, ScanSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useLogout } from "@/hooks/useLogout";
@@ -9,10 +9,9 @@ interface TopbarProps {
   isDesktopSidebarOpen: boolean;
   onDesktopSidebarToggle: () => void;
   onLogoSearchOpen: () => void;
-  onMobileSidebarOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen, isDesktopSidebarOpen, onDesktopSidebarToggle }: TopbarProps) {
+export default function Topbar({ onLogoSearchOpen, isDesktopSidebarOpen, onDesktopSidebarToggle }: TopbarProps) {
   const { handleLogout } = useLogout();
 
   return (
@@ -22,17 +21,6 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen, isDeskto
         borderColor: "var(--color-border)",
       }}
     >
-      {/* ハンバーガー（モバイルのみ） */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden size-11 rounded-full"
-        onClick={onMobileSidebarOpen}
-        aria-label="銘柄サイドバーを開く"
-      >
-        <Menu className="h-4 w-4" />
-      </Button>
-
       <Button variant="ghost" size="icon" className="hidden size-11 rounded-xl text-[var(--color-text-secondary)] md:inline-flex aria-expanded:bg-[var(--color-accent-dim)] aria-expanded:text-[var(--color-accent)] aria-expanded:hover:bg-[var(--color-accent-dim)]"
         onClick={onDesktopSidebarToggle}
         aria-label={isDesktopSidebarOpen ? "サイドバーを閉じる" : "サイドバーを開く"}
@@ -58,7 +46,7 @@ export default function Topbar({ onLogoSearchOpen, onMobileSidebarOpen, isDeskto
         <Button
           variant="outline"
           size="sm"
-          className="h-11 min-w-11 gap-2 rounded-full bg-[var(--color-surface-1)] text-xs"
+          className="hidden h-11 min-w-11 gap-2 rounded-full bg-[var(--color-surface-1)] text-xs md:inline-flex"
           style={{ color: "var(--color-text-secondary)" }}
           onClick={onLogoSearchOpen}
           aria-label="ロゴ検索を開く"
