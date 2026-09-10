@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { List, ScanSearch } from "lucide-react";
+import { List, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useSheetSwipe } from "@/hooks/useSheetSwipe";
+import { SheetDragHandle } from "@/components/ui/SheetDragHandle";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
@@ -24,6 +26,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const sidebarSwipe = useSheetSwipe(() => setIsMobileSidebarOpen(false));
   const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const isSidebarDraggingRef = useRef(false);
@@ -80,7 +83,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <SheetContent
           side="left"
-          className="mobile-bottom-sheet gap-0 data-[side=left]:w-80"
+          showCloseButton={false}
+          className="mobile-bottom-sheet gap-0 overflow-hidden p-0 data-[side=left]:w-80"
+          style={sidebarSwipe.style}
           finalFocus={sidebarReturnFocusRef}
           onKeyDown={(event) => {
             // Sheetが止める矢印/確定キーをdocument上のKeyboardSensorへ届ける。
@@ -89,8 +94,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }
           }}
         >
-          <SheetHeader className="shrink-0 pr-12">
-            <SheetTitle>ウォッチリスト</SheetTitle>
+          <SheetDragHandle
+            aria-label="下にスワイプしてウォッチリストを閉じる"
+            onClose={() => setIsMobileSidebarOpen(false)}
+            {...sidebarSwipe.handleProps}
+          />
+          <SheetHeader className="shrink-0 flex-row items-center justify-between gap-2 px-5 pt-0 pb-1 md:pt-5">
+            <SheetTitle className="text-lg font-semibold tracking-tight">ウォッチリスト</SheetTitle>
+            <Button variant="ghost" className="size-11 shrink-0 rounded-full p-0" onClick={() => setIsMobileSidebarOpen(false)} aria-label="ウォッチリストを閉じる">
+              <X className="size-5" aria-hidden="true" />
+            </Button>
           </SheetHeader>
           <div className="min-h-0 flex-1">
             <Sidebar

@@ -251,6 +251,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-accent); 
     width: 100%;
     max-width: none;
     height: 85dvh;
+    translate: 0 var(--sheet-drag-offset, 0px);
     border-radius: 24px 24px 0 0;
     border: 1px solid var(--color-border);
     padding-bottom: env(safe-area-inset-bottom);
@@ -277,6 +278,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-accent); 
   border: 1px solid var(--color-border);
   border-radius: 28px 28px 0 0;
   padding-bottom: env(safe-area-inset-bottom);
+  translate: 0 var(--sheet-drag-offset, 0px);
 }
 .logo-search-sheet[data-starting-style],
 .logo-search-sheet[data-ending-style] { translate: 0 2rem; }

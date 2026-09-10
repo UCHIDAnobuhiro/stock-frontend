@@ -129,6 +129,8 @@ vi.mock("@/components/logo/LogoDetectResults", () => ({
 describe("LogoSearchSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+    HTMLElement.prototype.scrollTo = vi.fn();
     mockUseLogoDetect.mockReturnValue({
       results: [],
       hasSearched: false,
@@ -264,6 +266,34 @@ describe("LogoSearchSheet", () => {
     expect(mockResetAnalysis).toHaveBeenCalledOnce();
     expect(mockAnalyze).toHaveBeenCalledWith("Facebook");
     expect(screen.getByText("分析対象: Facebook")).toBeTruthy();
+  });
+
+  it("分析開始・完了時に分析欄へ移動し、通常の再描画では移動しない", async () => {
+    const scrollTo = vi.fn();
+    const original = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = scrollTo;
+    const state = {
+      analysis: null as null | { company_name: string; ticker: string; summary: string },
+      isLoading: true,
+      error: null,
+      analyze: mockAnalyze,
+      reset: mockResetAnalysis,
+    };
+    mockUseLogoAnalyze.mockReturnValue(state);
+    try {
+      const { rerender } = render(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+      await waitFor(() => expect(scrollTo).toHaveBeenCalledOnce());
+      expect(screen.getByRole("region", { name: "企業分析" })).toBeTruthy();
+      scrollTo.mockClear();
+      state.isLoading = false;
+      state.analysis = { company_name: "Google", ticker: "GOOGL", summary: "分析結果" };
+      rerender(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+      await waitFor(() => expect(scrollTo).toHaveBeenCalledOnce());
+      rerender(<LogoSearchSheet open onOpenChange={vi.fn()} />);
+      expect(scrollTo).toHaveBeenCalledOnce();
+    } finally {
+      HTMLElement.prototype.scrollTo = original;
+    }
   });
 
   it("分析tickerと完全一致する銘柄でチャートを開く", () => {

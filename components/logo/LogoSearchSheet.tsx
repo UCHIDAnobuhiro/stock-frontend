@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RefreshCw, X } from "lucide-react";
 import {
   Sheet,
@@ -8,6 +8,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useSheetSwipe } from "@/hooks/useSheetSwipe";
+import { SheetDragHandle } from "@/components/ui/SheetDragHandle";
 import { Button } from "@/components/ui/button";
 import { LogoDropzone } from "./LogoDropzone";
 import { LogoDetectResults } from "./LogoDetectResults";
@@ -24,6 +26,9 @@ interface LogoSearchSheetProps {
 }
 
 export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const analysisRef = useRef<HTMLDivElement>(null);
+  const swipe = useSheetSwipe(() => onOpenChange(false));
   const [preview, setPreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -59,6 +64,23 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  // Move only the sheet's scroll container, keeping the page behind it still.
+  useEffect(() => {
+    if (!open || (!isAnalyzing && !analysis && !analyzeError)) return;
+    const frame = requestAnimationFrame(() => {
+      const container = scrollRef.current;
+      const target = analysisRef.current;
+      if (!container || !target) return;
+      container.scrollTo({
+        top: container.scrollTop + target.getBoundingClientRect().top
+          - container.getBoundingClientRect().top - 16,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, isAnalyzing, analysis, analyzeError]);
 
   const handleFile = (file: File) => {
     resetDetect();
@@ -122,16 +144,21 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
         style={{
           backgroundColor: "var(--color-surface-1)",
           borderColor: "var(--color-border)",
+          ...swipe.style,
         }}
       >
-        <div aria-hidden="true" className="mx-auto mt-3 h-1 w-9 shrink-0 rounded-full bg-[var(--color-border)] md:hidden" />
-        <SheetHeader className="flex-row items-center justify-between gap-4 px-6 pt-6 pb-2 sm:px-8">
-          <SheetTitle className="text-xl font-semibold tracking-tight">ロゴから探す</SheetTitle>
-          <Button variant="ghost" className="min-h-11 shrink-0 gap-2 rounded-full px-3" onClick={() => onOpenChange(false)} aria-label="ロゴ検索を閉じる">
-            <span className="hidden md:inline">閉じる</span><X className="size-4" aria-hidden="true" />
+        <SheetDragHandle
+          aria-label="下にスワイプしてロゴ検索を閉じる"
+          onClose={() => onOpenChange(false)}
+          {...swipe.handleProps}
+        />
+        <SheetHeader className="shrink-0 flex-row items-center justify-between gap-2 px-5 pt-0 pb-1 md:px-8 md:pt-5 md:pb-2">
+          <SheetTitle className="text-lg font-semibold tracking-tight md:text-xl">ロゴから探す</SheetTitle>
+          <Button variant="ghost" className="size-11 shrink-0 rounded-full p-0" onClick={() => onOpenChange(false)} aria-label="ロゴ検索を閉じる">
+            <X className="size-5" aria-hidden="true" />
           </Button>
         </SheetHeader>
-        <div className="min-h-0 overflow-y-auto overscroll-contain">
+        <div ref={scrollRef} className="min-h-0 overflow-y-auto overscroll-contain">
           <div className="space-y-5 px-6 pt-4 pb-8 sm:px-8">
             <LogoDropzone
               onFile={handleFile}
@@ -170,27 +197,33 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
                 </div>
               )}
 
-            {(fileError || detectError || analyzeError || actionError) && (
+            {(fileError || detectError || actionError) && (
               <p
                 role="alert"
                 className="text-xs"
                 style={{ color: "var(--color-bear)" }}
               >
-                {fileError ?? detectError ?? analyzeError ?? actionError}
+                {fileError ?? detectError ?? actionError}
               </p>
             )}
 
-            <CompanyAnalysisCard
-              analysis={analysis}
-              isLoading={isAnalyzing}
-              symbolCode={matchedSymbol?.code ?? null}
-              isResolvingSymbol={Boolean(ticker) && isSymbolsLoading}
-              isInWatchlist={isInWatchlist}
-              isWatchlistLoading={isWatchlistLoading}
-              isAddingToWatchlist={isAddingToWatchlist}
-              onViewChart={handleViewChart}
-              onAddToWatchlist={handleAddToWatchlist}
-            />
+            {(isAnalyzing || analysis || analyzeError) && (
+              <div ref={analysisRef} className="space-y-3" role="region" aria-label="企業分析">
+                <h3 className="text-sm font-semibold">企業分析</h3>
+                {analyzeError && <p role="alert" className="text-xs text-[var(--color-bear)]">{analyzeError}</p>}
+                <CompanyAnalysisCard
+                  analysis={analysis}
+                  isLoading={isAnalyzing}
+                  symbolCode={matchedSymbol?.code ?? null}
+                  isResolvingSymbol={Boolean(ticker) && isSymbolsLoading}
+                  isInWatchlist={isInWatchlist}
+                  isWatchlistLoading={isWatchlistLoading}
+                  isAddingToWatchlist={isAddingToWatchlist}
+                  onViewChart={handleViewChart}
+                  onAddToWatchlist={handleAddToWatchlist}
+                />
+              </div>
+            )}
 
             {(results.length > 0 || preview) && (
               <Button
