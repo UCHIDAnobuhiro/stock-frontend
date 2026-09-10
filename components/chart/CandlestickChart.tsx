@@ -11,6 +11,7 @@ import {
   CandlestickSeries,
   CrosshairMode,
   HistogramSeries,
+  type AutoscaleInfo,
   type IChartApi,
   type LogicalRange,
   type MouseEventParams,
@@ -96,6 +97,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const defaultRangeRef = useRef<VisibleLogicalRange | null>(null);
   const dataLengthRef = useRef(0);
+  const mobileAutoscaleRef = useRef<AutoscaleInfo | null>(null);
   const isRangeModifiedRef = useRef(false);
   const [isRangeModified, setIsRangeModified] = useState(false);
   const pinnedRef = useRef(false);
@@ -207,6 +209,13 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       borderDownColor: c.downColor,
       wickUpColor: c.upColor,
       wickDownColor: c.downColor,
+      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
+        if (!isMobile) return original();
+        // Capture the first visible price range and retain it during horizontal
+        // scrolling, pinch zooming, data refreshes, and theme changes.
+        mobileAutoscaleRef.current ??= original();
+        return mobileAutoscaleRef.current;
+      },
     });
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -257,6 +266,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       if (containerRef.current) {
         const width = containerRef.current.clientWidth;
         const nextIsMobile = width < MOBILE_BREAKPOINT;
+        if (nextIsMobile !== isMobile) mobileAutoscaleRef.current = null;
         chart.applyOptions({
           width,
           height: containerRef.current.clientHeight,
@@ -307,6 +317,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       chartRef.current = null;
       defaultRangeRef.current = null;
       dataLengthRef.current = 0;
+      mobileAutoscaleRef.current = null;
       setChartReady(false);
     };
   }, []);
@@ -339,6 +350,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       volumeSeriesRef.current.setData([]);
       defaultRangeRef.current = null;
       dataLengthRef.current = 0;
+      mobileAutoscaleRef.current = null;
       return;
     }
 
