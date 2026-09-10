@@ -94,7 +94,7 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div
-        className="h-10 shrink-0 px-2 flex items-center gap-1 border-b"
+        className="m-3 flex min-h-11 shrink-0 items-center gap-1 rounded-xl border px-3"
         style={{ borderColor: "var(--color-border)" }}
       >
         {/* インライン検索 */}
@@ -111,13 +111,13 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
             <CommandInput
               value={query}
               placeholder="銘柄コード・企業名で検索..."
-              className="text-base placeholder:text-xs sm:text-xs"
+              className="text-base placeholder:text-xs md:text-sm"
               style={{ color: "var(--color-text-primary)" }}
               onValueChange={setQuery}
             />
             {query.length > 0 && (
               <CommandList
-                className="absolute top-full left-0 w-64 z-50 mt-1 rounded-md border shadow-lg"
+                className="absolute top-full left-0 w-full min-w-56 z-50 mt-2 rounded-2xl border shadow-lg"
                 style={{
                   backgroundColor: "var(--color-surface-2)",
                   borderColor: "var(--color-border)",
@@ -174,8 +174,9 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
         </button>
       </div>
 
+      <p className="px-5 pb-2 text-xs font-medium text-[var(--color-text-muted)]">ウォッチリスト</p>
       {/* リスト */}
-      <div className="flex-1 overflow-y-auto min-h-0 py-1">
+      <div className="flex-1 overflow-y-auto min-h-0 pb-3">
         {isLoading ? (
           <div className="space-y-1 px-3 py-2">
             {[1, 2, 3].map((i) => (

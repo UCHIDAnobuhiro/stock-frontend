@@ -20,7 +20,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8"
+      className="size-11 rounded-full"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="テーマ切り替え"
       aria-pressed={isDark}

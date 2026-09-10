@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act, screen } from "@testing-library/react";
+import { render, act, screen, fireEvent } from "@testing-library/react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import type { CandleResponse } from "@/hooks/useCandles";
 
 // ---- モック設定 ----
 
-const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock } = vi.hoisted(() => {
+const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } = vi.hoisted(() => {
   const mockSeriesInstances: Array<{
     setData: ReturnType<typeof vi.fn>;
     applyOptions: ReturnType<typeof vi.fn>;
@@ -33,11 +33,13 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock } = vi.ho
     unsubscribeClick: vi.fn(),
     applyOptions: vi.fn(),
     remove: vi.fn(),
+    setCrosshairPosition: vi.fn(),
+    clearCrosshairPosition: vi.fn(),
   };
 
   const createChartMock = vi.fn(() => mockChart);
 
-  return { mockSeriesInstances, mockChart, mockTimeScale, createChartMock };
+  return { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme: { resolvedTheme: "light" } };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -49,7 +51,7 @@ vi.mock("lightweight-charts", () => ({
 }));
 
 vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: "light" }),
+  useTheme: () => theme,
 }));
 
 let resizeObserverCallback: ResizeObserverCallback | undefined;
@@ -81,8 +83,10 @@ const candlesForRangeTest: CandleResponse[] = Array.from({ length: 100 }, (_, in
 
 describe("CandlestickChart", () => {
   beforeEach(() => {
+    theme.resolvedTheme = "light";
     mockSeriesInstances.length = 0;
     mockClientWidth = 375;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
     resizeObserverCallback = undefined;
     vi.clearAllMocks();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", {
@@ -158,29 +162,29 @@ describe("CandlestickChart", () => {
     }
   });
 
-  it("スマホではローソク足をタップしても最新足の4本値を表示する", async () => {
-    render(
-      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
-    );
-
+  it("スマホは四本値を最新足で表示し、PCで有効な指標も表示しない", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
     await act(async () => {});
-    const [candleSeries, volumeSeries] = mockSeriesInstances;
-    const clickHandler = mockChart.subscribeClick.mock.calls[0][0];
-
+    expect(screen.queryByRole("button", { name: "指標値を表示" })).toBeNull();
+    expect(mockSeriesInstances).toHaveLength(2);
+    expect(screen.queryByText(/SMA\(5\)/)).toBeNull();
+    const oldEvent = { time: candlesForRangeTest[50].time, seriesData: new Map([[mockSeriesInstances[0], candlesForRangeTest[50]]]) };
     act(() => {
-      clickHandler({
-        time: "2024-01-01",
-        seriesData: new Map([
-          [candleSeries, { open: 100, high: 110, low: 90, close: 105 }],
-          [volumeSeries, { value: 1000 }],
-        ]),
-      });
+      mockChart.subscribeClick.mock.calls[0][0](oldEvent);
+      mockChart.subscribeCrosshairMove.mock.calls[0][0](oldEvent);
     });
-
-    const candleInfo = screen.getByTestId("candle-info");
-    expect(candleInfo.textContent).toContain("2024/01/02");
-    expect(candleInfo.textContent).toContain("始値105.00");
-    expect(candleInfo.textContent).toContain("終値110.00");
+    expect(screen.getByTestId("candle-info").textContent).toContain("最新の足");
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値204.00");
+    for (const name of ["前の足を表示", "次の足を表示", "最新の足と表示範囲に戻す"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    const updated = candlesForRangeTest.map((c, i) => i === 99 ? { ...c, close: 209 } : c);
+    rerender(<CandlestickChart candles={updated} interval="1day" smaEnabled bollingerEnabled />);
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値209.00");
+    rerender(<CandlestickChart candles={updated} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(screen.queryByText(/SMA\(5\)/)).toBeNull();
+    expect(screen.queryByText(/BB\(20\)/)).toBeNull();
   });
 
   it("PCではローソク足を選択するとその足の4本値を表示する", async () => {
@@ -209,21 +213,19 @@ describe("CandlestickChart", () => {
     expect(candleInfo.textContent).toContain("終値105.00");
   });
 
-  it("表示範囲を変更してもリセットボタンを表示しない", async () => {
-    render(
-      <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
-    );
-
+  it("表示範囲を変更すると最新へ戻る操作が有効になり、初期範囲に戻せる", async () => {
+    render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
     await act(async () => {});
-    expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
-
-    const rangeChangeHandler = mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0];
-    act(() => rangeChangeHandler({ from: -5, to: 1 }));
-
-    expect(screen.queryByRole("button", { name: "表示範囲を初期状態に戻す" })).toBeNull();
+    const button = screen.getByRole("button", { name: "最新の足と表示範囲に戻す" }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0]({ from: -5, to: 1 }));
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 0, to: 1 });
+    expect(button.disabled).toBe(true);
   });
 
-  it("スマホ幅では横スクロールだけを有効にし、クロスヘアを非表示にする", async () => {
+  it("スマホでは横スクロールとピンチズーム、クロスヘアを有効にする", async () => {
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
@@ -233,19 +235,19 @@ describe("CandlestickChart", () => {
     expect(createChartMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        crosshair: expect.objectContaining({ mode: 2 }),
+        crosshair: expect.objectContaining({ mode: 1 }),
         handleScale: expect.objectContaining({
           axisPressedMouseMove: false,
           axisDoubleClickReset: false,
           mouseWheel: false,
-          pinch: false,
+          pinch: true,
         }),
         handleScroll: expect.objectContaining({ horzTouchDrag: true, vertTouchDrag: false }),
       }),
     );
   });
 
-  it("PCで足を選択した後にスマホ幅へ変わると最新足の4本値へ戻す", async () => {
+  it("画面幅が変わっても選択した足の4本値を維持する", async () => {
     mockClientWidth = 800;
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
@@ -268,9 +270,9 @@ describe("CandlestickChart", () => {
     mockClientWidth = 390;
     act(() => resizeObserverCallback?.([], {} as ResizeObserver));
 
-    expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/02");
+    expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/01");
     expect(mockChart.applyOptions).toHaveBeenLastCalledWith(
-      expect.objectContaining({ crosshair: { mode: 2 } }),
+      expect.objectContaining({ crosshair: { mode: 1 } }),
     );
   });
 
@@ -305,4 +307,125 @@ describe("CandlestickChart", () => {
 
     expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenCalledTimes(1);
   });
+  it("ホバーを離れても選択を維持し、クリックで固定・再クリックで追従に戻る", async () => {
+    render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    const event = { time: "2024-01-01", seriesData: new Map([[mockSeriesInstances[0], candlesWithData[0]]]) };
+    const move = mockChart.subscribeCrosshairMove.mock.calls[0][0];
+    const click = mockChart.subscribeClick.mock.calls[0][0];
+    act(() => move(event));
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中2024/01/01");
+    act(() => move({ seriesData: new Map() }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中2024/01/01");
+    act(() => click(event));
+    act(() => move({ time: "2024-01-02", seriesData: new Map([[mockSeriesInstances[0], candlesWithData[1]]]) }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("固定中2024/01/01");
+    act(() => click(event));
+    act(() => move({ time: "2024-01-02", seriesData: new Map([[mockSeriesInstances[0], candlesWithData[1]]]) }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中2024/01/02");
+  });
+
+  it("前後ボタンで足を正確に選択でき、同日データの更新も反映する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "前の足を表示" }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中2024/01/01");
+    expect((screen.getByRole("button", { name: "前の足を表示" }) as HTMLButtonElement).disabled).toBe(true);
+    rerender(<CandlestickChart candles={[{ ...candlesWithData[0], close: 106 }, candlesWithData[1]]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値106.00");
+    fireEvent.click(screen.getByRole("button", { name: "次の足を表示" }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/02");
+  });
+
+  it("テーマ変更でも操作済みの表示範囲と選択した足を維持する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "前の足を表示" }));
+    const range = { from: 20, to: 49 };
+    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0](range));
+    mockTimeScale.getVisibleLogicalRange.mockReturnValue(range);
+    theme.resolvedTheme = "dark";
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith(range);
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中");
+  });
+
+  it("指標値は初回から最新足に対応し、古い足で計算不能なら以前の値を残さない", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "指標値を表示" }));
+    // close=105..204、直近5本の平均=202。ホバー不要で表示される。
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("202.00");
+    act(() => mockChart.subscribeClick.mock.calls[0][0]({ time: candlesForRangeTest[0].time, seriesData: new Map([[mockSeriesInstances[0], candlesForRangeTest[0]]]) }));
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("—");
+    expect(screen.getByText(/BB\(20\)/).textContent).toContain("—");
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(screen.queryByText(/SMA\(5\)/)).toBeNull();
+    expect(screen.queryByText(/BB\(20\)/)).toBeNull();
+  });
+
+  it("四本値の配置先を変えても表示は一つで、チャートを作り直さない", async () => {
+    const target = document.createElement("div");
+    document.body.append(target);
+    const { rerender, unmount } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    const createCount = createChartMock.mock.calls.length;
+    rerender(<CandlestickChart readoutContainer={target} candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(screen.getAllByTestId("candle-info")).toHaveLength(1);
+    expect(target.contains(screen.getByTestId("candle-info"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "前の足を表示" }));
+    expect(target.textContent).toContain("選択中2024/01/01");
+    expect(createChartMock).toHaveBeenCalledTimes(createCount);
+    unmount();
+    expect(target.textContent).toBe("");
+    target.remove();
+  });
+
+  it("指標値はヘッダー内に展開せずポップオーバーで表示する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    const trigger = screen.getByRole("button", { name: "指標値を表示" }) as HTMLButtonElement;
+    expect(trigger.disabled).toBe(true);
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    const activeTrigger = screen.getByRole("button", { name: "指標値を表示" }) as HTMLButtonElement;
+    expect(activeTrigger.disabled).toBe(false);
+    expect(screen.queryByText(/SMA\(5\)/)).toBeNull();
+    fireEvent.click(activeTrigger);
+    expect(screen.getByText(/SMA\(5\)/)).toBeTruthy();
+    expect(screen.getByTestId("candle-info").contains(screen.getByText(/SMA\(5\)/))).toBe(false);
+    expect(activeTrigger.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("指標値を開いたままチャートを操作でき、四本値・SMA・BBが同じ足に追従する", async () => {
+    render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    await act(async () => {});
+    const trigger = screen.getByRole("button", { name: "指標値を表示" });
+    fireEvent.click(trigger);
+    const chart = screen.getByLabelText(/ローソク足チャート。/);
+    const eventAt = (index: number) => ({ time: candlesForRangeTest[index].time, seriesData: new Map([[mockSeriesInstances[0], candlesForRangeTest[index]]]) });
+    act(() => mockChart.subscribeCrosshairMove.mock.calls[0][0](eventAt(50)));
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値155.00");
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("153.00");
+    expect(screen.getByText(/BB\(20\)/).textContent).toContain("145.50");
+    fireEvent.pointerDown(chart);
+    fireEvent.mouseDown(chart);
+    fireEvent.click(chart);
+    act(() => mockChart.subscribeClick.mock.calls[0][0](eventAt(51)));
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("154.00");
+    act(() => mockChart.subscribeCrosshairMove.mock.calls[0][0](eventAt(52)));
+    expect(screen.getByTestId("candle-info").textContent).toContain("固定中");
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値156.00");
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("154.00");
+    expect(screen.getByText(/BB\(20\)/).textContent).toContain("146.50");
+    act(() => mockChart.subscribeClick.mock.calls[0][0](eventAt(51)));
+    act(() => mockChart.subscribeCrosshairMove.mock.calls[0][0](eventAt(52)));
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値157.00");
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("155.00");
+    expect(screen.getByText(/BB\(20\)/).textContent).toContain("147.50");
+    fireEvent.click(screen.getByRole("button", { name: "指標値を閉じる" }));
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+
 });

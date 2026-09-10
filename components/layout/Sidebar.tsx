@@ -10,7 +10,7 @@ interface SidebarProps {
 export default function Sidebar({ onItemClick, onDragStateChange }: SidebarProps) {
   return (
     <aside
-      className="flex h-full w-full md:w-64 flex-col border-r"
+      className="flex h-full w-full md:w-72 flex-col md:rounded-3xl md:border"
       style={{
         backgroundColor: "var(--color-surface-1)",
         borderColor: "var(--color-border)",

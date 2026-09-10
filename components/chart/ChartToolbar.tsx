@@ -1,153 +1,59 @@
 "use client";
 
+import { useState, type Ref } from "react";
 import { Bookmark } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useSelectedSymbol, type Interval } from "@/hooks/useSelectedSymbol";
+import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useQuotes } from "@/hooks/useQuotes";
-import { IndicatorToolbar } from "./IndicatorToolbar";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 
-const INTERVALS: { value: Interval; label: string }[] = [
-  { value: "1day", label: "日足" },
-  { value: "1week", label: "週足" },
-  { value: "1month", label: "月足" },
-];
-
 interface ChartToolbarProps {
-  smaEnabled: boolean;
-  toggleSma: () => void;
-  bollingerEnabled: boolean;
-  toggleBollinger: () => void;
+  isPending?: boolean;
+  readoutRef?: Ref<HTMLDivElement>;
+  isLoading?: boolean;
 }
 
-export function ChartToolbar({ smaEnabled, toggleSma, bollingerEnabled, toggleBollinger }: ChartToolbarProps) {
-  const { symbol, interval, setInterval } = useSelectedSymbol();
+export function ChartToolbar({ isPending = false, readoutRef, isLoading: isChartLoading = false }: ChartToolbarProps) {
+  const { symbol } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
-  const { quotes, failures } = useQuotes(symbol ? [symbol] : []);
-  const priceInfo = symbol ? quotes.get(symbol) : undefined;
-  const quoteFailure = symbol ? failures.get(symbol) : undefined;
-  const selectedSymbol = symbols.find((s) => s.code === symbol);
-  const isWatched = symbol !== null && items.some((i) => i.symbol_code === symbol);
+  const { quotes, failures, isLoading } = useQuotes(symbol ? [symbol] : []);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const quote = symbol ? quotes.get(symbol) : undefined;
+  const failure = symbol ? failures.get(symbol) : undefined;
+  const selected = symbols.find((s) => s.code === symbol);
+  const isWatched = items.some((i) => i.symbol_code === symbol);
 
   return (
-    <div
-      className="flex h-11 shrink-0 items-center gap-2 border-b px-2 sm:h-10 sm:gap-3 sm:px-4"
-      style={{
-        backgroundColor: "var(--color-surface-2)",
-        borderColor: "var(--color-border)",
-      }}
-    >
-      {/* 銘柄名 */}
-      <div className="flex min-w-0 items-center gap-2">
-        {selectedSymbol ? (
-          <>
-            <SymbolLogo code={selectedSymbol.code} logoUrl={selectedSymbol.logo_url} size={24} />
-            <span
-              className="shrink-0 whitespace-nowrap text-sm font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              {selectedSymbol.code}
-            </span>
-            <span
-              className="text-xs truncate hidden sm:block"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              {selectedSymbol.name}
-            </span>
-            {priceInfo && (
-              <>
-                <span
-                  className="text-sm font-medium tabular-nums hidden sm:block"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  {priceInfo.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span
-                  className="text-xs font-medium tabular-nums hidden sm:block"
-                  style={{ color: priceInfo.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}
-                >
-                  {priceInfo.change >= 0 ? "+" : ""}{priceInfo.change_percent.toFixed(2)}%
-                </span>
-              </>
-            )}
-            {!priceInfo && quoteFailure && (
-              <span
-                className="text-xs hidden sm:block"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                {quoteFailure.reason === "insufficient_data" ? "データ不足" : "価格取得失敗"}
-              </span>
-            )}
-            {symbol && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    if (isWatched) await removeSymbol(symbol);
-                    else await addSymbol(symbol);
-                  } catch {
-                    // SWR がオプティミスティック更新をロールバックする
-                  }
-                }}
-                aria-label={isWatched ? "ウォッチリストから削除" : "ウォッチリストに追加"}
-                className="flex size-11 items-center justify-center rounded transition-colors hover:bg-[var(--color-surface-3)] sm:size-auto sm:p-0.5"
-                style={{ color: isWatched ? "var(--color-accent)" : "var(--color-text-muted)" }}
-              >
-                <Bookmark className="h-3.5 w-3.5" fill={isWatched ? "currentColor" : "none"} />
-              </button>
-            )}
-          </>
-        ) : (
-          <span
-            className="text-sm"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            銘柄未選択
-          </span>
-        )}
-      </div>
-
-      {/* 右側: 指標ボタン + 足種ボタン */}
-      <div className="ml-auto flex items-center gap-1 shrink-0">
-        <IndicatorToolbar
-          smaEnabled={smaEnabled}
-          toggleSma={toggleSma}
-          bollingerEnabled={bollingerEnabled}
-          toggleBollinger={toggleBollinger}
-        />
-        <div
-          className="mx-1 h-4 w-px shrink-0"
-          style={{ backgroundColor: "var(--color-border)" }}
-        />
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {INTERVALS.map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setInterval(item.value)}
-              aria-pressed={interval === item.value}
-              className={cn(
-                "flex min-h-11 items-center whitespace-nowrap px-1 text-xs font-medium transition-opacity hover:opacity-80 sm:min-h-0 sm:px-0",
-                interval === item.value && "text-white"
-              )}
-              style={{
-                color: interval === item.value ? "#ffffff" : "var(--color-text-secondary)",
-              }}
-            >
-              <span
-                className="rounded-md px-2 py-1.5 sm:px-2.5 sm:py-1"
-                style={{
-                  backgroundColor: interval === item.value ? "var(--color-accent)" : "transparent",
-                }}
-              >
-                {item.label}
-              </span>
-            </button>
-          ))}
+    <section className="grid shrink-0 grid-cols-1 gap-x-6 bg-[var(--color-surface-1)] px-4 pt-5 pb-4 sm:px-6 sm:pt-6 lg:contents" aria-label="銘柄情報と表示設定">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:block lg:col-start-1 lg:row-start-1 lg:px-6 lg:pt-6">
+      <div className="contents sm:flex sm:items-start sm:justify-between sm:gap-3">
+        <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:gap-3">
+          {symbol && <SymbolLogo code={symbol} logoUrl={selected?.logo_url} size={32} />}
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{symbol ?? "銘柄を選択"}</h1>
+            <p className="truncate text-xs text-[var(--color-text-secondary)]" title={selected?.name}>{selected?.name ?? "ウォッチリストからチャートを開く"}</p>
+          </div>
         </div>
+        {symbol && <button type="button" disabled={isSaving} aria-label={isWatched ? "ウォッチリストから削除" : "ウォッチリストに追加"} aria-pressed={isWatched} className="chart-action col-start-3 row-start-1 size-11 shrink-0 p-0" onClick={async () => {
+          setIsSaving(true); setSaveError(null);
+          try { if (isWatched) await removeSymbol(symbol); else await addSymbol(symbol); }
+          catch { setSaveError("ウォッチリストを更新できませんでした"); }
+          finally { setIsSaving(false); }
+        }}><Bookmark aria-hidden="true" className="size-4 text-[var(--color-accent)]" fill={isWatched ? "currentColor" : "none"} /></button>}
       </div>
-    </div>
+      {symbol && <div className="col-start-2 row-start-1 flex flex-col items-end gap-x-3 tabular-nums sm:mt-3 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-y-1">
+        <span className="whitespace-nowrap text-2xl font-semibold tracking-tight sm:text-4xl">{quote ? quote.close.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</span>
+        {quote && <span className="text-sm font-medium" style={{ color: quote.change >= 0 ? "var(--color-bull)" : "var(--color-bear)" }}>{quote.change >= 0 ? "+" : ""}{quote.change_percent.toFixed(2)}%</span>}
+        <span className={quote ? "sr-only" : "text-xs text-[var(--color-text-muted)]"}>{quote ? "最新の日足終値・前日比" : isLoading ? "価格を取得中…" : failure?.reason === "insufficient_data" ? "価格データ不足" : "価格を取得できません"}</span>
+      </div>}
+      {saveError && <p role="alert" className="col-span-3 mt-2 text-xs text-[var(--color-bear)]">{saveError}</p>}
+      </div>
+      <div ref={readoutRef} inert={isPending} className="row-start-2 min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:my-6 lg:mr-6 lg:border-l lg:border-[var(--color-border-subtle)] lg:pl-6">
+        {isChartLoading && <p className="py-3 text-sm text-[var(--color-text-muted)]">四本値を読み込んでいます…</p>}
+      </div>
+    </section>
   );
 }

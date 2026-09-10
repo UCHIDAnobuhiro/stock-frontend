@@ -58,7 +58,7 @@ export function WatchlistItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex gap-1 px-2 py-2 text-sm cursor-pointer select-none",
+        "group flex gap-1 px-2 py-1 text-sm cursor-pointer select-none",
         viewMode === "chart" ? "items-start" : "items-center",
         isDragging && "opacity-50 z-50"
       )}
@@ -86,11 +86,11 @@ export function WatchlistItem({
         aria-label={`${code} を表示`}
         aria-pressed={isActive}
         className={cn(
-          "flex flex-1 min-w-0 rounded px-1.5 py-0.5 text-left",
+          "flex flex-1 min-w-0 rounded-2xl px-2 py-3 text-left transition-colors hover:bg-[var(--color-surface-3)]",
           viewMode === "chart" ? "flex-col gap-1" : "items-center gap-1.5"
         )}
         style={{
-          backgroundColor: isActive ? "var(--color-surface-3)" : "transparent",
+          backgroundColor: isActive ? "var(--color-accent-dim)" : "transparent",
           color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
         }}
       >

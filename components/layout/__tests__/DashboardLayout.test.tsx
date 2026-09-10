@@ -64,13 +64,13 @@ async function openSidebar(triggerName = "銘柄サイドバーを開く") {
   render(<DashboardLayout><button>チャート操作</button></DashboardLayout>);
   const trigger = screen.getByRole("button", { name: triggerName, exact: true });
   await user.click(trigger);
-  const dialog = await screen.findByRole("dialog", { name: "銘柄" });
+  const dialog = await screen.findByRole("dialog", { name: "ウォッチリスト" });
   await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
   return { user, trigger, dialog };
 }
 
 describe("モバイルサイドバー", () => {
-  it.each(["銘柄サイドバーを開く", "銘柄"])("%sから開くとフォーカスが循環し、Escapeで起点へ戻る", async (name) => {
+  it.each(["銘柄サイドバーを開く"])("%sから開くとフォーカスが循環し、Escapeで起点へ戻る", async (name) => {
     const { user, trigger, dialog } = await openSidebar(name);
     // 全操作要素を越えてTab/Shift+Tabしても背景へ移らない。
     for (const key of ["{Tab}", "{Shift>}{Tab}{/Shift}"]) {

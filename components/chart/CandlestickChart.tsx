@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, RotateCcw, ListFilter, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "next-themes";
+import { Popover, PopoverContent, PopoverClose, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import {
   createChart,
   CandlestickSeries,
@@ -15,52 +19,47 @@ import {
 } from "lightweight-charts";
 import type { CandleResponse } from "@/hooks/useCandles";
 import type { Interval } from "@/hooks/useSelectedSymbol";
-import { SMA_PERIODS, getSmaColor, BOLLINGER_PERIOD, BOLLINGER_COLORS } from "@/lib/indicators";
+import { SMA_PERIODS, getSmaColor, BOLLINGER_PERIOD, BOLLINGER_COLORS, calcSMA, calcBollingerBands } from "@/lib/indicators";
 import { useIndicatorSeries } from "./useIndicatorSeries";
-import { useBollingerSeries, type BollingerKey } from "./useBollingerSeries";
+import { useBollingerSeries } from "./useBollingerSeries";
 
 const darkColors = {
-  background: "#0d1117",
-  textColor: "#8b949e",
-  grid: "#21262d",
-  crosshair: "#484f58",
-  border: "#30363d",
-  upColor: "#3fb950",
-  downColor: "#f85149",
-  volumeBull: "#196c2e",
-  volumeBear: "#8e1a15",
+  background: "#1c1d21",
+  textColor: "#a5a6b0",
+  grid: "#2b2c32",
+  crosshair: "#a5a6b0",
+  border: "#37383f",
+  upColor: "#6cd19b",
+  downColor: "#ff7e87",
+  volumeBull: "#214d38",
+  volumeBear: "#612d35",
 };
 
 const lightColors = {
   background: "#ffffff",
-  textColor: "#787b86",
-  grid: "#f0f3fa",
+  textColor: "#62636b",
+  grid: "#ededf1",
   crosshair: "#9598a1",
   border: "#e0e3eb",
-  upColor: "#089981",
-  downColor: "#f23645",
+  upColor: "#1a7f37",
+  downColor: "#cf222e",
   volumeBull: "#5cbcb3",
   volumeBear: "#f78c95",
 };
 
 const MOBILE_BREAKPOINT = 640;
+const isMobileViewport = () => window.innerWidth < MOBILE_BREAKPOINT;
+
 const VISIBLE_CANDLES_MOBILE = 30;
 const VISIBLE_CANDLES_DESKTOP = 60;
 
 interface CandlestickChartProps {
+  mobileIntervals?: ReactNode;
+  readoutContainer?: HTMLElement | null;
   candles: CandleResponse[];
   interval: Interval;
   smaEnabled: boolean;
   bollingerEnabled: boolean;
-}
-
-interface SelectedCandle {
-  time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume?: number;
 }
 
 interface VisibleLogicalRange {
@@ -72,17 +71,6 @@ function chartTimeToString(time: Time): string {
   if (typeof time === "string") return time;
   if (typeof time === "number") return new Date(time * 1000).toISOString().slice(0, 10);
   return `${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")}`;
-}
-
-function candleToSelected(candle: CandleResponse): SelectedCandle {
-  return {
-    time: candle.time,
-    open: candle.open,
-    high: candle.high,
-    low: candle.low,
-    close: candle.close,
-    volume: candle.volume,
-  };
 }
 
 function isSameRange(range: VisibleLogicalRange, defaultRange: VisibleLogicalRange): boolean {
@@ -100,17 +88,19 @@ function getDefaultRange(total: number, width: number): VisibleLogicalRange {
   };
 }
 
-export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabled }: CandlestickChartProps) {
+export function CandlestickChart({ mobileIntervals, readoutContainer, candles, interval, smaEnabled, bollingerEnabled }: CandlestickChartProps) {
+  const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
-  const smaLegendRef = useRef<HTMLDivElement>(null);
-  const bbLegendRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const defaultRangeRef = useRef<VisibleLogicalRange | null>(null);
   const dataLengthRef = useRef(0);
   const isRangeModifiedRef = useRef(false);
-  const [selectedCandle, setSelectedCandle] = useState<SelectedCandle | null>(null);
+  const [isRangeModified, setIsRangeModified] = useState(false);
+  const pinnedRef = useRef(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
   // resolvedTheme は SSR/ハイドレーション前は undefined になる。
   // ThemeProvider は CandlestickChart より先にマウントされるため、
@@ -120,34 +110,49 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     resolvedThemeRef.current = resolvedTheme;
   }, [resolvedTheme]);
 
-  const intervalRef = useRef(interval);
-  useEffect(() => {
-    intervalRef.current = interval;
-  }, [interval]);
-
   // チャート生成完了フラグ（useIndicatorSeries の effect をチャート生成後に走らせるため）
   const [chartReady, setChartReady] = useState(false);
 
   // SMAシリーズ管理（period → ISeriesApi<"Line">）
-  const smaSeriesMapRef = useIndicatorSeries(chartRef, candles, interval, smaEnabled, chartReady);
+  useIndicatorSeries(chartRef, candles, interval, smaEnabled && !isMobile, chartReady);
 
   // ボリンジャーバンドシリーズ管理
-  const bbSeriesMapRef = useBollingerSeries(chartRef, candles, bollingerEnabled, chartReady);
+  useBollingerSeries(chartRef, candles, bollingerEnabled && !isMobile, chartReady);
 
-  const latestCandle = useMemo(
-    () => [...candles].sort((a, b) => (a.time < b.time ? -1 : 1)).at(-1),
-    [candles],
-  );
-  const selectedCandleExists = selectedCandle !== null && candles.some((candle) => (
-    candle.time === selectedCandle.time
-    && candle.open === selectedCandle.open
-    && candle.high === selectedCandle.high
-    && candle.low === selectedCandle.low
-    && candle.close === selectedCandle.close
-  ));
-  const displayedCandle = selectedCandleExists
-    ? selectedCandle
-    : latestCandle ? candleToSelected(latestCandle) : null;
+  const sortedCandles = useMemo(() => [...candles].sort((a, b) => a.time.localeCompare(b.time)), [candles]);
+  const latestCandle = sortedCandles.at(-1);
+  const selectedCandle = isMobile ? undefined : sortedCandles.find(candle => candle.time === selectedTime);
+  const selectedCandleExists = selectedCandle !== undefined;
+  const displayedCandle = selectedCandle ?? latestCandle ?? null;
+
+  // Use the same calculations/date as the plotted series, including the latest value
+  // before the pointer has moved. No stale DOM legend survives a toggle or selection.
+  const indicatorData = useMemo(() => {
+    const closeData = sortedCandles.map(c => ({ time: c.time, value: c.close }));
+    return {
+      sma: smaEnabled && !isMobile ? SMA_PERIODS[interval].map(period => ({ period, values: calcSMA(closeData, period) })) : [],
+      bb: bollingerEnabled && !isMobile ? calcBollingerBands(closeData) : [],
+    };
+  }, [sortedCandles, interval, smaEnabled, bollingerEnabled, isMobile]);
+  const selectedIndex = displayedCandle ? sortedCandles.findIndex(c => c.time === displayedCandle.time) : -1;
+  const band = indicatorData.bb.find(b => b.time === displayedCandle?.time);
+  const formatPrice = (value: number) => value.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const selectAdjacent = (offset: number) => {
+    const candle = sortedCandles[selectedIndex + offset];
+    if (!candle) return;
+    setSelectedTime(candle.time);
+    if (candleSeriesRef.current) chartRef.current?.setCrosshairPosition(candle.close, candle.time, candleSeriesRef.current);
+  };
+  const returnToLatest = () => {
+    pinnedRef.current = false;
+    setIsPinned(false);
+    setSelectedTime(null);
+    chartRef.current?.clearCrosshairPosition();
+    if (defaultRangeRef.current) chartRef.current?.timeScale().setVisibleLogicalRange(defaultRangeRef.current);
+    chartRef.current?.priceScale("right").applyOptions({ autoScale: true });
+    isRangeModifiedRef.current = false;
+    setIsRangeModified(false);
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -165,7 +170,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
         horzLines: { color: c.grid },
       },
       crosshair: {
-        mode: isMobile ? CrosshairMode.Hidden : CrosshairMode.Magnet,
+        mode: CrosshairMode.Magnet,
         vertLine: { color: c.crosshair },
         horzLine: { color: c.crosshair },
       },
@@ -181,7 +186,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       },
       handleScale: {
         mouseWheel: !isMobile,
-        pinch: !isMobile,
+        pinch: true,
         axisPressedMouseMove: !isMobile,
         axisDoubleClickReset: !isMobile,
       },
@@ -215,101 +220,32 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     });
 
     const selectCandleFromEvent = (param: MouseEventParams<Time>) => {
-      // スマホでは足を選択せず、4本値を常に最新足へ固定する。
-      if (isMobile) return;
-      if (!param.time) return;
-
-      const data = param.seriesData.get(candleSeries) as
-        | { open: number; high: number; low: number; close: number }
-        | undefined;
-      if (!data) return;
-
-      const volData = param.seriesData.get(volumeSeries) as { value: number } | undefined;
-      setSelectedCandle({
-        time: chartTimeToString(param.time),
-        open: data.open,
-        high: data.high,
-        low: data.low,
-        close: data.close,
-        volume: volData?.value,
-      });
+      if (param.time && param.seriesData.has(candleSeries)) {
+        setSelectedTime(chartTimeToString(param.time));
+      }
     };
 
+    // Both readouts share the selected date. Clicking toggles an explicit lock;
+    // leaving the plot alone preserves the last date without locking it.
     const handleCrosshairMove = (param: MouseEventParams<Time>) => {
+      if (!isMobileViewport() && !pinnedRef.current) selectCandleFromEvent(param);
+    };
+    const handleClick = (param: MouseEventParams<Time>) => {
+      if (isMobileViewport() || !param.time || !param.seriesData.has(candleSeries)) return;
       selectCandleFromEvent(param);
-      if (!smaLegendRef.current) return;
-      const colors = resolvedThemeRef.current === "light" ? lightColors : darkColors;
-
-      if (!param.time) return;
-      const fmt = (n: number) => n.toFixed(2);
-
-      // ラベルと値のペアを折り返し不可の1要素として行に追加する
-      // （折り返しはペアの間でのみ発生させ、ラベルと値の泣き別れを防ぐ）
-      const appendPair = (
-        row: HTMLDivElement,
-        labelText: string,
-        valueText: string,
-        valueColor?: string,
-      ) => {
-        const pair = document.createElement("span");
-        pair.className = "whitespace-nowrap";
-        const labelSpan = document.createElement("span");
-        labelSpan.style.color = colors.textColor;
-        labelSpan.textContent = labelText;
-        const valueB = document.createElement("b");
-        if (valueColor) valueB.style.color = valueColor;
-        valueB.textContent = ` ${valueText}`;
-        pair.append(labelSpan, valueB);
-        row.appendChild(pair);
-      };
-
-      // PC表示用: SMA値
-      smaLegendRef.current.textContent = "";
-      const smaMap = smaSeriesMapRef.current;
-      const periods = SMA_PERIODS[intervalRef.current];
-      periods.forEach((period, idx) => {
-        const series = smaMap.get(period);
-        if (!series) return;
-        const smaData = param.seriesData.get(series) as { value: number } | undefined;
-        if (smaData === undefined) return;
-
-        appendPair(smaLegendRef.current!, `SMA(${period})`, fmt(smaData.value), getSmaColor(idx));
-      });
-
-      // PC表示用: ボリンジャーバンド値
-      if (bbLegendRef.current) {
-        bbLegendRef.current.textContent = "";
-        const bbMap = bbSeriesMapRef.current;
-        if (bbMap.size > 0) {
-          const bbEntries: Array<{ label: string; key: string; color: string }> = [
-            { label: `BB(${BOLLINGER_PERIOD})`, key: "middle", color: BOLLINGER_COLORS.middle },
-            { label: "+1σ", key: "upper1", color: BOLLINGER_COLORS.sigma1 },
-            { label: "-1σ", key: "lower1", color: BOLLINGER_COLORS.sigma1 },
-            { label: "+2σ", key: "upper2", color: BOLLINGER_COLORS.sigma2 },
-            { label: "-2σ", key: "lower2", color: BOLLINGER_COLORS.sigma2 },
-            { label: "+3σ", key: "upper3", color: BOLLINGER_COLORS.sigma3 },
-            { label: "-3σ", key: "lower3", color: BOLLINGER_COLORS.sigma3 },
-          ];
-          bbEntries.forEach(({ label, key, color }) => {
-            const series = bbMap.get(key as BollingerKey);
-            if (!series) return;
-            const d = param.seriesData.get(series) as { value: number } | undefined;
-            if (d === undefined) return;
-
-            appendPair(bbLegendRef.current!, label, fmt(d.value), color);
-          });
-        }
-      }
+      pinnedRef.current = !pinnedRef.current;
+      setIsPinned(pinnedRef.current);
     };
 
     const handleVisibleRangeChange = (range: LogicalRange | null) => {
       if (!range || !defaultRangeRef.current) return;
       const isModified = !isSameRange(range, defaultRangeRef.current);
       isRangeModifiedRef.current = isModified;
+      setIsRangeModified(isModified);
     };
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
-    chart.subscribeClick(selectCandleFromEvent);
+    chart.subscribeClick(handleClick);
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
 
     chartRef.current = chart;
@@ -325,11 +261,11 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
           width,
           height: containerRef.current.clientHeight,
           crosshair: {
-            mode: nextIsMobile ? CrosshairMode.Hidden : CrosshairMode.Magnet,
+            mode: CrosshairMode.Magnet,
           },
           handleScale: {
             mouseWheel: !nextIsMobile,
-            pinch: !nextIsMobile,
+            pinch: true,
             axisPressedMouseMove: !nextIsMobile,
             axisDoubleClickReset: !nextIsMobile,
           },
@@ -340,10 +276,6 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
 
         if (nextIsMobile !== isMobile) {
           isMobile = nextIsMobile;
-
-          if (nextIsMobile) {
-            setSelectedCandle(null);
-          }
 
           if (dataLengthRef.current > 0) {
             const wasRangeModified = isRangeModifiedRef.current;
@@ -357,6 +289,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
               if (currentRange) {
                 const isModified = !isSameRange(currentRange, nextDefaultRange);
                 isRangeModifiedRef.current = isModified;
+                setIsRangeModified(isModified);
               }
             }
           }
@@ -368,7 +301,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     return () => {
       observer.disconnect();
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
-      chart.unsubscribeClick(selectCandleFromEvent);
+      chart.unsubscribeClick(handleClick);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
       chart.remove();
       chartRef.current = null;
@@ -376,7 +309,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       dataLengthRef.current = 0;
       setChartReady(false);
     };
-  }, [smaSeriesMapRef, bbSeriesMapRef]);
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
@@ -426,6 +359,7 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
       color: candle.close >= candle.open ? c.volumeBull : c.volumeBear,
     }));
 
+    const currentRange = isRangeModifiedRef.current ? chartRef.current?.timeScale().getVisibleLogicalRange() : null;
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
     const total = sorted.length;
@@ -433,64 +367,105 @@ export function CandlestickChart({ candles, interval, smaEnabled, bollingerEnabl
     const defaultRange = getDefaultRange(total, width);
     dataLengthRef.current = total;
     defaultRangeRef.current = defaultRange;
-    chartRef.current?.timeScale().setVisibleLogicalRange(defaultRange);
+    chartRef.current?.timeScale().setVisibleLogicalRange(currentRange ?? defaultRange);
   }, [candles, resolvedTheme]);
 
   const candleDirectionColor = displayedCandle
     ? displayedCandle.close >= displayedCandle.open ? "var(--color-bull)" : "var(--color-bear)"
     : "var(--color-text-primary)";
 
-  return (
-    <div className="relative flex h-full w-full flex-col">
-      {/* スマホではチャート外の固定ストリップ、PCでは従来どおりチャート上へ重ねる */}
-      <div
-        data-testid="candle-info"
-        className="z-10 shrink-0 border-b bg-[var(--color-surface-1)] px-3 py-2.5 sm:pointer-events-none sm:absolute sm:left-3 sm:right-20 sm:top-3 sm:border-0 sm:bg-transparent sm:p-0"
-        style={{ borderColor: "var(--color-border)" }}
-      >
+  const intervalLabel = interval === "1day" ? "日足" : interval === "1week" ? "週足" : "月足";
+
+  const indicatorValues = <>
+            {indicatorData.sma.map(({ period, values }, index) => {
+              const value = values.find(v => v.time === displayedCandle?.time)?.value;
+              return <span key={period} className="whitespace-nowrap"><span aria-hidden="true" className="mr-1 inline-block h-0.5 w-2 align-middle" style={{ backgroundColor: getSmaColor(index) }} />SMA({period}) {value === undefined ? "—" : formatPrice(value)}</span>;
+            })}
+            {bollingerEnabled && ([
+              ["middle", `BB(${BOLLINGER_PERIOD})`, BOLLINGER_COLORS.middle],
+              ["upper1", "+1σ", BOLLINGER_COLORS.sigma1], ["lower1", "−1σ", BOLLINGER_COLORS.sigma1],
+              ["upper2", "+2σ", BOLLINGER_COLORS.sigma2], ["lower2", "−2σ", BOLLINGER_COLORS.sigma2],
+              ["upper3", "+3σ", BOLLINGER_COLORS.sigma3], ["lower3", "−3σ", BOLLINGER_COLORS.sigma3],
+            ] as const).map(([key, label, color]) => <span key={key} className="whitespace-nowrap"><span aria-hidden="true" className="mr-1 inline-block h-0.5 w-2 align-middle" style={{ backgroundColor: color }} />{label} {band ? formatPrice(band[key]) : "—"}</span>)}
+
+  </>;
+
+  // One readout moves with the toolbar grid; selection state stays with the chart.
+  const readout = (
+    <div data-testid="candle-info" className={readoutContainer ? "pt-3 lg:pt-0" : "shrink-0 border-b border-[var(--color-border-subtle)] px-4 py-3 sm:px-6"}>
         {displayedCandle ? (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[12px] leading-none sm:justify-start sm:text-xs">
-              <span className="font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
-                {displayedCandle.time.replaceAll("-", "/")}
-              </span>
-              {displayedCandle.volume !== undefined && (
-                <span className="whitespace-nowrap text-[11px] tabular-nums" style={{ color: "var(--color-text-muted)" }}>
-                  出来高 {Math.round(displayedCandle.volume).toLocaleString()}
-                </span>
-              )}
+            <div className="flex items-center justify-between gap-1 sm:flex-wrap sm:gap-2">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
+                <span className={isMobile && mobileIntervals ? "sr-only" : "rounded-md bg-[var(--color-surface-3)] px-2 py-1 font-medium"}>{selectedCandleExists ? isPinned ? "固定中" : "選択中" : isMobile && mobileIntervals ? "最新" : "最新の足"}</span>
+                <span className="font-medium">{displayedCandle.time.replaceAll("-", "/")}</span>
+                {!isMobile && <span className="text-[var(--color-text-muted)]">{intervalLabel}</span>}
+              </div>
+              {isMobile && <div className="ml-auto flex shrink-0 items-center gap-1">{mobileIntervals}</div>}
+              {!isMobile && <div className="hidden items-center gap-1 sm:flex">
+                <button className="chart-action w-11 !px-0" type="button" aria-label="前の足を表示" disabled={selectedIndex <= 0} onClick={() => selectAdjacent(-1)}><ChevronLeft className="size-4" /></button>
+                <button className="chart-action w-11 !px-0" type="button" aria-label="次の足を表示" disabled={selectedIndex < 0 || selectedIndex >= sortedCandles.length - 1} onClick={() => selectAdjacent(1)}><ChevronRight className="size-4" /></button>
+                <button className="chart-action" type="button" onClick={returnToLatest} disabled={!selectedCandleExists && !isRangeModified} aria-label="最新の足と表示範囲に戻す"><RotateCcw className="size-3.5" aria-hidden="true" />最新へ</button>
+              </div>}
             </div>
-            <div className="mt-2 grid grid-cols-4 font-mono sm:mt-0 sm:flex sm:flex-wrap sm:gap-x-2">
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[360px]:grid-cols-4">
               {([
-                ["始値", displayedCandle.open],
-                ["高値", displayedCandle.high],
-                ["安値", displayedCandle.low],
-                ["終値", displayedCandle.close],
+                ["始値", displayedCandle.open], ["高値", displayedCandle.high],
+                ["安値", displayedCandle.low], ["終値", displayedCandle.close],
               ] as const).map(([label, value]) => (
-                <span
-                  key={label}
-                  className="flex min-w-0 flex-col text-left sm:block sm:whitespace-nowrap"
-                >
-                  <span className="text-[11px] leading-none sm:text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</span>
-                  <b
-                    className="mt-1 truncate text-sm leading-none tabular-nums sm:ml-1 sm:mt-0 sm:text-xs"
-                    style={{ color: label === "終値" ? candleDirectionColor : "var(--color-text-primary)" }}
-                  >
-                    {value.toFixed(2)}
-                  </b>
-                </span>
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs text-[var(--color-text-muted)]">{label}</dt>
+                  <dd className="mt-0.5 break-words text-sm font-semibold tabular-nums sm:text-base" style={{ color: label === "終値" ? candleDirectionColor : "var(--color-text-primary)" }}>{formatPrice(value)}</dd>
+                </div>
               ))}
+            </dl>
+            <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
+              <span className="tabular-nums">出来高 {displayedCandle.volume === undefined ? "—" : Math.round(displayedCandle.volume).toLocaleString("ja-JP")}</span>
+              {!isMobile && <div className="flex items-center gap-1 sm:ml-auto">
+              <Popover
+                key={String(smaEnabled || bollingerEnabled)}
+                modal={false}
+                onOpenChange={(open, details) => {
+                  // This is a persistent readout, not a menu. Chart interactions
+                  // must not dismiss it or require another click to reach the chart.
+                  if (!open && (details.reason === "outside-press" || details.reason === "focus-out")) {
+                    details.cancel();
+                  }
+                }}
+              >
+                <PopoverTrigger
+                  disabled={!smaEnabled && !bollingerEnabled}
+                  className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs hover:bg-[var(--color-surface-3)] disabled:opacity-40"
+                  aria-label="指標値を表示"
+                >
+                  <ListFilter className="size-3.5" aria-hidden="true" />指標値
+                </PopoverTrigger>
+                <PopoverContent initialFocus={false} align="end" className="w-72 max-w-[calc(100vw-2rem)] max-h-[min(360px,60dvh)] overflow-y-auto rounded-2xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <PopoverTitle>指標値</PopoverTitle>
+                    <PopoverClose aria-label="指標値を閉じる" className="flex size-9 items-center justify-center rounded-full hover:bg-[var(--color-surface-3)]">
+                      <X className="size-4" aria-hidden="true" />
+                    </PopoverClose>
+                  </div>
+                  <p className="text-xs tabular-nums text-[var(--color-text-secondary)]">{displayedCandle.time.replaceAll("-", "/")} · {intervalLabel}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-2 text-xs tabular-nums">
+                    {indicatorValues}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              </div>}
             </div>
           </>
-        ) : (
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>4本値を取得中</span>
-        )}
-        <div ref={smaLegendRef} className="hidden text-xs font-mono sm:flex sm:flex-wrap sm:gap-x-2" />
-        <div ref={bbLegendRef} className="hidden text-xs font-mono sm:flex sm:flex-wrap sm:gap-x-2" />
-      </div>
+        ) : <span className="text-xs text-[var(--color-text-muted)]">4本値を取得中</span>}
 
-      <div className="relative min-h-0 flex-1">
-        <div ref={containerRef} className="h-full w-full" />
+      </div>
+  );
+
+  return (
+    <div className="relative flex h-full w-full flex-col bg-[var(--color-surface-1)]">
+      {readoutContainer ? createPortal(readout, readoutContainer) : readout}
+      <div className="relative min-h-[180px] flex-1">
+        <div ref={containerRef} className="absolute inset-0" aria-label={isMobile ? "ローソク足チャート。四本値は最新の足を表示しています。" : "ローソク足チャート。カーソル移動で数値を表示。クリックで固定・解除。前後の足は上部のボタンでも選択できます。"} />
       </div>
     </div>
   );
