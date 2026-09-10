@@ -293,3 +293,79 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-accent); 
     box-shadow: 0 24px 90px #00000026;
   }
 }
+
+/* A single glass selection follows taps and horizontal drags. */
+.chart-interval-control {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex-shrink: 0;
+  width: 216px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-3) 78%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.chart-interval-control-compact {
+  width: clamp(168px, 46vw, 208px);
+}
+
+.chart-interval-glass {
+  position: absolute;
+  z-index: -1;
+  inset: 4px auto 4px 4px;
+  width: calc((100% - 8px) / 3);
+  border-radius: 999px;
+  background: linear-gradient(165deg,
+    color-mix(in srgb, var(--color-surface-1) 92%, white),
+    color-mix(in srgb, var(--color-surface-1) 72%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  box-shadow: inset 0 1px 1px #ffffff45, inset 0 -1px 1px #ffffff0a,
+    0 2px 6px #00000016, 0 5px 12px #0000000a;
+  backdrop-filter: blur(12px) saturate(1.5);
+  transform: translateX(calc(var(--interval-position) * 100%));
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.chart-interval-control[data-dragging="true"] .chart-interval-glass {
+  transition: none;
+}
+
+.chart-interval-option {
+  min-height: 44px;
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.chart-interval-option[data-highlighted="true"] {
+  color: var(--color-text-primary);
+}
+
+.chart-interval-option:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.chart-interval-option:disabled {
+  cursor: wait;
+}
+
+.chart-interval-control-compact .chart-interval-option {
+  min-height: 40px;
+  font-size: var(--text-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-interval-glass, .chart-interval-option {
+    transition: none;
+  }
+}
