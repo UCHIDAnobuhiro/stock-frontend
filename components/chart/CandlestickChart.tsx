@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, RotateCcw, ListFilter, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "next-themes";
-import { Popover, PopoverContent, PopoverClose, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
+import { IndicatorReadout } from "./IndicatorReadout";
 import {
   createChart,
   CandlestickSeries,
@@ -18,9 +18,8 @@ import {
   type ISeriesApi,
   type Time,
 } from "lightweight-charts";
-import type { CandleResponse } from "@/hooks/useCandles";
-import type { Interval } from "@/hooks/useSelectedSymbol";
-import { SMA_PERIODS, getSmaColor, BOLLINGER_PERIOD, BOLLINGER_COLORS, calcSMA, calcBollingerBands } from "@/lib/indicators";
+import type { CandleResponse, Interval } from "@/lib/market-data";
+import { SMA_PERIODS, calcSMA, calcBollingerBands } from "@/lib/indicators";
 import { useIndicatorSeries } from "./useIndicatorSeries";
 import { useBollingerSeries } from "./useBollingerSeries";
 
@@ -115,29 +114,32 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   // チャート生成完了フラグ（useIndicatorSeries の effect をチャート生成後に走らせるため）
   const [chartReady, setChartReady] = useState(false);
 
-  // SMAシリーズ管理（period → ISeriesApi<"Line">）
-  useIndicatorSeries(chartRef, candles, interval, smaEnabled && !isMobile, chartReady);
-
-  // ボリンジャーバンドシリーズ管理
-  useBollingerSeries(chartRef, candles, bollingerEnabled && !isMobile, chartReady);
-
   const sortedCandles = useMemo(() => [...candles].sort((a, b) => a.time.localeCompare(b.time)), [candles]);
   const latestCandle = sortedCandles.at(-1);
   const selectedCandle = isMobile ? undefined : sortedCandles.find(candle => candle.time === selectedTime);
   const selectedCandleExists = selectedCandle !== undefined;
   const displayedCandle = selectedCandle ?? latestCandle ?? null;
 
-  // Use the same calculations/date as the plotted series, including the latest value
-  // before the pointer has moved. No stale DOM legend survives a toggle or selection.
-  const indicatorData = useMemo(() => {
-    const closeData = sortedCandles.map(c => ({ time: c.time, value: c.close }));
-    return {
-      sma: smaEnabled && !isMobile ? SMA_PERIODS[interval].map(period => ({ period, values: calcSMA(closeData, period) })) : [],
-      bb: bollingerEnabled && !isMobile ? calcBollingerBands(closeData) : [],
-    };
-  }, [sortedCandles, interval, smaEnabled, bollingerEnabled, isMobile]);
+  // ソートと指標計算はデータ変更時だけ行い、描画と数値表示で共有する。
+  const closeData = useMemo(
+    () => sortedCandles.map(candle => ({ time: candle.time, value: candle.close })),
+    [sortedCandles],
+  );
+  const smaData = useMemo(
+    () => smaEnabled && !isMobile && closeData.length > 0
+      ? SMA_PERIODS[interval].map(period => ({ period, values: calcSMA(closeData, period) }))
+      : [],
+    [closeData, interval, smaEnabled, isMobile],
+  );
+  const bollingerData = useMemo(
+    () => bollingerEnabled && !isMobile ? calcBollingerBands(closeData) : [],
+    [closeData, bollingerEnabled, isMobile],
+  );
+  useIndicatorSeries(chartRef, smaData, chartReady);
+  useBollingerSeries(chartRef, bollingerData, chartReady);
+
   const selectedIndex = displayedCandle ? sortedCandles.findIndex(c => c.time === displayedCandle.time) : -1;
-  const band = indicatorData.bb.find(b => b.time === displayedCandle?.time);
+  const band = bollingerData.find(b => b.time === displayedCandle?.time);
   const formatPrice = (value: number) => value.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const selectAdjacent = (offset: number) => {
     const candle = sortedCandles[selectedIndex + offset];
@@ -345,7 +347,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   useEffect(() => {
     if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
 
-    if (candles.length === 0) {
+    if (sortedCandles.length === 0) {
       candleSeriesRef.current.setData([]);
       volumeSeriesRef.current.setData([]);
       defaultRangeRef.current = null;
@@ -355,9 +357,8 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     }
 
     const c = resolvedTheme === "light" ? lightColors : darkColors;
-    const sorted = [...candles].sort((a, b) => (a.time < b.time ? -1 : 1));
 
-    const candleData = sorted.map((candle) => ({
+    const candleData = sortedCandles.map((candle) => ({
       time: candle.time as `${number}-${number}-${number}`,
       open: candle.open,
       high: candle.high,
@@ -365,7 +366,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       close: candle.close,
     }));
 
-    const volumeData = sorted.map((candle) => ({
+    const volumeData = sortedCandles.map((candle) => ({
       time: candle.time as `${number}-${number}-${number}`,
       value: candle.volume,
       color: candle.close >= candle.open ? c.volumeBull : c.volumeBear,
@@ -374,13 +375,13 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     const currentRange = isRangeModifiedRef.current ? chartRef.current?.timeScale().getVisibleLogicalRange() : null;
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
-    const total = sorted.length;
+    const total = sortedCandles.length;
     const width = containerRef.current?.clientWidth ?? MOBILE_BREAKPOINT;
     const defaultRange = getDefaultRange(total, width);
     dataLengthRef.current = total;
     defaultRangeRef.current = defaultRange;
     chartRef.current?.timeScale().setVisibleLogicalRange(currentRange ?? defaultRange);
-  }, [candles, resolvedTheme]);
+  }, [sortedCandles, resolvedTheme]);
 
   const candleDirectionColor = displayedCandle
     ? displayedCandle.close >= displayedCandle.open ? "var(--color-bull)" : "var(--color-bear)"
@@ -389,20 +390,6 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   const intervalLabel = interval === "1day" ? "日足" : interval === "1week" ? "週足" : "月足";
   const volumeLabel = displayedCandle?.volume === undefined ? "—" : Math.round(displayedCandle.volume).toLocaleString("ja-JP");
   const volumeReadout = <span className="whitespace-nowrap tabular-nums text-[var(--color-text-muted)]">出来高 {volumeLabel}</span>;
-
-  const indicatorValues = <>
-            {indicatorData.sma.map(({ period, values }, index) => {
-              const value = values.find(v => v.time === displayedCandle?.time)?.value;
-              return <span key={period} className="whitespace-nowrap"><span aria-hidden="true" className="mr-1 inline-block h-0.5 w-2 align-middle" style={{ backgroundColor: getSmaColor(index) }} />SMA({period}) {value === undefined ? "—" : formatPrice(value)}</span>;
-            })}
-            {bollingerEnabled && ([
-              ["middle", `BB(${BOLLINGER_PERIOD})`, BOLLINGER_COLORS.middle],
-              ["upper1", "+1σ", BOLLINGER_COLORS.sigma1], ["lower1", "−1σ", BOLLINGER_COLORS.sigma1],
-              ["upper2", "+2σ", BOLLINGER_COLORS.sigma2], ["lower2", "−2σ", BOLLINGER_COLORS.sigma2],
-              ["upper3", "+3σ", BOLLINGER_COLORS.sigma3], ["lower3", "−3σ", BOLLINGER_COLORS.sigma3],
-            ] as const).map(([key, label, color]) => <span key={key} className="whitespace-nowrap"><span aria-hidden="true" className="mr-1 inline-block h-0.5 w-2 align-middle" style={{ backgroundColor: color }} />{label} {band ? formatPrice(band[key]) : "—"}</span>)}
-
-  </>;
 
   // One readout moves with the toolbar grid; selection state stays with the chart.
   const readout = (
@@ -436,37 +423,14 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
             {!isMobile && <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
               {volumeReadout}
               <div className="flex items-center gap-1 sm:ml-auto">
-              <Popover
-                key={String(smaEnabled || bollingerEnabled)}
-                modal={false}
-                onOpenChange={(open, details) => {
-                  // This is a persistent readout, not a menu. Chart interactions
-                  // must not dismiss it or require another click to reach the chart.
-                  if (!open && (details.reason === "outside-press" || details.reason === "focus-out")) {
-                    details.cancel();
-                  }
-                }}
-              >
-                <PopoverTrigger
-                  disabled={!smaEnabled && !bollingerEnabled}
-                  className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs hover:bg-[var(--color-surface-3)] disabled:opacity-40"
-                  aria-label="指標値を表示"
-                >
-                  <ListFilter className="size-3.5" aria-hidden="true" />指標値
-                </PopoverTrigger>
-                <PopoverContent initialFocus={false} align="end" className="w-72 max-w-[calc(100vw-2rem)] max-h-[min(360px,60dvh)] overflow-y-auto rounded-2xl p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <PopoverTitle>指標値</PopoverTitle>
-                    <PopoverClose aria-label="指標値を閉じる" className="flex size-9 items-center justify-center rounded-full hover:bg-[var(--color-surface-3)]">
-                      <X className="size-4" aria-hidden="true" />
-                    </PopoverClose>
-                  </div>
-                  <p className="text-xs tabular-nums text-[var(--color-text-secondary)]">{displayedCandle.time.replaceAll("-", "/")} · {intervalLabel}</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-2 text-xs tabular-nums">
-                    {indicatorValues}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <IndicatorReadout
+                time={displayedCandle.time}
+                intervalLabel={intervalLabel}
+                smaEnabled={smaEnabled}
+                bollingerEnabled={bollingerEnabled}
+                smaData={smaData}
+                band={band}
+              />
               </div>
             </div>}
           </>

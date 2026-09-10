@@ -4,11 +4,11 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import apiClient, { createApiError } from "@/lib/api";
 import type { components } from "@/lib/generated/schema";
-import type { Interval } from "./useSelectedSymbol";
+import type { Interval } from "@/lib/market-data";
 
-export type QuoteResponse = components["schemas"]["QuoteResponse"];
-export type QuoteFailureResponse = components["schemas"]["QuoteFailureResponse"];
 type QuoteBatchResponse = components["schemas"]["QuoteBatchResponse"];
+
+export type { QuoteResponse, QuoteFailureResponse } from "@/lib/market-data";
 
 interface UseQuotesOptions {
   /** 時間間隔（省略時は "1day"） */
@@ -55,13 +55,10 @@ async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteB
     })
   );
 
-  return results.reduce<QuoteBatchResponse>(
-    (merged, result) => ({
-      quotes: [...merged.quotes, ...result.quotes],
-      failures: [...merged.failures, ...result.failures],
-    }),
-    { quotes: [], failures: [] }
-  );
+  return {
+    quotes: results.flatMap((result) => result.quotes),
+    failures: results.flatMap((result) => result.failures),
+  };
 }
 
 /**

@@ -34,6 +34,8 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 │   ├── providers/              # ThemeProvider 等のコンテキスト
 │   ├── ui/                     # shadcn/ui ベースの汎用プリミティブ
 │   └── watchlist/              # ウォッチリストパネル・並び替え
+├── docs/                       # 設計・開発検証・デプロイ・依存更新記録
+├── tests/support/              # テスト専用の共通 Provider
 ├── hooks/                      # カスタムフック（ViewModelに近い役割）
 │   ├── useCandles.ts           # ローソク足データ取得
 │   ├── useSymbols.ts           # 銘柄一覧取得
@@ -44,6 +46,8 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 │   ├── api.server.ts           # Server Component 用APIフェッチ（cookies() からCookieヘッダーを付与）
 │   ├── auth.ts                 # 認証ヘルパー
 │   ├── auth-refresh.ts         # 401時のトークン更新・リクエスト再送
+│   ├── auth-validation.ts      # ログイン・登録の共通入力検証
+│   ├── market-data.ts          # 市場データ・時間足の共有型
 │   ├── indicators.ts           # テクニカル指標の計算ロジック
 │   ├── utils.ts                # `cn()` などの汎用ユーティリティ
 │   └── generated/
@@ -93,6 +97,10 @@ Go バックエンド
 ```
 
 例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。
+
+共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。SSR の API URL は `lib/api-base.ts` を直接参照する。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。
+
+設計の説明は `docs/architecture.md`、開発・テストは `docs/development.md`、デプロイは `docs/deployment.md` にまとめる。README は導入手順と各文書への入口とする。
 
 ## API
 

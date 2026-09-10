@@ -4,10 +4,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
-export type Interval = "1day" | "1week" | "1month";
+import { isInterval, type Interval } from "@/lib/market-data";
 
-const isInterval = (v: string | null): v is Interval =>
-  v === "1day" || v === "1week" || v === "1month";
+export type { Interval } from "@/lib/market-data";
 
 export function useSelectedSymbol() {
   const searchParams = useSearchParams();

@@ -2,11 +2,9 @@
 
 import useSWR from "swr";
 import apiClient, { createApiError } from "@/lib/api";
-import type { components } from "@/lib/generated/schema";
-import type { Interval } from "./useSelectedSymbol";
+import type { CandlesResponse, Interval } from "@/lib/market-data";
 
-export type CandleResponse = components["schemas"]["CandleResponse"];
-export type CandlesResponse = components["schemas"]["CandlesResponse"];
+export type { CandleResponse, CandlesResponse } from "@/lib/market-data";
 
 /** 各インターバルで取得するローソク足の本数（全区間共通で 200 本） */
 const INTERVAL_OUTPUTSIZE: Record<Interval, number> = {

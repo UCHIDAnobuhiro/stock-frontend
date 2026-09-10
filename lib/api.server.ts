@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema";
-import { API_BASE } from "./api";
-import type { SymbolItem } from "@/hooks/useSymbols";
+import { API_BASE } from "./api-base";
+import type { SymbolItem } from "./market-data";
 
 /**
  * Server Component から `/v1/symbols` を取得する。

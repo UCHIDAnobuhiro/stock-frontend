@@ -3,11 +3,7 @@
 import { useState, type SubmitEventHandler } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import apiClient from "@/lib/api";
-
-interface FieldErrors {
-  email?: string;
-  password?: string;
-}
+import { validateAuthFields, type AuthFieldErrors } from "@/lib/auth-validation";
 
 /**
  * OAuth コールバック失敗時に /login?error=<code> で渡されるエラーコードと
@@ -41,7 +37,7 @@ export function useLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(() => {
     const oauthError = searchParams.get("error");
     return oauthError ? getOAuthErrorMessage(oauthError) : null;
@@ -52,17 +48,7 @@ export function useLogin() {
    * エラーがあれば fieldErrors を更新して false を返す。
    */
   function validate(): boolean {
-    const errors: FieldErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      errors.email = "メールアドレスを入力してください";
-    } else if (!emailRegex.test(trimmedEmail)) {
-      errors.email = "有効なメールアドレスを入力してください";
-    }
-    if (!password) {
-      errors.password = "パスワードを入力してください";
-    }
+    const errors = validateAuthFields(email, password, "login");
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }

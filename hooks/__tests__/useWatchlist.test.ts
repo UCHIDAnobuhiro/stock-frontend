@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { SWRConfig } from "swr";
-import { createElement, type ReactNode } from "react";
+import { createSWRWrapper } from "@/tests/support/swr";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { ApiError } from "@/lib/api";
 
@@ -32,9 +31,7 @@ const ITEMS = [
 ];
 
 // テストごとに新しいキャッシュを使い、テスト間の汚染を防ぐ
-function wrapper({ children }: { children: ReactNode }) {
-  return createElement(SWRConfig, { value: { provider: () => new Map() } }, children);
-}
+const wrapper = createSWRWrapper();
 
 // ---- テスト ----
 
