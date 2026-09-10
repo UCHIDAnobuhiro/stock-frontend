@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act, screen, fireEvent } from "@testing-library/react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
+import type { AutoscaleInfoProvider } from "lightweight-charts";
 import type { CandleResponse } from "@/hooks/useCandles";
 
 // ---- モック設定 ----
@@ -247,6 +248,36 @@ describe("CandlestickChart", () => {
         handleScroll: expect.objectContaining({ horzTouchDrag: true, vertTouchDrag: false }),
       }),
     );
+  });
+
+  it("スマホの価格範囲は初回で固定し、スクロール・再取得・テーマ変更でも維持する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    const options = (mockChart.addSeries.mock.calls[0] as unknown as [unknown, { autoscaleInfoProvider: AutoscaleInfoProvider }])[1];
+    const original = vi.fn().mockReturnValue(null);
+    expect(options.autoscaleInfoProvider(original)).toBeNull();
+    const initial = { priceRange: { minValue: 90, maxValue: 115 } };
+    original.mockReturnValue(initial);
+    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
+    original.mockReturnValue({ priceRange: { minValue: 100, maxValue: 105 } });
+    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0]({ from: -5, to: 1 }));
+    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
+    theme.resolvedTheme = "dark";
+    rerender(<CandlestickChart candles={[...candlesWithData]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
+
+    // Desktop resumes automatic scaling; re-entering mobile captures a fresh range.
+    mockClientWidth = 800;
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+    mockClientWidth = 390;
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+    original.mockReturnValue(initial);
+    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+
+    rerender(<CandlestickChart candles={[]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
   });
 
   it("画面幅が変わっても選択した足の4本値を維持する", async () => {

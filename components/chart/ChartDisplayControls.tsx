@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useOptimistic, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useSelectedSymbol, type Interval } from "@/hooks/useSelectedSymbol";
 import { IndicatorToolbar } from "./IndicatorToolbar";
 
@@ -32,10 +32,19 @@ export function ChartIntervalControls({ isPending, compact = false }: { isPendin
   const values = Object.keys(INTERVAL_LABELS) as Interval[];
   const [dragPosition, setDragPosition] = useState<number | null>(null);
   const pointerId = useRef<number | null>(null);
-  const selectedIndex = values.indexOf(interval);
-  const position = isPending ? selectedIndex : dragPosition ?? selectedIndex;
+  const [optimisticInterval, setOptimisticInterval] = useOptimistic(interval);
+  const [isSelecting, startTransition] = useTransition();
+  const busy = isPending || isSelecting;
+  const selectedIndex = values.indexOf(optimisticInterval);
+  const position = busy ? selectedIndex : dragPosition ?? selectedIndex;
   const select = (index: number) => {
-    if (!isPending && values[index] !== interval) setInterval(values[index]);
+    if (busy || values[index] === interval) return;
+    // Keep the released segment selected while the URL transition is pending.
+    // React restores the actual interval if navigation does not commit.
+    startTransition(() => {
+      setOptimisticInterval(values[index]);
+      setInterval(values[index]);
+    });
   };
   const positionAt = (element: HTMLDivElement, clientX: number) => {
     const rect = element.getBoundingClientRect();
@@ -51,18 +60,18 @@ export function ChartIntervalControls({ isPending, compact = false }: { isPendin
     <div
       role="group"
       aria-label="時間足"
-      aria-busy={isPending}
+      aria-busy={busy}
       className={`chart-interval-control ${compact ? "chart-interval-control-compact" : ""}`}
-      data-dragging={!isPending && dragPosition !== null}
+      data-dragging={!busy && dragPosition !== null}
       style={{ "--interval-position": position } as CSSProperties}
       onPointerDown={(event) => {
-        if (isPending || !event.isPrimary || event.button !== 0 || pointerId.current !== null) return;
+        if (busy || !event.isPrimary || event.button !== 0 || pointerId.current !== null) return;
         pointerId.current = event.pointerId;
         event.currentTarget.setPointerCapture(event.pointerId);
         setDragPosition(positionAt(event.currentTarget, event.clientX));
       }}
       onPointerMove={(event) => {
-        if (pointerId.current !== event.pointerId || isPending) return;
+        if (pointerId.current !== event.pointerId || busy) return;
         setDragPosition(positionAt(event.currentTarget, event.clientX));
       }}
       onPointerUp={(event) => {
@@ -78,8 +87,8 @@ export function ChartIntervalControls({ isPending, compact = false }: { isPendin
         <button
           key={value}
           type="button"
-          aria-pressed={interval === value}
-          disabled={isPending}
+          aria-pressed={optimisticInterval === value}
+          disabled={busy}
           // Pointer selection is committed on release, including after dragging.
           // Keyboard and assistive-technology clicks still use the native button.
           onClick={(event) => { if (event.detail === 0) select(index); }}
