@@ -430,4 +430,31 @@ describe("CandlestickChart", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("逆順データでも描画と指標値が一致し、選択・テーマ変更で指標を再描画しない", async () => {
+    const candles = [...candlesForRangeTest].reverse();
+    const { rerender } = render(
+      <CandlestickChart candles={candles} interval="1day" smaEnabled bollingerEnabled />,
+    );
+    await act(async () => {});
+    const candleSeries = mockSeriesInstances[0];
+    const lineSeries = mockSeriesInstances.slice(2);
+    expect(lineSeries).toHaveLength(10);
+    const smaSeries = lineSeries[0];
+    const bandSeries = lineSeries[3];
+    expect(candleSeries.setData.mock.lastCall?.[0][0].time).toBe("2024-01-01");
+    expect(smaSeries.setData.mock.lastCall?.[0].at(-1).value).toBe(202);
+    expect(bandSeries.setData.mock.lastCall?.[0].at(-1).value).toBe(194.5);
+
+    fireEvent.click(screen.getByRole("button", { name: "指標値を表示" }));
+    fireEvent.click(screen.getByRole("button", { name: "前の足を表示" }));
+    expect(screen.getByText(/SMA\(5\)/).textContent).toContain("201.00");
+    expect(screen.getByText(/BB\(20\)/).textContent).toContain("193.50");
+    theme.resolvedTheme = "dark";
+    rerender(<CandlestickChart candles={candles} interval="1day" smaEnabled bollingerEnabled />);
+    expect(mockSeriesInstances.slice(2)).toEqual(lineSeries);
+    for (const series of lineSeries) expect(series.setData).toHaveBeenCalledTimes(1);
+    // 入力配列は SWR のキャッシュと共有されるため、ソートで変更してはいけない。
+    expect(candles[0]).toEqual(candlesForRangeTest.at(-1));
+  });
+
 });

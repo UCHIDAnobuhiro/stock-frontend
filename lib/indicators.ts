@@ -1,4 +1,4 @@
-import type { Interval } from "@/hooks/useSelectedSymbol";
+import type { Interval } from "./market-data";
 
 export const BOLLINGER_PERIOD = 20;
 
@@ -63,6 +63,24 @@ export const BOLLINGER_COLORS = {
   sigma2: "#60a5fa",
   sigma3: "#3b82f6",
 } as const;
+
+export type BollingerKey = Exclude<keyof BollingerBandData, "time">;
+
+/** 描画する線と数値表示の順序・色・ラベルを揃える。 */
+export const BOLLINGER_SERIES = [
+  { key: "middle", label: `BB(${BOLLINGER_PERIOD})`, color: BOLLINGER_COLORS.middle },
+  { key: "upper1", label: "+1σ", color: BOLLINGER_COLORS.sigma1 },
+  { key: "lower1", label: "−1σ", color: BOLLINGER_COLORS.sigma1 },
+  { key: "upper2", label: "+2σ", color: BOLLINGER_COLORS.sigma2 },
+  { key: "lower2", label: "−2σ", color: BOLLINGER_COLORS.sigma2 },
+  { key: "upper3", label: "+3σ", color: BOLLINGER_COLORS.sigma3 },
+  { key: "lower3", label: "−3σ", color: BOLLINGER_COLORS.sigma3 },
+] as const satisfies ReadonlyArray<{ key: BollingerKey; label: string; color: string }>;
+
+export interface SmaSeriesData {
+  period: number;
+  values: { time: string; value: number }[];
+}
 
 export const SMA_PERIODS: Record<Interval, number[]> = {
   "1day": [5, 25, 75],

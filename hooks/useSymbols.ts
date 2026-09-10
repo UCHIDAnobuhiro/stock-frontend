@@ -2,9 +2,9 @@
 
 import useSWR from "swr";
 import apiClient, { createApiError } from "@/lib/api";
-import type { components } from "@/lib/generated/schema";
+import type { SymbolItem } from "@/lib/market-data";
 
-export type SymbolItem = components["schemas"]["SymbolItem"];
+export type { SymbolItem } from "@/lib/market-data";
 
 /**
  * SWR のフェッチャー関数。
