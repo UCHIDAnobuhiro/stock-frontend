@@ -1,6 +1,6 @@
 "use client";
 
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsCompactChart } from "@/hooks/useIsCompactChart";
 import { useState } from "react";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useDefaultWatchlistSymbol } from "@/hooks/useDefaultWatchlistSymbol";
@@ -16,7 +16,7 @@ import { ChartSkeleton } from "./ChartSkeleton";
 import { ChartEmpty } from "./ChartEmpty";
 
 export function ChartContainer() {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompactChart();
   const [readoutContainer, setReadoutContainer] = useState<HTMLDivElement | null>(null);
   const { symbol, interval } = useSelectedSymbol();
   const { isInitializing } = useDefaultWatchlistSymbol();
@@ -27,10 +27,10 @@ export function ChartContainer() {
   const hasChart = !!symbol && !isLoading && !error && candles.length > 0;
 
   return (
-    <div className="flex min-h-[560px] flex-1 flex-col bg-[var(--color-surface-1)] sm:min-h-[600px] lg:grid lg:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.2fr)] lg:grid-rows-[auto_auto_minmax(280px,1fr)] lg:pb-4">
+    <div className="flex min-h-[560px] flex-1 flex-col bg-[var(--color-surface-1)] sm:min-h-[600px] xl:grid xl:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.2fr)] xl:grid-rows-[auto_auto_minmax(280px,1fr)] xl:pb-4">
       <ChartToolbar isPending={isChartPending} readoutRef={setReadoutContainer} isLoading={isLoading} />
-      {isMobile && !hasChart && <div className="flex justify-end px-4 pb-3"><ChartIntervalControls compact isPending={isChartPending} /></div>}
-      <div className="relative ml-4 min-h-[280px] flex-1 overflow-hidden rounded-l-xl sm:mx-6 sm:rounded-xl lg:col-span-2 lg:row-start-3" style={{ backgroundColor: "var(--color-surface-1)" }}>
+      {isCompact && !hasChart && <div className="flex justify-end px-4 pb-3"><ChartIntervalControls compact isPending={isChartPending} /></div>}
+      <div className="relative ml-4 min-h-[280px] flex-1 overflow-hidden rounded-l-xl sm:mx-6 sm:rounded-xl xl:col-span-2 xl:row-start-3" style={{ backgroundColor: "var(--color-surface-1)" }}>
         {isInitializing && !symbol ? (
           <ChartSkeleton />
         ) : !symbol ? (
@@ -52,7 +52,7 @@ export function ChartContainer() {
         )}
         {isChartPending && <ChartLoadingOverlay />}
       </div>
-      {!isMobile && <ChartDisplayControls smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} isPending={isChartPending} />}
+      {!isCompact && <ChartDisplayControls smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} isPending={isChartPending} />}
     </div>
   );
 }

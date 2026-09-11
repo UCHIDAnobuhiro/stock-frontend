@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsCompactChart, isCompactChartViewport } from "@/hooks/useIsCompactChart";
 import { useTheme } from "next-themes";
 import { IndicatorReadout } from "./IndicatorReadout";
 import {
@@ -48,7 +48,6 @@ const lightColors = {
 };
 
 const MOBILE_BREAKPOINT = 640;
-const isMobileViewport = () => window.innerWidth < MOBILE_BREAKPOINT;
 
 const VISIBLE_CANDLES_MOBILE = 30;
 const VISIBLE_CANDLES_DESKTOP = 60;
@@ -89,7 +88,7 @@ function getDefaultRange(total: number, width: number): VisibleLogicalRange {
 }
 
 export function CandlestickChart({ mobileIntervals, readoutContainer, candles, interval, smaEnabled, bollingerEnabled }: CandlestickChartProps) {
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompactChart();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -116,7 +115,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
 
   const sortedCandles = useMemo(() => [...candles].sort((a, b) => a.time.localeCompare(b.time)), [candles]);
   const latestCandle = sortedCandles.at(-1);
-  const selectedCandle = isMobile ? undefined : sortedCandles.find(candle => candle.time === selectedTime);
+  const selectedCandle = isCompact ? undefined : sortedCandles.find(candle => candle.time === selectedTime);
   const selectedCandleExists = selectedCandle !== undefined;
   const displayedCandle = selectedCandle ?? latestCandle ?? null;
 
@@ -126,14 +125,14 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     [sortedCandles],
   );
   const smaData = useMemo(
-    () => smaEnabled && !isMobile && closeData.length > 0
+    () => smaEnabled && !isCompact && closeData.length > 0
       ? SMA_PERIODS[interval].map(period => ({ period, values: calcSMA(closeData, period) }))
       : [],
-    [closeData, interval, smaEnabled, isMobile],
+    [closeData, interval, smaEnabled, isCompact],
   );
   const bollingerData = useMemo(
-    () => bollingerEnabled && !isMobile ? calcBollingerBands(closeData) : [],
-    [closeData, bollingerEnabled, isMobile],
+    () => bollingerEnabled && !isCompact ? calcBollingerBands(closeData) : [],
+    [closeData, bollingerEnabled, isCompact],
   );
   useIndicatorSeries(chartRef, smaData, chartReady);
   useBollingerSeries(chartRef, bollingerData, chartReady);
@@ -163,11 +162,13 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
 
     const c = resolvedThemeRef.current === "light" ? lightColors : darkColors;
 
-    let isMobile = containerRef.current.clientWidth < MOBILE_BREAKPOINT;
+    let isCompact = isCompactChartViewport();
+    let isNarrow = containerRef.current.clientWidth < MOBILE_BREAKPOINT;
     const chart = createChart(containerRef.current, {
       layout: {
         background: { color: c.background },
         textColor: c.textColor,
+        panes: { enableResize: false, separatorColor: c.border, separatorHoverColor: c.border },
       },
       grid: {
         vertLines: { color: c.grid },
@@ -189,16 +190,16 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
         dateFormat: "yyyy/MM/dd",
       },
       handleScale: {
-        mouseWheel: !isMobile,
+        mouseWheel: !isCompact,
         pinch: true,
-        axisPressedMouseMove: !isMobile,
-        axisDoubleClickReset: !isMobile,
+        axisPressedMouseMove: !isCompact,
+        axisDoubleClickReset: !isCompact,
       },
       handleScroll: {
         mouseWheel: true,
         pressedMouseMove: true,
         horzTouchDrag: true,
-        vertTouchDrag: !isMobile,
+        vertTouchDrag: !isCompact,
       },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
@@ -212,7 +213,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       wickUpColor: c.upColor,
       wickDownColor: c.downColor,
       autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
-        if (!isMobile) return original();
+        if (!isCompact) return original();
         // Capture the first visible price range and retain it during horizontal
         // scrolling, pinch zooming, data refreshes, and theme changes.
         mobileAutoscaleRef.current ??= original();
@@ -224,11 +225,19 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       color: c.grid,
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
-    });
+      lastValueVisible: false,
+      priceLineVisible: false,
+    }, isCompact ? 1 : 0);
 
-    chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
+    const updateVolumePane = () => {
+      volumeSeries.moveToPane(isCompact ? 1 : 0);
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: isCompact ? 0.15 : 0.8, bottom: 0 },
+      });
+      chart.panes()[0].setStretchFactor(isCompact ? 5 : 1);
+      if (isCompact) chart.panes()[1].setStretchFactor(1);
+    };
+    updateVolumePane();
 
     const selectCandleFromEvent = (param: MouseEventParams<Time>) => {
       if (param.time && param.seriesData.has(candleSeries)) {
@@ -239,10 +248,10 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     // Both readouts share the selected date. Clicking toggles an explicit lock;
     // leaving the plot alone preserves the last date without locking it.
     const handleCrosshairMove = (param: MouseEventParams<Time>) => {
-      if (!isMobileViewport() && !pinnedRef.current) selectCandleFromEvent(param);
+      if (!isCompactChartViewport() && !pinnedRef.current) selectCandleFromEvent(param);
     };
     const handleClick = (param: MouseEventParams<Time>) => {
-      if (isMobileViewport() || !param.time || !param.seriesData.has(candleSeries)) return;
+      if (isCompactChartViewport() || !param.time || !param.seriesData.has(candleSeries)) return;
       selectCandleFromEvent(param);
       pinnedRef.current = !pinnedRef.current;
       setIsPinned(pinnedRef.current);
@@ -267,8 +276,8 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     const observer = new ResizeObserver(() => {
       if (containerRef.current) {
         const width = containerRef.current.clientWidth;
-        const nextIsMobile = width < MOBILE_BREAKPOINT;
-        if (nextIsMobile !== isMobile) mobileAutoscaleRef.current = null;
+        const nextIsCompact = isCompactChartViewport();
+        if (nextIsCompact !== isCompact) mobileAutoscaleRef.current = null;
         chart.applyOptions({
           width,
           height: containerRef.current.clientHeight,
@@ -276,19 +285,24 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
             mode: CrosshairMode.Magnet,
           },
           handleScale: {
-            mouseWheel: !nextIsMobile,
+            mouseWheel: !nextIsCompact,
             pinch: true,
-            axisPressedMouseMove: !nextIsMobile,
-            axisDoubleClickReset: !nextIsMobile,
+            axisPressedMouseMove: !nextIsCompact,
+            axisDoubleClickReset: !nextIsCompact,
           },
           handleScroll: {
-            vertTouchDrag: !nextIsMobile,
+            vertTouchDrag: !nextIsCompact,
           },
         });
 
-        if (nextIsMobile !== isMobile) {
-          isMobile = nextIsMobile;
+        if (nextIsCompact !== isCompact) {
+          isCompact = nextIsCompact;
+          updateVolumePane();
+        }
 
+        const nextIsNarrow = width < MOBILE_BREAKPOINT;
+        if (nextIsNarrow !== isNarrow) {
+          isNarrow = nextIsNarrow;
           if (dataLengthRef.current > 0) {
             const wasRangeModified = isRangeModifiedRef.current;
             const nextDefaultRange = getDefaultRange(dataLengthRef.current, width);
@@ -328,7 +342,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
     const c = resolvedTheme === "light" ? lightColors : darkColors;
     chartRef.current.applyOptions({
-      layout: { background: { color: c.background }, textColor: c.textColor },
+      layout: { background: { color: c.background }, textColor: c.textColor, panes: { separatorColor: c.border, separatorHoverColor: c.border } },
       grid: { vertLines: { color: c.grid }, horzLines: { color: c.grid } },
       crosshair: { vertLine: { color: c.crosshair }, horzLine: { color: c.crosshair } },
       rightPriceScale: { borderColor: c.border },
@@ -393,17 +407,17 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
 
   // One readout moves with the toolbar grid; selection state stays with the chart.
   const readout = (
-    <div data-testid="candle-info" className={readoutContainer ? "pt-3 lg:pt-0" : "shrink-0 border-b border-[var(--color-border-subtle)] px-4 py-3 sm:px-6"}>
+    <div data-testid="candle-info" className={readoutContainer ? "pt-3 xl:pt-0" : "shrink-0 border-b border-[var(--color-border-subtle)] px-4 py-3 sm:px-6"}>
         {displayedCandle ? (
           <>
             <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
-                <span className={isMobile && mobileIntervals ? "sr-only" : "rounded-md bg-[var(--color-surface-3)] px-2 py-1 font-medium"}>{selectedCandleExists ? isPinned ? "固定中" : "選択中" : isMobile && mobileIntervals ? "最新" : "最新の足"}</span>
+                <span className={isCompact && mobileIntervals ? "sr-only" : "rounded-md bg-[var(--color-surface-3)] px-2 py-1 font-medium"}>{selectedCandleExists ? isPinned ? "固定中" : "選択中" : isCompact && mobileIntervals ? "最新" : "最新の足"}</span>
                 <span className="font-medium">{displayedCandle.time.replaceAll("-", "/")}</span>
-                {!isMobile && <span className="text-[var(--color-text-muted)]">{intervalLabel}</span>}
+                {!isCompact && <span className="text-[var(--color-text-muted)]">{intervalLabel}</span>}
               </div>
-              {isMobile && <div className="ml-auto flex shrink-0 items-center gap-1">{mobileIntervals}</div>}
-              {!isMobile && <div className="hidden items-center gap-1 sm:flex">
+              {isCompact && <div className="ml-auto flex shrink-0 items-center gap-1">{mobileIntervals}</div>}
+              {!isCompact && <div className="hidden items-center gap-1 sm:flex">
                 <button className="chart-action w-11 !px-0" type="button" aria-label="前の足を表示" disabled={selectedIndex <= 0} onClick={() => selectAdjacent(-1)}><ChevronLeft className="size-4" /></button>
                 <button className="chart-action w-11 !px-0" type="button" aria-label="次の足を表示" disabled={selectedIndex < 0 || selectedIndex >= sortedCandles.length - 1} onClick={() => selectAdjacent(1)}><ChevronRight className="size-4" /></button>
                 <button className="chart-action" type="button" onClick={returnToLatest} disabled={!selectedCandleExists && !isRangeModified} aria-label="最新の足と表示範囲に戻す"><RotateCcw className="size-3.5" aria-hidden="true" />最新へ</button>
@@ -412,7 +426,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
             <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[360px]:grid-cols-[1fr_1fr_1fr_1.4fr] sm:grid-cols-4">
               {([
                 ["始値", formatPrice(displayedCandle.open)], ["高値", formatPrice(displayedCandle.high)],
-                ["安値", formatPrice(displayedCandle.low)], isMobile ? ["出来高", volumeLabel] : ["終値", formatPrice(displayedCandle.close)],
+                ["安値", formatPrice(displayedCandle.low)], isCompact ? ["出来高", volumeLabel] : ["終値", formatPrice(displayedCandle.close)],
               ] as const).map(([label, value]) => (
                 <div key={label} className="min-w-0">
                   <dt className="text-xs text-[var(--color-text-muted)]">{label}</dt>
@@ -420,7 +434,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
                 </div>
               ))}
             </dl>
-            {!isMobile && <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
+            {!isCompact && <div className="mt-2 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2 py-1 text-xs text-[var(--color-text-muted)]">
               {volumeReadout}
               <div className="flex items-center gap-1 sm:ml-auto">
               <IndicatorReadout
@@ -443,7 +457,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     <div className="relative flex h-full w-full flex-col bg-[var(--color-surface-1)]">
       {readoutContainer ? createPortal(readout, readoutContainer) : readout}
       <div className="relative min-h-[180px] flex-1">
-        <div ref={containerRef} className="absolute inset-0" aria-label={isMobile ? "ローソク足チャート。始値・高値・安値・出来高は最新の足を表示しています。" : "ローソク足チャート。カーソル移動で数値を表示。クリックで固定・解除。前後の足は上部のボタンでも選択できます。"} />
+        <div ref={containerRef} className="absolute inset-0" aria-label={isCompact ? "ローソク足チャート。始値・高値・安値・出来高は最新の足を表示しています。" : "ローソク足チャート。カーソル移動で数値を表示。クリックで固定・解除。前後の足は上部のボタンでも選択できます。"} />
       </div>
     </div>
   );

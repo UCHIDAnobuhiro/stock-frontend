@@ -21,10 +21,11 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } 
 
   const mockChart = {
     addSeries: vi.fn(() => {
-      const series = { setData: vi.fn(), applyOptions: vi.fn() };
+      const series = { setData: vi.fn(), applyOptions: vi.fn(), moveToPane: vi.fn(), priceScale: vi.fn(() => ({ applyOptions: vi.fn() })) };
       mockSeriesInstances.push(series);
       return series;
     }),
+    panes: vi.fn(() => [{ setStretchFactor: vi.fn() }, { setStretchFactor: vi.fn() }]),
     removeSeries: vi.fn(),
     priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
     timeScale: vi.fn(() => mockTimeScale),
@@ -87,7 +88,7 @@ describe("CandlestickChart", () => {
     theme.resolvedTheme = "light";
     mockSeriesInstances.length = 0;
     mockClientWidth = 375;
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
     resizeObserverCallback = undefined;
     vi.clearAllMocks();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", {
@@ -229,6 +230,7 @@ describe("CandlestickChart", () => {
   });
 
   it("スマホでは横スクロールとピンチズーム、クロスヘアを有効にする", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     render(
       <CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />
     );
@@ -251,6 +253,7 @@ describe("CandlestickChart", () => {
   });
 
   it("スマホの価格範囲は初回で固定し、スクロール・再取得・テーマ変更でも維持する", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     const { rerender } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
     await act(async () => {});
     const options = (mockChart.addSeries.mock.calls[0] as unknown as [unknown, { autoscaleInfoProvider: AutoscaleInfoProvider }])[1];
@@ -267,9 +270,11 @@ describe("CandlestickChart", () => {
     expect(options.autoscaleInfoProvider(original)).toEqual(initial);
 
     // Desktop resumes automatic scaling; re-entering mobile captures a fresh range.
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
     mockClientWidth = 800;
     act(() => resizeObserverCallback?.([], {} as ResizeObserver));
     expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     mockClientWidth = 390;
     act(() => resizeObserverCallback?.([], {} as ResizeObserver));
     expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
@@ -486,6 +491,34 @@ describe("CandlestickChart", () => {
     for (const series of lineSeries) expect(series.setData).toHaveBeenCalledTimes(1);
     // 入力配列は SWR のキャッシュと共有されるため、ソートで変更してはいけない。
     expect(candles[0]).toEqual(candlesForRangeTest.at(-1));
+  });
+
+  it.each([390, 768, 1024, 1279])("幅%dでは出来高を別ペインに分け、最新足と出来高を表示する", async (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    mockClientWidth = width - (width >= 768 ? 320 : 0);
+    render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled bollingerEnabled />);
+    await act(async () => {});
+    expect((mockChart.addSeries.mock.calls[1] as unknown[])[2]).toBe(1);
+    expect(mockSeriesInstances).toHaveLength(2);
+    expect(screen.queryByText("終値")).toBeNull();
+    expect(screen.getByTestId("candle-info").textContent).toContain("出来高1,200");
+    expect(screen.queryByRole("button", { name: "前の足を表示" })).toBeNull();
+  });
+
+  it("PCとの境界を跨ぐと出来高を移動し、操作した時間範囲を維持する", async () => {
+    render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    expect((mockChart.addSeries.mock.calls[1] as unknown[])[2]).toBe(0);
+    const volume = mockSeriesInstances[1] as typeof mockSeriesInstances[number] & { moveToPane: ReturnType<typeof vi.fn> };
+    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0]({ from: 75, to: 99 }));
+    mockTimeScale.setVisibleLogicalRange.mockClear();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+    act(() => { window.dispatchEvent(new Event("resize")); resizeObserverCallback?.([], {} as ResizeObserver); });
+    expect(volume.moveToPane).toHaveBeenLastCalledWith(1);
+    expect(mockTimeScale.setVisibleLogicalRange).not.toHaveBeenCalled();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
+    act(() => { window.dispatchEvent(new Event("resize")); resizeObserverCallback?.([], {} as ResizeObserver); });
+    expect(volume.moveToPane).toHaveBeenLastCalledWith(0);
   });
 
 });
