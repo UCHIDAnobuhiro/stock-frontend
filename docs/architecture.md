@@ -40,6 +40,8 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 | ウォッチリスト表示形式 | `WatchlistPanel` と localStorage |
 | チャートの選択足・固定状態・表示範囲 | `CandlestickChart` |
 
+`useSelectedSymbol` は同一ページの銘柄・時間足の変更を History API で URL に反映します。`useSearchParams` に同期するため、共有 URL とブラウザの戻る・進む操作を維持しつつ、変更ごとの `app/page.tsx` の再実行と銘柄一覧の SSR 再取得を避けます。直接アクセスや再読み込みは通常のページリクエストとして `proxy.ts` を通ります。画面内の切り替えでは保護 API が認証・認可を行い、最終的な401はセッション切れ表示につなぎます。認証データはブラウザの永続ストレージへ保存しません。
+
 ## SSR と SWR
 
 `app/page.tsx` が `fetchSymbolsServer()` を呼び、取得結果を `/v1/symbols` キーの fallback として渡します。サーバーは `cookies()` から読み取った `auth_token` を Cookie ヘッダーへ明示的に付けます。

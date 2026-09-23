@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
@@ -10,7 +10,6 @@ export type { Interval } from "@/lib/market-data";
 
 export function useSelectedSymbol() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
   const { startNavigation } = useNavigationLoading();
 
@@ -21,41 +20,44 @@ export function useSelectedSymbol() {
 
   const createSymbolUrl = useCallback(
     (code: string, keepInterval: boolean) => {
-      const params = new URLSearchParams(searchParams.toString());
+      // 連続操作で useSearchParams の再レンダー前でも最新の URL を使う。
+      const params = new URLSearchParams(window.location.search);
       params.set("symbol", code);
       if (!keepInterval) params.set("interval", "1day");
       return `${pathname}?${params.toString()}`;
     },
-    [pathname, searchParams]
+    [pathname]
   );
 
+  // 同一ページのクエリ変更では Server Component を再実行せず、
+  // Next.js と同期する History API で URL と戻る・進む履歴を更新する。
   const setSymbol = useCallback(
     (code: string, keepInterval = true) => {
       startNavigation("chart", () => {
-        router.push(createSymbolUrl(code, keepInterval), { scroll: false });
+        window.history.pushState(null, "", createSymbolUrl(code, keepInterval));
       });
     },
-    [createSymbolUrl, router, startNavigation]
+    [createSymbolUrl, startNavigation]
   );
 
   const replaceSymbol = useCallback(
     (code: string, keepInterval = true) => {
       startNavigation("chart", () => {
-        router.replace(createSymbolUrl(code, keepInterval), { scroll: false });
+        window.history.replaceState(null, "", createSymbolUrl(code, keepInterval));
       });
     },
-    [createSymbolUrl, router, startNavigation]
+    [createSymbolUrl, startNavigation]
   );
 
   const setInterval = useCallback(
     (value: Interval) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(window.location.search);
       params.set("interval", value);
       startNavigation("chart", () => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        window.history.pushState(null, "", `${pathname}?${params.toString()}`);
       });
     },
-    [router, searchParams, pathname, startNavigation]
+    [pathname, startNavigation]
   );
 
   return { symbol, interval, setSymbol, replaceSymbol, setInterval };
