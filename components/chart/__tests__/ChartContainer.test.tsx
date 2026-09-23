@@ -8,7 +8,6 @@ const mockUseSelectedSymbol = vi.fn();
 const mockUseDefaultWatchlistSymbol = vi.fn();
 const mockUseCandles = vi.fn();
 const mockUseIndicators = vi.fn();
-const mockUseNavigationLoading = vi.fn();
 
 vi.mock("@/hooks/useSelectedSymbol", () => ({
   useSelectedSymbol: () => mockUseSelectedSymbol(),
@@ -24,10 +23,6 @@ vi.mock("@/hooks/useCandles", () => ({
 
 vi.mock("@/hooks/useIndicators", () => ({
   useIndicators: () => mockUseIndicators(),
-}));
-
-vi.mock("@/components/providers/NavigationLoadingProvider", () => ({
-  useNavigationLoading: () => mockUseNavigationLoading(),
 }));
 
 // ChartContainer は相対パス（./CandlestickChart, ./ChartToolbar）で import しているが、
@@ -62,7 +57,6 @@ describe("ChartContainer", () => {
       toggleBollinger: vi.fn(),
     });
     mockUseDefaultWatchlistSymbol.mockReturnValue({ isInitializing: false });
-    mockUseNavigationLoading.mockReturnValue({ isChartPending: false });
   });
 
   it("watchlist取得中は未選択表示ではなくSkeletonを表示する", () => {
@@ -125,21 +119,6 @@ describe("ChartContainer", () => {
     expect(screen.queryByText("データがありません")).toBeNull();
   });
 
-  it("チャートのURL遷移中は読み込みオーバーレイを表示する", () => {
-    mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1day" });
-    mockUseCandles.mockReturnValue({
-      candles: [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }],
-      isLoading: false,
-      error: undefined,
-    });
-    mockUseNavigationLoading.mockReturnValue({ isChartPending: true });
-
-    render(<ChartContainer />);
-
-    expect(screen.getByRole("status").textContent).toContain(
-      "チャートを読み込んでいます...",
-    );
-  });
   it("銘柄・時間足変更ではチャートを作り直し、前の足の固定状態を引き継がない", () => {
     mockUseSelectedSymbol.mockReturnValue({ symbol: "AAPL", interval: "1day" });
     mockUseCandles.mockReturnValue({ candles: [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }], isLoading: false });

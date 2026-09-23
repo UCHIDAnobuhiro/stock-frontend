@@ -11,8 +11,8 @@ vi.mock("@/hooks/useSelectedSymbol", () => ({
   useSelectedSymbol: () => ({ interval, setInterval }),
 }));
 
-function setup(isPending = false) {
-  render(<ChartIntervalControls isPending={isPending} compact />);
+function setup() {
+  render(<ChartIntervalControls compact />);
   const control = screen.getByRole("group", { name: "時間足" });
   control.setPointerCapture = vi.fn();
   vi.spyOn(control, "getBoundingClientRect").mockReturnValue({ left: 0, width: 188 } as DOMRect);
@@ -58,7 +58,7 @@ describe("ChartIntervalControls", () => {
     setInterval.mockImplementation(() => {
       startTransition(async () => { await navigation; });
     });
-    const { rerender } = render(<ChartIntervalControls isPending={false} compact />);
+    const { rerender } = render(<ChartIntervalControls compact />);
     const control = screen.getByRole("group", { name: "時間足" });
     control.setPointerCapture = vi.fn();
     vi.spyOn(control, "getBoundingClientRect").mockReturnValue({ left: 0, width: 188 } as DOMRect);
@@ -69,13 +69,13 @@ describe("ChartIntervalControls", () => {
     expect(control.style.getPropertyValue("--interval-position")).toBe("2");
     expect(control.getAttribute("data-dragging")).toBe("false");
     expect(screen.getByRole("button", { name: "月足" }).getAttribute("aria-pressed")).toBe("true");
-    rerender(<ChartIntervalControls isPending compact />);
+    rerender(<ChartIntervalControls compact />);
     expect(control.style.getPropertyValue("--interval-position")).toBe("2");
     await act(async () => {
       if (commits) interval = "1month";
       finish();
     });
-    rerender(<ChartIntervalControls isPending={false} compact />);
+    rerender(<ChartIntervalControls compact />);
     expect(control.style.getPropertyValue("--interval-position")).toBe(commits ? "2" : "0");
   });
 
@@ -103,11 +103,4 @@ describe("ChartIntervalControls", () => {
     expect(setInterval).not.toHaveBeenCalled();
   });
 
-  it("読み込み中は遷移しない", () => {
-    const control = setup(true);
-    pointer(control, "pointerdown", 154);
-    pointer(control, "pointerup", 154);
-    fireEvent.click(screen.getByRole("button", { name: "月足" }));
-    expect(setInterval).not.toHaveBeenCalled();
-  });
 });

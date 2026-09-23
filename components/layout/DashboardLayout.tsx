@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // 前ユーザーのデータが次のログインユーザーに見えないよう、
     // SWR のグローバルキャッシュを全破棄する
     await mutate(() => true, undefined, { revalidate: false });
-    startNavigation("page", () => router.replace("/login"));
+    startNavigation(() => router.replace("/login"));
   }, [router, mutate, startNavigation]);
 
   return (

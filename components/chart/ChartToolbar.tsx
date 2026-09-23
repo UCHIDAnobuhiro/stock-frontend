@@ -9,12 +9,11 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
 
 interface ChartToolbarProps {
-  isPending?: boolean;
   readoutRef?: Ref<HTMLDivElement>;
   isLoading?: boolean;
 }
 
-export function ChartToolbar({ isPending = false, readoutRef, isLoading: isChartLoading = false }: ChartToolbarProps) {
+export function ChartToolbar({ readoutRef, isLoading: isChartLoading = false }: ChartToolbarProps) {
   const { symbol } = useSelectedSymbol();
   const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
@@ -51,7 +50,7 @@ export function ChartToolbar({ isPending = false, readoutRef, isLoading: isChart
       </div>}
       {saveError && <p role="alert" className="col-span-3 mt-2 text-xs text-[var(--color-bear)]">{saveError}</p>}
       </div>
-      <div ref={readoutRef} inert={isPending} className="row-start-2 min-w-0 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:my-6 xl:mr-6 xl:border-l xl:border-[var(--color-border-subtle)] xl:pl-6">
+      <div ref={readoutRef} className="row-start-2 min-w-0 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:my-6 xl:mr-6 xl:border-l xl:border-[var(--color-border-subtle)] xl:pl-6">
         {isChartLoading && <p className="py-3 text-sm text-[var(--color-text-muted)]">四本値を読み込んでいます…</p>}
       </div>
     </section>
