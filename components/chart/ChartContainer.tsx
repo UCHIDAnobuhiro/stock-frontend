@@ -7,7 +7,6 @@ import { useDefaultWatchlistSymbol } from "@/hooks/useDefaultWatchlistSymbol";
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators } from "@/hooks/useIndicators";
 import { ApiError } from "@/lib/api";
-import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 import { ChartLoadingOverlay } from "@/components/ui/LoadingIndicator";
 import { ChartDisplayControls, ChartIntervalControls } from "./ChartDisplayControls";
 import { ChartToolbar } from "./ChartToolbar";
@@ -22,14 +21,13 @@ export function ChartContainer() {
   const { isInitializing } = useDefaultWatchlistSymbol();
   const { candles, isLoading, error } = useCandles(symbol, interval);
   const { smaEnabled, toggleSma, bollingerEnabled, toggleBollinger } = useIndicators();
-  const { isChartPending } = useNavigationLoading();
 
   const hasChart = !!symbol && !isLoading && !error && candles.length > 0;
 
   return (
     <div className="flex min-h-[560px] flex-1 flex-col bg-[var(--color-surface-1)] sm:min-h-[600px] xl:grid xl:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.2fr)] xl:grid-rows-[auto_auto_minmax(280px,1fr)] xl:pb-4">
-      <ChartToolbar isPending={isChartPending} readoutRef={setReadoutContainer} isLoading={isLoading} />
-      {isCompact && !hasChart && <div className="flex justify-end px-4 pb-3"><ChartIntervalControls compact isPending={isChartPending} /></div>}
+      <ChartToolbar readoutRef={setReadoutContainer} isLoading={isLoading} />
+      {isCompact && !hasChart && <div className="flex justify-end px-4 pb-3"><ChartIntervalControls compact /></div>}
       <div className="relative ml-4 min-h-[280px] flex-1 overflow-hidden rounded-l-xl sm:mx-6 sm:rounded-xl xl:col-span-2 xl:row-start-3" style={{ backgroundColor: "var(--color-surface-1)" }}>
         {isInitializing && !symbol ? (
           <ChartSkeleton />
@@ -48,11 +46,10 @@ export function ChartContainer() {
         ) : candles.length === 0 ? (
           <ChartEmpty message="データがありません" />
         ) : (
-          <CandlestickChart key={`${symbol}:${interval}`} readoutContainer={readoutContainer} mobileIntervals={<ChartIntervalControls compact isPending={isChartPending} />} candles={candles} interval={interval} smaEnabled={smaEnabled} bollingerEnabled={bollingerEnabled} />
+          <CandlestickChart key={`${symbol}:${interval}`} readoutContainer={readoutContainer} mobileIntervals={<ChartIntervalControls compact />} candles={candles} interval={interval} smaEnabled={smaEnabled} bollingerEnabled={bollingerEnabled} />
         )}
-        {isChartPending && <ChartLoadingOverlay />}
       </div>
-      {!isCompact && <ChartDisplayControls smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} isPending={isChartPending} />}
+      {!isCompact && <ChartDisplayControls smaEnabled={smaEnabled} toggleSma={toggleSma} bollingerEnabled={bollingerEnabled} toggleBollinger={toggleBollinger} />}
     </div>
   );
 }

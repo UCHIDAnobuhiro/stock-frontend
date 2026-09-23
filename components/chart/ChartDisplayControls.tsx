@@ -15,26 +15,25 @@ interface ChartDisplayControlsProps {
   toggleSma: () => void;
   bollingerEnabled: boolean;
   toggleBollinger: () => void;
-  isPending: boolean;
 }
 
-export function ChartDisplayControls({ isPending, ...indicators }: ChartDisplayControlsProps) {
+export function ChartDisplayControls(indicators: ChartDisplayControlsProps) {
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-5 sm:px-6 sm:pb-6 lg:col-start-1 lg:row-start-2 lg:justify-start lg:gap-2 lg:pt-3 lg:pb-4" aria-label="チャートの表示設定">
-      <ChartIntervalControls isPending={isPending} />
+      <ChartIntervalControls />
       <IndicatorToolbar {...indicators} />
     </div>
   );
 }
 
-export function ChartIntervalControls({ isPending, compact = false }: { isPending: boolean; compact?: boolean }) {
+export function ChartIntervalControls({ compact = false }: { compact?: boolean }) {
   const { interval, setInterval } = useSelectedSymbol();
   const values = Object.keys(INTERVAL_LABELS) as Interval[];
   const [dragPosition, setDragPosition] = useState<number | null>(null);
   const pointerId = useRef<number | null>(null);
   const [optimisticInterval, setOptimisticInterval] = useOptimistic(interval);
   const [isSelecting, startTransition] = useTransition();
-  const busy = isPending || isSelecting;
+  const busy = isSelecting;
   const selectedIndex = values.indexOf(optimisticInterval);
   const position = busy ? selectedIndex : dragPosition ?? selectedIndex;
   const select = (index: number) => {
