@@ -56,6 +56,8 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 
 `useWatchlist` の更新は `optimisticData` に渡される最新キャッシュを使います。追加・削除・並び替えが失敗した場合は SWR がロールバックし、成功時はサーバーの一覧を取得します。
 
+ウォッチリストの銘柄検索は `WatchlistSymbolSearch` が入力状態を持ち、入力中もウォッチリスト行を再描画しません。`lib/symbol-search.ts` が cmdk と同じスコアでコード・企業名を順位付けし、候補は50件ずつ表示します。残件数とページ操作を示し、全候補へ到達できます。
+
 ## 認証と CSP
 
 ブラウザ用 `api.ts` は Cookie を送信し、安全メソッド（GET / HEAD / OPTIONS）以外には CSRF ヘッダーを付けます。保護 API の401を `auth-refresh.ts` が受け取ると、refresh に成功した場合に元リクエストを1回だけ再送します。同じクライアント内の refresh は共有し、409のみ1回再試行します。再送時には最新の CSRF Cookie を使います。
