@@ -95,6 +95,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const defaultRangeRef = useRef<VisibleLogicalRange | null>(null);
+  const pendingRangeRef = useRef<VisibleLogicalRange | null>(null);
   const dataLengthRef = useRef(0);
   const mobileAutoscaleRef = useRef<AutoscaleInfo | null>(null);
   const isRangeModifiedRef = useRef(false);
@@ -151,6 +152,12 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     });
     return byTime;
   }, [bollingerData]);
+  // 指標シリーズの setData より先に、操作済みの時間範囲を退避する。
+  useEffect(() => {
+    pendingRangeRef.current = isRangeModifiedRef.current
+      ? chartRef.current?.timeScale().getVisibleLogicalRange() ?? null
+      : null;
+  }, [sortedCandles]);
   useIndicatorSeries(chartRef, smaData, chartReady);
   useBollingerSeries(chartRef, bollingerData, chartReady);
 
@@ -353,7 +360,10 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
       chart.remove();
       chartRef.current = null;
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
       defaultRangeRef.current = null;
+      pendingRangeRef.current = null;
       dataLengthRef.current = 0;
       mobileAutoscaleRef.current = null;
       setChartReady(false);
@@ -381,18 +391,16 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   }, [resolvedTheme]);
 
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!candleSeriesRef.current) return;
 
     if (sortedCandles.length === 0) {
       candleSeriesRef.current.setData([]);
-      volumeSeriesRef.current.setData([]);
       defaultRangeRef.current = null;
+      pendingRangeRef.current = null;
       dataLengthRef.current = 0;
       mobileAutoscaleRef.current = null;
       return;
     }
-
-    const c = resolvedTheme === "light" ? lightColors : darkColors;
 
     const candleData = sortedCandles.map((candle) => ({
       time: candle.time as `${number}-${number}-${number}`,
@@ -402,22 +410,30 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
       close: candle.close,
     }));
 
+    candleSeriesRef.current.setData(candleData);
+  }, [sortedCandles]);
+
+  useEffect(() => {
+    if (!volumeSeriesRef.current) return;
+    const c = resolvedTheme === "light" ? lightColors : darkColors;
     const volumeData = sortedCandles.map((candle) => ({
       time: candle.time as `${number}-${number}-${number}`,
       value: candle.volume,
       color: candle.close >= candle.open ? c.volumeBull : c.volumeBear,
     }));
-
-    const currentRange = isRangeModifiedRef.current ? chartRef.current?.timeScale().getVisibleLogicalRange() : null;
-    candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
+  }, [sortedCandles, resolvedTheme]);
+
+  useEffect(() => {
+    if (sortedCandles.length === 0) return;
     const total = sortedCandles.length;
     const width = containerRef.current?.clientWidth ?? MOBILE_BREAKPOINT;
     const defaultRange = getDefaultRange(total, width);
     dataLengthRef.current = total;
     defaultRangeRef.current = defaultRange;
-    chartRef.current?.timeScale().setVisibleLogicalRange(currentRange ?? defaultRange);
-  }, [sortedCandles, resolvedTheme]);
+    chartRef.current?.timeScale().setVisibleLogicalRange(pendingRangeRef.current ?? defaultRange);
+    pendingRangeRef.current = null;
+  }, [sortedCandles]);
 
   const candleDirectionColor = displayedCandle
     ? displayedCandle.close >= displayedCandle.open ? "var(--color-bull)" : "var(--color-bear)"

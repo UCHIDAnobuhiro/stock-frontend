@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act, screen, fireEvent } from "@testing-library/react";
+import { StrictMode } from "react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import type { AutoscaleInfoProvider } from "lightweight-charts";
 import type { CandleResponse } from "@/hooks/useCandles";
@@ -394,10 +395,69 @@ describe("CandlestickChart", () => {
     const range = { from: 20, to: 49 };
     act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0](range));
     mockTimeScale.getVisibleLogicalRange.mockReturnValue(range);
+    mockTimeScale.setVisibleLogicalRange.mockClear();
+    const candleSeries = mockSeriesInstances[0];
+    const volumeSeries = mockSeriesInstances[1];
     theme.resolvedTheme = "dark";
     rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
-    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith(range);
+    expect(candleSeries.setData).toHaveBeenCalledTimes(1);
+    expect(volumeSeries.setData).toHaveBeenCalledTimes(2);
+    expect(mockTimeScale.setVisibleLogicalRange).not.toHaveBeenCalled();
     expect(screen.getByTestId("candle-info").textContent).toContain("選択中");
+  });
+
+  it("テーマ変更時はローソク足を再投入せず、出来高の足ごとの色を更新する", async () => {
+    const mixedCandles = [candlesWithData[0], { ...candlesWithData[1], close: 100 }];
+    const { rerender } = render(<CandlestickChart candles={mixedCandles} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    const [candleSeries, volumeSeries] = mockSeriesInstances;
+    expect(volumeSeries.setData.mock.lastCall?.[0].map((bar: { color: string }) => bar.color)).toEqual(["#5cbcb3", "#f78c95"]);
+    theme.resolvedTheme = "dark";
+    rerender(<CandlestickChart candles={mixedCandles} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(candleSeries.setData).toHaveBeenCalledTimes(1);
+    expect(volumeSeries.setData.mock.lastCall?.[0].map((bar: { color: string }) => bar.color)).toEqual(["#214d38", "#612d35"]);
+  });
+
+  it("履歴の訂正では10本の指標を再利用し、過去の計算結果まで更新する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    await act(async () => {});
+    const lineSeries = mockSeriesInstances.slice(2);
+    expect(lineSeries).toHaveLength(10);
+    const range = { from: 20, to: 49 };
+    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0](range));
+    mockTimeScale.getVisibleLogicalRange.mockReturnValue(range);
+    const corrected = candlesForRangeTest.map((candle, index) => index === 10 ? { ...candle, close: candle.close + 20 } : candle);
+    rerender(<CandlestickChart candles={corrected} interval="1day" smaEnabled bollingerEnabled />);
+    expect(mockSeriesInstances.slice(2)).toEqual(lineSeries);
+    expect(mockChart.removeSeries).not.toHaveBeenCalled();
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith(range);
+    expect(lineSeries[0].setData.mock.lastCall?.[0][6].value).toBe(117);
+    expect(lineSeries[3].setData.mock.lastCall?.[0][0].value).toBe(115.5);
+    rerender(<CandlestickChart candles={corrected.slice(0, 50)} interval="1day" smaEnabled bollingerEnabled />);
+    expect(lineSeries[0].setData.mock.lastCall?.[0]).toHaveLength(46);
+    expect(lineSeries[3].setData.mock.lastCall?.[0]).toHaveLength(31);
+    expect(mockChart.removeSeries).not.toHaveBeenCalled();
+  });
+
+  it("指標の切替で対象シリーズを削除し、再有効化時に作成する", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    await act(async () => {});
+    const original = mockSeriesInstances.slice(2);
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled />);
+    expect(mockChart.removeSeries.mock.calls.map(([series]) => series)).toEqual(original.slice(0, 3));
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(mockChart.removeSeries.mock.calls.map(([series]) => series)).toEqual(original);
+    rerender(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled />);
+    expect(mockSeriesInstances).toHaveLength(22);
+  });
+
+  it("Strict Mode の再セットアップ後も指標シリーズを破棄できる", async () => {
+    const { unmount } = render(<StrictMode><CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled bollingerEnabled /></StrictMode>);
+    await act(async () => {});
+    const activeLines = mockSeriesInstances.slice(-10);
+    expect(activeLines).toHaveLength(10);
+    unmount();
+    expect(mockChart.removeSeries.mock.calls.map(([series]) => series)).toEqual(activeLines);
   });
 
   it("指標値は初回から最新足に対応し、古い足で計算不能なら以前の値を残さない", async () => {
