@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { List, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
+import { useSessionRedirect } from "@/hooks/useSessionRedirect";
 import { useIsDesktopSidebar } from "@/hooks/useIsDesktopSidebar";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,16 +13,13 @@ import { SheetDragHandle } from "@/components/ui/SheetDragHandle";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
-import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const router = useRouter();
-  const { mutate } = useSWRConfig();
-  const { startNavigation } = useNavigationLoading();
+  const redirectToLogin = useSessionRedirect();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [hasOpenedLogoSearch, setHasOpenedLogoSearch] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
@@ -44,12 +40,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setIsMobileSidebarOpen(true);
   };
   const { isExpired } = useSessionExpiry();
-  const handleSessionExpiredLogin = useCallback(async () => {
-    // 前ユーザーのデータが次のログインユーザーに見えないよう、
-    // SWR のグローバルキャッシュを全破棄する
-    await mutate(() => true, undefined, { revalidate: false });
-    startNavigation(() => router.replace("/login"));
-  }, [router, mutate, startNavigation]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -132,7 +122,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
       {/* セッション切れダイアログ */}
-      <SessionExpiredDialog open={isExpired} onLogin={handleSessionExpiredLogin} />
+      <SessionExpiredDialog open={isExpired} onLogin={redirectToLogin} />
     </div>
   );
 }

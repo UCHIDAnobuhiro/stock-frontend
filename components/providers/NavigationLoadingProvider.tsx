@@ -1,21 +1,8 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useTransition,
-  type ReactNode,
-} from "react";
+import { useCallback, useTransition, type ReactNode } from "react";
 import { PageLoadingScreen } from "@/components/ui/LoadingIndicator";
-
-interface NavigationLoadingContextValue {
-  startNavigation: (navigate: () => void) => void;
-}
-
-const NavigationLoadingContext = createContext<NavigationLoadingContextValue>({
-  startNavigation: (navigate) => navigate(),
-});
+import { NavigationLoadingContext } from "@/hooks/useNavigationLoading";
 
 export function NavigationLoadingProvider({ children }: { children: ReactNode }) {
   const [isPending, startTransition] = useTransition();
@@ -33,8 +20,4 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
       {isPending && <PageLoadingScreen />}
     </NavigationLoadingContext.Provider>
   );
-}
-
-export function useNavigationLoading() {
-  return useContext(NavigationLoadingContext);
 }

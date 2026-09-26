@@ -38,6 +38,8 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 ├── tests/support/              # テスト専用の共通 Provider
 ├── hooks/                      # カスタムフック（ViewModelに近い役割）
 │   ├── useCandles.ts           # ローソク足データ取得
+│   ├── useNavigationLoading.ts # 遷移中表示の Context と参照フック
+│   ├── useSessionRedirect.ts   # SWR キャッシュ破棄後のログイン画面遷移
 │   ├── useSymbols.ts           # 銘柄一覧取得
 │   └── useWatchlist.ts         # ウォッチリスト操作
 ├── lib/
@@ -98,7 +100,9 @@ Go バックエンド
 
 例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。取得結果は Promise のまま Client Component の `SymbolsProvider` へ渡し、一覧依存箇所だけで待機する。
 
-共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。SSR の API URL は `lib/api-base.ts` を直接参照する。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。
+依存方向は `app/` → `components/` → `hooks/` → `lib/` とし、各層から下位の共有コードは参照できる。`lib/` → 上位層、`hooks/` → `components/`・`app/`、`components/` → `app/`、`hooks/`・`components/` → `lib/api.server.ts` は ESLint で禁止する。UI から `lib/api.ts` の通信機能を直接使わずフックを経由し、エラー表示に必要な `ApiError` の参照だけ許可する。テスト補助コードはこの境界チェックの対象外とする。
+
+共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。SSR と OAuth 開始リンクの API URL は `lib/api-base.ts` を直接参照する。遷移 Context は `hooks/useNavigationLoading.ts` に置き、Provider は遷移中表示を担当する。ログアウトとセッション切れの遷移は `hooks/useSessionRedirect.ts` で SWR キャッシュを破棄してから行う。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。生成・破棄、リサイズ、選択・固定・表示範囲は `useCandlestickChart` が担当する。
 
 設計の説明は `docs/architecture.md`、開発・テストは `docs/development.md`、デプロイは `docs/deployment.md` にまとめる。README は導入手順と各文書への入口とする。
 

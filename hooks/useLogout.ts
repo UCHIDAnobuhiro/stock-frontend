@@ -1,9 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useSWRConfig } from "swr";
 import apiClient from "@/lib/api";
-import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
+import { useSessionRedirect } from "./useSessionRedirect";
 
 /**
  * ログアウト処理を提供するフック。
@@ -13,9 +11,7 @@ import { useNavigationLoading } from "@/components/providers/NavigationLoadingPr
  * 見えてしまうため、API 呼び出しの成否に関わらず必ず破棄する。
  */
 export function useLogout() {
-  const router = useRouter();
-  const { mutate } = useSWRConfig();
-  const { startNavigation } = useNavigationLoading();
+  const redirectToLogin = useSessionRedirect();
 
   async function handleLogout() {
     try {
@@ -24,10 +20,7 @@ export function useLogout() {
       // ネットワークエラーでもクライアント側はログイン画面へ遷移する
       console.warn("Logout request failed:", error);
     }
-    // 前ユーザーのデータが次のログインユーザーに見えないよう、
-    // SWR のグローバルキャッシュを全破棄する
-    await mutate(() => true, undefined, { revalidate: false });
-    startNavigation(() => router.replace("/login"));
+    await redirectToLogin();
   }
 
   return { handleLogout };

@@ -23,9 +23,9 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 | `lib/generated/` | OpenAPI 由来の自動生成型。直接編集しない |
 | `tests/support/` | テストだけが参照する共通補助コード |
 
-ルート直下に配置し、`@/*` は `./*` に対応します。Server Component を基本とし、操作を伴う境界に `"use client"` を付けます。境界配下の表示部品すべてに宣言を重複させる必要はありません。
+ルート直下に配置し、`@/*` は `./*` に対応します。Server Component を基本とし、操作を伴う境界に `"use client"` を付けます。境界配下の表示部品すべてに宣言を重複させる必要はありません。ESLint は `lib/`・`hooks/`・`components/` から上位層への逆向き参照と、`hooks/`・`components/` からサーバー専用 API への参照を禁止します。UI の API 通信はフックを経由し、`ChartContainer` のエラー表示用 `ApiError` だけ `lib/api.ts` から参照します。テスト補助コードは境界チェックから除きます。
 
-市場データの共有型は `lib/market-data.ts` に置き、API 型を再定義せず生成型を参照します。従来のフックからも型を再エクスポートしますが、`lib/` はフックへ依存しません。SSR の API URL はブラウザ用クライアントを初期化せず `api-base.ts` から参照します。
+市場データの共有型は `lib/market-data.ts` に置き、API 型を再定義せず生成型を参照します。従来のフックからも型を再エクスポートしますが、`lib/` はフックへ依存しません。SSR と OAuth 開始リンクの API URL はブラウザ用クライアントを初期化せず `api-base.ts` から参照します。遷移中表示の Context は `hooks/useNavigationLoading.ts` に置き、Provider は表示を担当します。
 
 ロゴ検索は `LogoSearchSheet` がダイアログとフォーカス制御を保持し、初回オープン時に `LogoSearchContent` を読み込みます。シート内の `SymbolsFallback` と Suspense が銘柄一覧の取得だけを待つため、シェルとチャートの初期描画は止めません。画像処理と企業分析、および Markdown 表示の依存はこの境界の先に置きます。一度開いた後は内容をマウントしたまま非表示にし、画像と分析結果を再オープン時にも保持します。
 
@@ -40,7 +40,7 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 | テーマ | next-themes |
 | 指標の有効状態 | `useIndicators` の React state |
 | ウォッチリスト表示形式・PCサイドバーのスクロール位置 | `Sidebar`（表示形式は localStorage にも保存） |
-| チャートの選択足・固定状態・表示範囲 | `CandlestickChart` |
+| チャートの選択足・固定状態・表示範囲 | `useCandlestickChart` |
 
 `useSelectedSymbol` は同一ページの銘柄・時間足の変更を History API で URL に反映します。`useSearchParams` に同期するため、共有 URL とブラウザの戻る・進む操作を維持しつつ、変更ごとの `app/page.tsx` の再実行と銘柄一覧の SSR 再取得を避けます。直接アクセスや再読み込みは通常のページリクエストとして `proxy.ts` を通ります。画面内の切り替えでは保護 API が認証・認可を行い、最終的な401はセッション切れ表示につなぎます。認証データはブラウザの永続ストレージへ保存しません。
 
@@ -65,6 +65,8 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 
 login・signup・logout・refresh・OAuth は自動 refresh の対象外です。最終的に保護 API が401を返すと `SESSION_EXPIRED_EVENT` を発火し、`useSessionExpiry` がダイアログ表示へつなぎます。加えて、マウント直後と60秒ごとにブラウザ内の CSRF Cookie の存在を確認します。この確認では API 通信を行いません。
 
+ログアウトとセッション切れのログイン遷移は `useSessionRedirect` を共有します。SWR の全キャッシュ破棄を待ってから `startNavigation` で `/login` へ移るため、次のユーザーに前のデータを表示しません。ログアウト API が通信に失敗しても、このクライアント側の後処理は行います。
+
 `proxy.ts` は Cookie の存在と JWT の期限を確認する画面遷移用ガードです。署名検証と認可はバックエンドが担います。有効なアクセストークンがなくても refresh Cookie と CSRF Cookie が揃えばクライアントで復旧できます。
 
 nonce は `proxy.ts` → `app/layout.tsx` → `ThemeProvider` に渡します。リクエストごとに異なる nonce を使うため、ページの動的レンダリングを維持します。
@@ -73,12 +75,12 @@ nonce は `proxy.ts` → `app/layout.tsx` → `ThemeProvider` に渡します。
 
 ## チャートの計算と描画
 
-`ChartContainer` がデータを取得し、銘柄・時間足を含む key によって選択状態をリセットします。`CandlestickChart` は次の役割を持ちます。
+`ChartContainer` がデータを取得し、銘柄・時間足を含む key によって選択状態をリセットします。`CandlestickChart` と `useCandlestickChart` は次のように役割を分けます。
 
 1. 入力配列を変更せずに日付順へ並べ、終値列をメモ化する。
 2. 有効な SMA・ボリンジャーバンドを計算する。各計算は独立してメモ化する。
-3. 計算結果を `useIndicatorSeries` / `useBollingerSeries` と `IndicatorReadout` で共有する。
-4. チャートの生成・破棄、リサイズ、選択足・固定状態・表示範囲を管理する。
+3. `CandlestickChart` は計算結果を描画用フックと `IndicatorReadout` に渡し、数値表示と操作 UI を構成する。
+4. `useCandlestickChart` はチャートの生成・破棄、リサイズ、選択足・固定状態・表示範囲、ローソク足・出来高・指標シリーズの投入を管理する。
 
 描画用フックは指標の構成が同じ間はシリーズを再利用し、再取得した全履歴を反映します。指標の無効化や構成変更では不要なシリーズだけを削除し、チャート破棄時には残るシリーズを片付けます。指標値のポップオーバーは `IndicatorReadout` が担当し、チャート操作で閉じない仕様を維持します。BB の順序・色・ラベルは `lib/indicators.ts` の `BOLLINGER_SERIES` を共有します。
 
