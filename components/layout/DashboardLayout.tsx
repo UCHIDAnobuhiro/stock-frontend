@@ -24,12 +24,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { mutate } = useSWRConfig();
   const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
+  const [hasOpenedLogoSearch, setHasOpenedLogoSearch] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const sidebarSwipe = useSheetSwipe(() => setIsMobileSidebarOpen(false));
   const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const isSidebarDraggingRef = useRef(false);
+  const handleLogoSearchOpen = () => {
+    setHasOpenedLogoSearch(true);
+    setIsLogoSearchOpen(true);
+  };
   const handleMobileSidebarOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     sidebarReturnFocusRef.current = event.currentTarget;
     isSidebarDraggingRef.current = false;
@@ -46,7 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <Topbar
-        onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
+        onLogoSearchOpen={handleLogoSearchOpen}
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         onDesktopSidebarToggle={() => setIsDesktopSidebarOpen((open) => !open)}
       />
@@ -63,7 +68,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={handleMobileSidebarOpen} aria-label="銘柄サイドバーを開く" aria-expanded={isMobileSidebarOpen}>
             <List className="size-5" aria-hidden="true" />銘柄一覧
           </Button>
-          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={() => setIsLogoSearchOpen(true)} aria-label="ロゴ検索を開く" aria-expanded={isLogoSearchOpen}>
+          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={handleLogoSearchOpen} aria-label="ロゴ検索を開く" aria-expanded={isLogoSearchOpen}>
             <ScanSearch className="size-5" aria-hidden="true" />ロゴ検索
           </Button>
         </div>
@@ -117,10 +122,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
       {/* ロゴ検索Sheet */}
-      <LogoSearchSheet
-        open={isLogoSearchOpen}
-        onOpenChange={setIsLogoSearchOpen}
-      />
+      {hasOpenedLogoSearch && (
+        <LogoSearchSheet
+          open={isLogoSearchOpen}
+          onOpenChange={setIsLogoSearchOpen}
+        />
+      )}
       {/* セッション切れダイアログ */}
       <SessionExpiredDialog open={isExpired} onLogin={handleSessionExpiredLogin} />
     </div>

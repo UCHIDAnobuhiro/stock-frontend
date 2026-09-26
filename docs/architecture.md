@@ -27,6 +27,8 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 
 市場データの共有型は `lib/market-data.ts` に置き、API 型を再定義せず生成型を参照します。従来のフックからも型を再エクスポートしますが、`lib/` はフックへ依存しません。SSR の API URL はブラウザ用クライアントを初期化せず `api-base.ts` から参照します。
 
+ロゴ検索は `LogoSearchSheet` がダイアログとフォーカス制御を保持し、初回オープン時に `LogoSearchContent` を読み込みます。画像処理と企業分析、および Markdown 表示の依存はこの境界の先に置きます。一度開いた後は内容をマウントしたまま非表示にし、画像と分析結果を再オープン時にも保持します。
+
 ## 状態管理
 
 | 状態 | 所有者 |
