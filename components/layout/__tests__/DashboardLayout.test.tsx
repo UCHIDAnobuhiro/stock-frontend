@@ -1,10 +1,11 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-const { setSymbol, reorder, removeSymbol } = vi.hoisted(() => ({
+const { setSymbol, reorder, removeSymbol, useQuotes } = vi.hoisted(() => ({
   setSymbol: vi.fn(), reorder: vi.fn(), removeSymbol: vi.fn(),
+  useQuotes: vi.fn(() => ({ quotes: new Map(), failures: new Map(), isLoading: false })),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate: vi.fn() }) }));
@@ -26,12 +27,11 @@ vi.mock("@/hooks/useWatchlist", () => ({
 vi.mock("@/hooks/useSymbols", () => ({
   useSymbols: () => ({ symbols: [{ code: "AMZN", name: "Amazon" }, { code: "ABT", name: "Abbott" }], isLoading: false }),
 }));
-vi.mock("@/hooks/useQuotes", () => ({
-  useQuotes: () => ({ quotes: new Map(), failures: new Map(), isLoading: false }),
-}));
+vi.mock("@/hooks/useQuotes", () => ({ useQuotes }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal("innerWidth", 390);
   // Base UIのpreventScroll対応検出を、スクロール機能のないjsdomでも再現する。
   const originalFocus = HTMLElement.prototype.focus;
   vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (this: HTMLElement, options) {
@@ -51,6 +51,73 @@ beforeEach(() => {
     const code = this.querySelector(":scope > button[aria-label$='を表示']")?.getAttribute("aria-label");
     const top = code?.startsWith("ABT") ? 60 : 0;
     return { x: 0, y: top, top, left: 0, right: 256, bottom: top + 60, width: 256, height: 60, toJSON() {} };
+  });
+});
+
+function resizeTo(width: number) {
+  act(() => {
+    vi.stubGlobal("innerWidth", width);
+    window.dispatchEvent(new Event("resize"));
+  });
+}
+
+describe("PCサイドバーの非表示時", () => {
+  it("768px以上の開状態だけでパネルをマウントし、閉じた後に表示形式とスクロール位置を復元する", async () => {
+    const user = userEvent.setup();
+    resizeTo(767);
+    render(<DashboardLayout><button>チャート操作</button></DashboardLayout>);
+    expect(useQuotes).not.toHaveBeenCalled();
+
+    resizeTo(768);
+    expect(useQuotes).toHaveBeenCalledWith(["AMZN", "ABT"], { bars: 60 });
+    const showSparklines = screen.getByRole("button", { name: "スパークラインを表示" });
+    await user.click(showSparklines);
+    expect(screen.getByRole("button", { name: "コンパクト表示に切り替え" })).toBeTruthy();
+    const list = document.querySelector("#desktop-sidebar .overflow-y-auto") as HTMLDivElement;
+    list.scrollTop = 72;
+    fireEvent.scroll(list);
+
+    await user.click(screen.getByRole("button", { name: "サイドバーを閉じる" }));
+    expect(screen.queryByRole("button", { name: "コンパクト表示に切り替え" })).toBeNull();
+    const callsWhileClosed = useQuotes.mock.calls.length;
+    resizeTo(1279);
+    resizeTo(1280);
+    expect(useQuotes).toHaveBeenCalledTimes(callsWhileClosed);
+
+    await user.click(screen.getByRole("button", { name: "サイドバーを開く" }));
+    expect(screen.getByRole("button", { name: "コンパクト表示に切り替え" })).toBeTruthy();
+    expect((document.querySelector("#desktop-sidebar .overflow-y-auto") as HTMLDivElement).scrollTop).toBe(72);
+    expect(useQuotes).toHaveBeenLastCalledWith(["AMZN", "ABT"], { bars: 60 });
+
+    resizeTo(767);
+    expect(screen.queryByRole("button", { name: "コンパクト表示に切り替え" })).toBeNull();
+    resizeTo(768);
+    expect(screen.getByRole("button", { name: "コンパクト表示に切り替え" })).toBeTruthy();
+  });
+
+  it("スマホではSheetを開いた時だけウォッチリストをマウントする", async () => {
+    const { user, trigger } = await openSidebar();
+    expect(useQuotes).toHaveBeenCalledWith(["AMZN", "ABT"], { bars: 60 });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    const callsWhileClosed = useQuotes.mock.calls.length;
+    resizeTo(767);
+    expect(useQuotes).toHaveBeenCalledTimes(callsWhileClosed);
+  });
+
+  it("Sheetを開いたまま768px以上へ広げてもPC側は停止し、閉じるとメインへフォーカスする", async () => {
+    const { user } = await openSidebar();
+    await user.click(screen.getByRole("button", { name: "スパークラインを表示" }));
+    resizeTo(768);
+    expect(document.querySelector("#desktop-sidebar .overflow-y-auto")).toBeNull();
+    expect(within(screen.getByRole("dialog", { name: "ウォッチリスト" })).getByRole("button", { name: "コンパクト表示に切り替え" })).toBeTruthy();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(screen.getByRole("main").contains(document.activeElement)).toBe(true));
+    expect(document.querySelector("#desktop-sidebar .overflow-y-auto")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "コンパクト表示に切り替え" })).toBeTruthy();
   });
 });
 

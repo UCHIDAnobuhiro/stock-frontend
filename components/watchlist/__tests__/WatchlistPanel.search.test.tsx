@@ -44,7 +44,7 @@ describe("WatchlistPanel の検索", () => {
       disconnect() {}
     });
     const user = userEvent.setup();
-    render(<WatchlistPanel />);
+    render(<WatchlistPanel viewMode="compact" onToggleViewMode={() => {}} listScrollTopRef={{ current: 0 }} />);
     expect(screen.getByText("ウォッチリスト行")).toBeTruthy();
     const initialRenders = rowRender.mock.calls.length;
 

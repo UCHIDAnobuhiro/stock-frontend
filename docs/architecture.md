@@ -39,7 +39,7 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 | CSRF トークン | `csrf_token` Cookie → `X-CSRF-Token` ヘッダー |
 | テーマ | next-themes |
 | 指標の有効状態 | `useIndicators` の React state |
-| ウォッチリスト表示形式 | `WatchlistPanel` と localStorage |
+| ウォッチリスト表示形式・PCサイドバーのスクロール位置 | `Sidebar`（表示形式は localStorage にも保存） |
 | チャートの選択足・固定状態・表示範囲 | `CandlestickChart` |
 
 `useSelectedSymbol` は同一ページの銘柄・時間足の変更を History API で URL に反映します。`useSearchParams` に同期するため、共有 URL とブラウザの戻る・進む操作を維持しつつ、変更ごとの `app/page.tsx` の再実行と銘柄一覧の SSR 再取得を避けます。直接アクセスや再読み込みは通常のページリクエストとして `proxy.ts` を通ります。画面内の切り替えでは保護 API が認証・認可を行い、最終的な401はセッション切れ表示につなぎます。認証データはブラウザの永続ストレージへ保存しません。
@@ -85,6 +85,8 @@ nonce は `proxy.ts` → `app/layout.tsx` → `ThemeProvider` に渡します。
 足の選択時は、データ変更時に作る日付索引から四本値・SMA・BB の値を参照します。価格と出来高の表示形式は共有の `Intl.NumberFormat` を再利用し、表示対象の足データが変わらない場合は四本値の整形結果を再利用します。
 
 テーマ変更や足の選択では指標を再計算しません。1280px未満では指標を描画・計算せず、最新足の始値・高値・安値・出来高を表示します。スマホ・タブレットの判定は `useIsCompactChart` の viewport 幅に統一し、768px以上では開閉可能な銘柄サイドバーを併設します。初期表示本数の判定にはチャート領域幅を使い、640px未満は30本、それ以上は60本とします。
+
+PCサイドバーは `useIsDesktopSidebar` で768px以上の表示幅を判定します。768px未満または閉じた状態では `WatchlistPanel` をマウントせず、ウォッチリストとスパークライン用価格の購読・描画を止めます。表示形式とスクロール位置は軽量な `Sidebar` に保持します。選択銘柄の初期化と上部価格はチャート側で独立して取得します。
 
 スマホ・タブレットの出来高は Lightweight Charts の別ペインへ配置し、株価と出来高の高さを5:1に配分します。時間軸は共有し、価格軸の初期範囲を固定したまま横スクロールしても、株価が出来高領域へ重なりません。1280pxの境界を跨ぐ際は出来高シリーズを移動し、PCでは従来の重ね合わせ表示に戻します。
 
