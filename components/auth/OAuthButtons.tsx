@@ -3,7 +3,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { API_BASE } from "@/lib/api";
+import { API_BASE } from "@/lib/api-base";
 
 const buttonClass = cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-3");
 

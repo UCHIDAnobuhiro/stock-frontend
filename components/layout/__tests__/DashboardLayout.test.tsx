@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate: vi.fn() }) }));
 vi.mock("@/hooks/useSessionExpiry", () => ({ useSessionExpiry: () => ({ isExpired: false }) }));
 vi.mock("@/hooks/useLogout", () => ({ useLogout: () => ({ handleLogout: vi.fn() }) }));
-vi.mock("@/components/providers/NavigationLoadingProvider", () => ({
+vi.mock("@/hooks/useNavigationLoading", () => ({
   useNavigationLoading: () => ({ startNavigation: vi.fn() }),
 }));
 vi.mock("@/components/layout/SessionExpiredDialog", () => ({ SessionExpiredDialog: () => null }));
