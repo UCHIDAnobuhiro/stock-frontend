@@ -74,7 +74,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 | ウォッチリスト | Client Component |
 | ロゴ検出・企業分析 | Client Component |
 
-銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` で共有するため、`app/page.tsx`（Server Component）が `lib/api.server.ts` の `fetchSymbolsServer()` で初回データを取得し、`SWRConfig` の `fallback` として渡す。正常な空配列も fallback に含める。認証情報がない場合や API のエラーレスポンスでは `null` が返り、fallback を設定せずクライアント側で取得する。`hooks/useSymbols.ts` は同じキー `/v1/symbols` を使う。fallback があっても再検証中は `isLoading` が true になり得るため、初期データの有無と区別する。
+銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` で共有する。`app/page.tsx`（Server Component）は `lib/api.server.ts` の `fetchSymbolsServer()` を待たずに開始し、`SymbolsProvider` で結果の Promise を共有する。各一覧利用箇所の `SymbolsFallback` が取得結果を `SWRConfig` の `fallback` として渡すため、シェル・URL 指定銘柄のチャート取得は一覧待ちにならない。正常な空配列も fallback に含める。認証情報がない場合や API のエラー・通信失敗では `null` が返り、fallback を設定せずクライアント側で取得する。`hooks/useSymbols.ts` は同じキー `/v1/symbols` を使う。fallback があっても再検証中は `isLoading` が true になり得るため、初期データの有無と区別する。
 
 ### 状態管理
 
@@ -96,7 +96,7 @@ APIクライアント (lib/api.ts)
 Go バックエンド
 ```
 
-例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。
+例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。取得結果は Promise のまま Client Component の `SymbolsProvider` へ渡し、一覧依存箇所だけで待機する。
 
 共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。SSR の API URL は `lib/api-base.ts` を直接参照する。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。
 

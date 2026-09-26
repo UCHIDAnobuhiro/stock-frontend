@@ -19,6 +19,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import type { CandleResponse, Interval } from "@/lib/market-data";
+import { formatPrice, formatVolume } from "@/lib/format-market-number";
 import { SMA_PERIODS, calcSMA, calcBollingerBands } from "@/lib/indicators";
 import { useIndicatorSeries } from "./useIndicatorSeries";
 import { useBollingerSeries } from "./useBollingerSeries";
@@ -115,10 +116,19 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   const [chartReady, setChartReady] = useState(false);
 
   const sortedCandles = useMemo(() => [...candles].sort((a, b) => a.time.localeCompare(b.time)), [candles]);
+  const candleIndexByTime = useMemo(() => {
+    const indexByTime = new Map<string, number>();
+    sortedCandles.forEach((candle, index) => {
+      if (!indexByTime.has(candle.time)) indexByTime.set(candle.time, index);
+    });
+    return indexByTime;
+  }, [sortedCandles]);
   const latestCandle = sortedCandles.at(-1);
-  const selectedCandle = isCompact ? undefined : sortedCandles.find(candle => candle.time === selectedTime);
+  const selectedIndex = isCompact || selectedTime === null ? -1 : candleIndexByTime.get(selectedTime) ?? -1;
+  const selectedCandle = sortedCandles[selectedIndex];
   const selectedCandleExists = selectedCandle !== undefined;
   const displayedCandle = selectedCandle ?? latestCandle ?? null;
+  const displayedIndex = displayedCandle ? candleIndexByTime.get(displayedCandle.time) ?? -1 : -1;
 
   // ソートと指標計算はデータ変更時だけ行い、描画と数値表示で共有する。
   const closeData = useMemo(
@@ -135,6 +145,13 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     () => bollingerEnabled && !isCompact ? calcBollingerBands(closeData) : [],
     [closeData, bollingerEnabled, isCompact],
   );
+  const bandByTime = useMemo(() => {
+    const byTime = new Map<string, (typeof bollingerData)[number]>();
+    bollingerData.forEach(band => {
+      if (!byTime.has(band.time)) byTime.set(band.time, band);
+    });
+    return byTime;
+  }, [bollingerData]);
   // 指標シリーズの setData より先に、操作済みの時間範囲を退避する。
   useEffect(() => {
     pendingRangeRef.current = isRangeModifiedRef.current
@@ -144,11 +161,16 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
   useIndicatorSeries(chartRef, smaData, chartReady);
   useBollingerSeries(chartRef, bollingerData, chartReady);
 
-  const selectedIndex = displayedCandle ? sortedCandles.findIndex(c => c.time === displayedCandle.time) : -1;
-  const band = bollingerData.find(b => b.time === displayedCandle?.time);
-  const formatPrice = (value: number) => value.toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const band = displayedCandle ? bandByTime.get(displayedCandle.time) : undefined;
+  const formattedCandle = useMemo(() => displayedCandle && ({
+    open: formatPrice(displayedCandle.open),
+    high: formatPrice(displayedCandle.high),
+    low: formatPrice(displayedCandle.low),
+    close: formatPrice(displayedCandle.close),
+    volume: formatVolume(displayedCandle.volume),
+  }), [displayedCandle]);
   const selectAdjacent = (offset: number) => {
-    const candle = sortedCandles[selectedIndex + offset];
+    const candle = sortedCandles[displayedIndex + offset];
     if (!candle) return;
     setSelectedTime(candle.time);
     if (candleSeriesRef.current) chartRef.current?.setCrosshairPosition(candle.close, candle.time, candleSeriesRef.current);
@@ -418,7 +440,7 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
     : "var(--color-text-primary)";
 
   const intervalLabel = interval === "1day" ? "日足" : interval === "1week" ? "週足" : "月足";
-  const volumeLabel = displayedCandle?.volume === undefined ? "—" : Math.round(displayedCandle.volume).toLocaleString("ja-JP");
+  const volumeLabel = formattedCandle?.volume ?? "—";
   const volumeReadout = <span className="whitespace-nowrap tabular-nums text-[var(--color-text-muted)]">出来高 {volumeLabel}</span>;
 
   // One readout moves with the toolbar grid; selection state stays with the chart.
@@ -434,15 +456,15 @@ export function CandlestickChart({ mobileIntervals, readoutContainer, candles, i
               </div>
               {isCompact && <div className="ml-auto flex shrink-0 items-center gap-1">{mobileIntervals}</div>}
               {!isCompact && <div className="hidden items-center gap-1 sm:flex">
-                <button className="chart-action w-11 !px-0" type="button" aria-label="前の足を表示" disabled={selectedIndex <= 0} onClick={() => selectAdjacent(-1)}><ChevronLeft className="size-4" /></button>
-                <button className="chart-action w-11 !px-0" type="button" aria-label="次の足を表示" disabled={selectedIndex < 0 || selectedIndex >= sortedCandles.length - 1} onClick={() => selectAdjacent(1)}><ChevronRight className="size-4" /></button>
+                <button className="chart-action w-11 !px-0" type="button" aria-label="前の足を表示" disabled={displayedIndex <= 0} onClick={() => selectAdjacent(-1)}><ChevronLeft className="size-4" /></button>
+                <button className="chart-action w-11 !px-0" type="button" aria-label="次の足を表示" disabled={displayedIndex < 0 || displayedIndex >= sortedCandles.length - 1} onClick={() => selectAdjacent(1)}><ChevronRight className="size-4" /></button>
                 <button className="chart-action" type="button" onClick={returnToLatest} disabled={!selectedCandleExists && !isRangeModified} aria-label="最新の足と表示範囲に戻す"><RotateCcw className="size-3.5" aria-hidden="true" />最新へ</button>
               </div>}
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[360px]:grid-cols-[1fr_1fr_1fr_1.4fr] sm:grid-cols-4">
               {([
-                ["始値", formatPrice(displayedCandle.open)], ["高値", formatPrice(displayedCandle.high)],
-                ["安値", formatPrice(displayedCandle.low)], isCompact ? ["出来高", volumeLabel] : ["終値", formatPrice(displayedCandle.close)],
+                ["始値", formattedCandle?.open], ["高値", formattedCandle?.high],
+                ["安値", formattedCandle?.low], isCompact ? ["出来高", volumeLabel] : ["終値", formattedCandle?.close],
               ] as const).map(([label, value]) => (
                 <div key={label} className="min-w-0">
                   <dt className="text-xs text-[var(--color-text-muted)]">{label}</dt>
