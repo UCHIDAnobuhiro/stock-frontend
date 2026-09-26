@@ -28,6 +28,7 @@ export function useSymbols() {
   return {
     symbols: data ?? [],
     isLoading,
+    hasData: data !== undefined,
     error,
   };
 }
