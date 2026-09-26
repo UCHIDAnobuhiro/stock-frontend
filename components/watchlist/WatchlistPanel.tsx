@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useState, useRef, type RefObject } from "react";
 import { BarChart2, List } from "lucide-react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
@@ -35,15 +35,18 @@ import {
 interface WatchlistPanelProps {
   onItemClick?: () => void;
   onDragStateChange?: (dragging: boolean) => void;
+  viewMode: "compact" | "chart";
+  onToggleViewMode: () => void;
+  listScrollTopRef: RefObject<number>;
 }
 
-export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPanelProps) {
+export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onToggleViewMode, listScrollTopRef }: WatchlistPanelProps) {
   const { items, isLoading, removeSymbol, reorder } = useWatchlist();
   const { symbols, isLoading: symbolsLoading } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
-  const [viewMode, setViewMode] = useState<"compact" | "chart">("compact");
   const [query, setQuery] = useState("");
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // ウォッチリスト内の全銘柄の株価サマリーを1回のリクエストでまとめて取得する（N+1回避）
   // viewMode によらず常に bars: 60 で取得することで、compact ⇄ chart 切替でSWRキーが変わらないようにする
@@ -51,17 +54,11 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
   const codes = useMemo(() => items.map((i) => i.symbol_code), [items]);
   const { quotes, failures, isLoading: quotesLoading } = useQuotes(codes, { bars: 60 });
 
-  useEffect(() => {
-    const stored = localStorage.getItem("watchlist-view-mode");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorageはクライアントでしか読めないためuseEffectが必要
-    if (stored === "chart") setViewMode("chart");
-  }, []);
-
-  const toggleViewMode = () => {
-    const next = viewMode === "compact" ? "chart" : "compact";
-    setViewMode(next);
-    localStorage.setItem("watchlist-view-mode", next);
-  };
+  useLayoutEffect(() => {
+    if (!isLoading && listRef.current) {
+      listRef.current.scrollTop = listScrollTopRef.current;
+    }
+  }, [isLoading, items.length, listScrollTopRef]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -161,7 +158,7 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
 
         <button
           type="button"
-          onClick={toggleViewMode}
+          onClick={onToggleViewMode}
           aria-label={viewMode === "compact" ? "スパークラインを表示" : "コンパクト表示に切り替え"}
           className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded transition-colors hover:bg-[var(--color-surface-3)] md:mr-0 md:size-auto md:p-0.5"
           style={{ color: "var(--color-text-muted)" }}
@@ -176,7 +173,11 @@ export function WatchlistPanel({ onItemClick, onDragStateChange }: WatchlistPane
 
       <p className="px-5 pb-2 text-xs font-medium text-[var(--color-text-muted)]">ウォッチリスト</p>
       {/* リスト */}
-      <div className="flex-1 overflow-y-auto min-h-0 pb-3">
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto min-h-0 pb-3"
+        onScroll={(event) => { listScrollTopRef.current = event.currentTarget.scrollTop; }}
+      >
         {isLoading ? (
           <div className="space-y-1 px-3 py-2">
             {[1, 2, 3].map((i) => (

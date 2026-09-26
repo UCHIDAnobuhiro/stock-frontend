@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSWRConfig } from "swr";
 import { useSessionExpiry } from "@/hooks/useSessionExpiry";
+import { useIsDesktopSidebar } from "@/hooks/useIsDesktopSidebar";
 import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useSheetSwipe } from "@/hooks/useSheetSwipe";
@@ -25,7 +26,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const isDesktopSidebarViewport = useIsDesktopSidebar();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const showDesktopSidebar = isDesktopSidebarViewport && isDesktopSidebarOpen && !isMobileSidebarOpen;
   const sidebarSwipe = useSheetSwipe(() => setIsMobileSidebarOpen(false));
   const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
@@ -52,8 +55,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       />
       <div className="flex min-h-0 flex-1 overflow-hidden md:gap-3 md:p-3">
         {/* PC: 開閉可能なサイドバー */}
-        <div id="desktop-sidebar" className={isDesktopSidebarOpen ? "hidden md:flex" : "hidden"}>
-          <Sidebar />
+        <div id="desktop-sidebar" className={showDesktopSidebar ? "hidden md:flex" : "hidden"}>
+          <Sidebar active={showDesktopSidebar} />
         </div>
         {/* メインエリア */}
         <main ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-y-auto md:rounded-3xl md:border md:border-[var(--color-border)]">{children}</main>
@@ -86,7 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           showCloseButton={false}
           className="mobile-bottom-sheet gap-0 overflow-hidden p-0 data-[side=left]:w-80"
           style={sidebarSwipe.style}
-          finalFocus={sidebarReturnFocusRef}
+          finalFocus={isDesktopSidebarViewport ? mainRef : sidebarReturnFocusRef}
           onKeyDown={(event) => {
             // Sheetが止める矢印/確定キーをdocument上のKeyboardSensorへ届ける。
             if (isSidebarDraggingRef.current && event.key !== "Escape" && event.key !== "Tab") {
