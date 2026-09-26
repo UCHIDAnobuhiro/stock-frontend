@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { X } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import { useSheetSwipe } from "@/hooks/useSheetSwipe";
 import { SheetDragHandle } from "@/components/ui/SheetDragHandle";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/LoadingIndicator";
+import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 const LogoSearchContent = dynamic(() => import("./LogoSearchContent"), {
   ssr: false,
@@ -54,7 +56,15 @@ export function LogoSearchSheet({ open, onOpenChange }: LogoSearchSheetProps) {
             <X className="size-5" aria-hidden="true" />
           </Button>
         </SheetHeader>
-        <LogoSearchContent open={open} onOpenChange={onOpenChange} />
+        <Suspense fallback={
+          <div className="flex min-h-36 items-center justify-center px-6 py-8">
+            <LoadingIndicator label="銘柄一覧を読み込んでいます..." />
+          </div>
+        }>
+          <SymbolsFallback>
+            <LogoSearchContent open={open} onOpenChange={onOpenChange} />
+          </SymbolsFallback>
+        </Suspense>
       </SheetContent>
     </Sheet>
   );

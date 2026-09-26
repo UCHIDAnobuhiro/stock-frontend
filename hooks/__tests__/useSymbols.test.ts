@@ -35,6 +35,7 @@ describe("useSymbols", () => {
       const { result } = renderHook(() => useSymbols());
 
       expect(result.current.symbols).toEqual(symbols);
+      expect(result.current.hasData).toBe(true);
     });
 
     it("data が undefined のとき symbols は空配列を返す", () => {
@@ -43,6 +44,7 @@ describe("useSymbols", () => {
       const { result } = renderHook(() => useSymbols());
 
       expect(result.current.symbols).toEqual([]);
+      expect(result.current.hasData).toBe(false);
     });
 
     it("isLoading が true のとき正しく伝播する", () => {

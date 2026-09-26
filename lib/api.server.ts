@@ -17,9 +17,14 @@ export async function fetchSymbolsServer(): Promise<SymbolItem[] | null> {
   if (!authToken) return null;
 
   const client = createClient<paths>({ baseUrl: API_BASE });
-  const { data, error } = await client.GET("/v1/symbols", {
-    headers: { Cookie: `auth_token=${authToken}` },
-  });
-  if (error) return null;
-  return data ?? [];
+  try {
+    const { data, error } = await client.GET("/v1/symbols", {
+      headers: { Cookie: `auth_token=${authToken}` },
+    });
+    if (error) return null;
+    return data ?? [];
+  } catch {
+    // 通信失敗時はブラウザ側の SWR に取得を任せる。
+    return null;
+  }
 }

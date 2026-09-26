@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { WatchlistPanel } from "@/components/watchlist/WatchlistPanel";
+import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 interface SidebarProps {
   onItemClick?: () => void;
@@ -16,7 +18,11 @@ export default function Sidebar({ onItemClick, onDragStateChange }: SidebarProps
         borderColor: "var(--color-border)",
       }}
     >
-      <WatchlistPanel onItemClick={onItemClick} onDragStateChange={onDragStateChange} />
+      <Suspense fallback={<p className="p-5 text-sm text-[var(--color-text-muted)]">銘柄一覧を読み込んでいます…</p>}>
+        <SymbolsFallback>
+          <WatchlistPanel onItemClick={onItemClick} onDragStateChange={onDragStateChange} />
+        </SymbolsFallback>
+      </Suspense>
     </aside>
   );
 }
