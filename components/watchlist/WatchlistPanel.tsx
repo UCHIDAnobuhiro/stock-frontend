@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { useLayoutEffect, useMemo, useState, useRef, type RefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { BarChart2, List } from "lucide-react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
@@ -23,14 +23,7 @@ import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useQuotes } from "@/hooks/useQuotes";
 import { WatchlistItem } from "./WatchlistItem";
 import { WatchlistEmpty } from "./WatchlistEmpty";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { WatchlistSymbolSearch } from "./WatchlistSymbolSearch";
 
 interface WatchlistPanelProps {
   onItemClick?: () => void;
@@ -42,10 +35,8 @@ interface WatchlistPanelProps {
 
 export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onToggleViewMode, listScrollTopRef }: WatchlistPanelProps) {
   const { items, isLoading, removeSymbol, reorder } = useWatchlist();
-  const { symbols, isLoading: symbolsLoading } = useSymbols();
+  const { symbols, isLoading: symbolsLoading, hasData: hasSymbolsData } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
-  const [query, setQuery] = useState("");
-  const searchContainerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   // ウォッチリスト内の全銘柄の株価サマリーを1回のリクエストでまとめて取得する（N+1回避）
@@ -81,12 +72,6 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
     [symbols]
   );
 
-  const handleSelect = (code: string) => {
-    setSymbol(code);
-    setQuery("");
-    onItemClick?.();
-  };
-
   return (
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
@@ -94,67 +79,15 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
         className="m-3 flex min-h-11 shrink-0 items-center gap-1 rounded-xl border px-3"
         style={{ borderColor: "var(--color-border)" }}
       >
-        {/* インライン検索 */}
-        <div
-          ref={searchContainerRef}
-          className="relative flex-1 min-w-0"
-          onBlur={(e) => {
-            if (!searchContainerRef.current?.contains(e.relatedTarget as Node)) {
-              setQuery("");
-            }
+        <WatchlistSymbolSearch
+          symbols={symbols}
+          isLoading={symbolsLoading}
+          hasData={hasSymbolsData}
+          onSelect={(code) => {
+            setSymbol(code);
+            onItemClick?.();
           }}
-        >
-          <Command className="overflow-visible! bg-transparent! rounded-none! p-0! h-full [&_[data-slot=command-input-wrapper]]:p-0 [&_[data-slot=command-input-wrapper]]:h-full [&_[data-slot=input-group]]:h-full! [&_[data-slot=input-group]]:border-0! [&_[data-slot=input-group]]:bg-transparent! [&_[data-slot=input-group]]:rounded-none! [&_[data-slot=input-group]]:shadow-none!">
-            <CommandInput
-              value={query}
-              placeholder="銘柄コード・企業名で検索..."
-              className="text-base placeholder:text-xs md:text-sm"
-              style={{ color: "var(--color-text-primary)" }}
-              onValueChange={setQuery}
-            />
-            {query.length > 0 && (
-              <CommandList
-                className="absolute top-full left-0 w-full min-w-56 z-50 mt-2 rounded-2xl border shadow-lg"
-                style={{
-                  backgroundColor: "var(--color-surface-2)",
-                  borderColor: "var(--color-border)",
-                }}
-              >
-                {symbolsLoading ? (
-                  <div
-                    className="py-4 text-center text-xs"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
-                    読み込み中...
-                  </div>
-                ) : (
-                  <>
-                    <CommandEmpty style={{ color: "var(--color-text-muted)" }}>
-                      銘柄が見つかりません
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {symbols
-                        .map((symbol) => (
-                          <CommandItem
-                            key={symbol.code}
-                            value={`${symbol.code} ${symbol.name}`}
-                            onSelect={() => handleSelect(symbol.code)}
-                            className="gap-2 text-xs cursor-pointer"
-                            style={{ color: "var(--color-text-primary)" }}
-                          >
-                            <span className="font-medium">{symbol.code}</span>
-                            <span className="truncate" style={{ color: "var(--color-text-secondary)" }}>
-                              {symbol.name}
-                            </span>
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </>
-                )}
-              </CommandList>
-            )}
-          </Command>
-        </div>
+        />
 
         <button
           type="button"

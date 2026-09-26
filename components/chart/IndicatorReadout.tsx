@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { ListFilter, X } from "lucide-react";
+import { formatPrice } from "@/lib/format-market-number";
 import {
   Popover,
   PopoverContent,
@@ -21,11 +23,6 @@ interface IndicatorReadoutProps {
   smaData: SmaSeriesData[];
   band: BollingerBandData | undefined;
 }
-
-const formatPrice = (value: number) => value.toLocaleString("ja-JP", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 function IndicatorValue({ label, color, value }: {
   label: string;
@@ -53,6 +50,14 @@ export function IndicatorReadout({
   smaData,
   band,
 }: IndicatorReadoutProps) {
+  const smaValuesByTime = useMemo(() => smaData.map(({ period, values }) => ({
+    period,
+    valuesByTime: values.reduce((byTime, value) => {
+      if (!byTime.has(value.time)) byTime.set(value.time, value.value);
+      return byTime;
+    }, new Map<string, number>()),
+  })), [smaData]);
+
   return (
     <Popover
       key={String(smaEnabled || bollingerEnabled)}
@@ -82,12 +87,12 @@ export function IndicatorReadout({
           {time.replaceAll("-", "/")} · {intervalLabel}
         </p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-2 text-xs tabular-nums">
-          {smaData.map(({ period, values }, index) => (
+          {smaValuesByTime.map(({ period, valuesByTime }, index) => (
             <IndicatorValue
               key={period}
               label={`SMA(${period})`}
               color={getSmaColor(index)}
-              value={values.find(value => value.time === time)?.value}
+              value={valuesByTime.get(time)}
             />
           ))}
           {bollingerEnabled && BOLLINGER_SERIES.map(({ key, label, color }) => (

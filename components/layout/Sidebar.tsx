@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { WatchlistPanel } from "@/components/watchlist/WatchlistPanel";
+import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 interface SidebarProps {
   active?: boolean;
@@ -34,13 +35,17 @@ export default function Sidebar({ active = true, onItemClick, onDragStateChange 
       }}
     >
       {active && (
-        <WatchlistPanel
-          onItemClick={onItemClick}
-          onDragStateChange={onDragStateChange}
-          viewMode={viewMode}
-          onToggleViewMode={toggleViewMode}
-          listScrollTopRef={listScrollTopRef}
-        />
+        <Suspense fallback={<p className="p-5 text-sm text-[var(--color-text-muted)]">銘柄一覧を読み込んでいます…</p>}>
+          <SymbolsFallback>
+            <WatchlistPanel
+              onItemClick={onItemClick}
+              onDragStateChange={onDragStateChange}
+              viewMode={viewMode}
+              onToggleViewMode={toggleViewMode}
+              listScrollTopRef={listScrollTopRef}
+            />
+          </SymbolsFallback>
+        </Suspense>
       )}
     </aside>
   );

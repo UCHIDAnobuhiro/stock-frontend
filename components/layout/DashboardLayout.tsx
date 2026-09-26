@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import { List, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
 import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
+import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -120,10 +121,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
       {/* ロゴ検索Sheet */}
-      <LogoSearchSheet
-        open={isLogoSearchOpen}
-        onOpenChange={setIsLogoSearchOpen}
-      />
+      <Suspense fallback={
+        <Sheet open={isLogoSearchOpen} onOpenChange={setIsLogoSearchOpen}>
+          <SheetContent side="right" className="logo-search-sheet" style={{ backgroundColor: "var(--color-surface-1)" }}>
+            <SheetHeader><SheetTitle>ロゴから探す</SheetTitle></SheetHeader>
+            <p className="p-5 text-sm text-[var(--color-text-muted)]">銘柄一覧を読み込んでいます…</p>
+          </SheetContent>
+        </Sheet>
+      }>
+        <SymbolsFallback>
+          <LogoSearchSheet
+            open={isLogoSearchOpen}
+            onOpenChange={setIsLogoSearchOpen}
+          />
+        </SymbolsFallback>
+      </Suspense>
       {/* セッション切れダイアログ */}
       <SessionExpiredDialog open={isExpired} onLogin={handleSessionExpiredLogin} />
     </div>

@@ -375,6 +375,18 @@ describe("CandlestickChart", () => {
     expect(screen.getByTestId("candle-info").textContent).toContain("2024/01/02");
   });
 
+  it("選択中の足が更新データから消えたら最新足に戻す", async () => {
+    const { rerender } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "前の足を表示" }));
+    expect(screen.getByTestId("candle-info").textContent).toContain("選択中2024/01/01");
+
+    rerender(<CandlestickChart candles={[{ ...candlesWithData[1], close: 111 }]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    expect(screen.getByTestId("candle-info").textContent).toContain("最新の足2024/01/02");
+    expect(screen.getByTestId("candle-info").textContent).toContain("終値111.00");
+    expect((screen.getByRole("button", { name: "前の足を表示" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("テーマ変更でも操作済みの表示範囲と選択した足を維持する", async () => {
     const { rerender } = render(<CandlestickChart candles={candlesForRangeTest} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
     await act(async () => {});
