@@ -1,28 +1,42 @@
 "use client";
 
-import { useState, type Ref } from "react";
+import { Suspense, useState, type Ref } from "react";
 import { Bookmark } from "lucide-react";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useQuotes } from "@/hooks/useQuotes";
 import { SymbolLogo } from "@/components/ui/SymbolLogo";
+import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 interface ChartToolbarProps {
   readoutRef?: Ref<HTMLDivElement>;
   isLoading?: boolean;
 }
 
+function SymbolIdentity({ symbol }: { symbol: string | null }) {
+  const { symbols } = useSymbols();
+  const selected = symbols.find((item) => item.code === symbol);
+
+  return (
+    <>
+      {symbol && <SymbolLogo code={symbol} logoUrl={selected?.logo_url} size={32} />}
+      <div className="min-w-0">
+        <h1 className="truncate text-base font-semibold tracking-tight xl:text-lg">{symbol ?? "銘柄を選択"}</h1>
+        <p className="truncate text-xs text-[var(--color-text-secondary)]" title={selected?.name}>{selected?.name ?? "ウォッチリストからチャートを開く"}</p>
+      </div>
+    </>
+  );
+}
+
 export function ChartToolbar({ readoutRef, isLoading: isChartLoading = false }: ChartToolbarProps) {
   const { symbol } = useSelectedSymbol();
-  const { symbols } = useSymbols();
   const { items, addSymbol, removeSymbol } = useWatchlist();
   const { quotes, failures, isLoading } = useQuotes(symbol ? [symbol] : []);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const quote = symbol ? quotes.get(symbol) : undefined;
   const failure = symbol ? failures.get(symbol) : undefined;
-  const selected = symbols.find((s) => s.code === symbol);
   const isWatched = items.some((i) => i.symbol_code === symbol);
 
   return (
@@ -30,11 +44,11 @@ export function ChartToolbar({ readoutRef, isLoading: isChartLoading = false }: 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 xl:block xl:col-start-1 xl:row-start-1 xl:px-6 xl:pt-6">
       <div className="contents xl:flex xl:items-start xl:justify-between xl:gap-3">
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 xl:gap-3">
-          {symbol && <SymbolLogo code={symbol} logoUrl={selected?.logo_url} size={32} />}
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold tracking-tight xl:text-lg">{symbol ?? "銘柄を選択"}</h1>
-            <p className="truncate text-xs text-[var(--color-text-secondary)]" title={selected?.name}>{selected?.name ?? "ウォッチリストからチャートを開く"}</p>
-          </div>
+          <Suspense fallback={<h1 className="text-base font-semibold xl:text-lg">{symbol ?? "銘柄を選択"}</h1>}>
+            <SymbolsFallback>
+              <SymbolIdentity symbol={symbol} />
+            </SymbolsFallback>
+          </Suspense>
         </div>
         {symbol && <button type="button" disabled={isSaving} aria-label={isWatched ? "ウォッチリストから削除" : "ウォッチリストに追加"} aria-pressed={isWatched} className="chart-action col-start-3 row-start-1 size-11 shrink-0 p-0" onClick={async () => {
           setIsSaving(true); setSaveError(null);
