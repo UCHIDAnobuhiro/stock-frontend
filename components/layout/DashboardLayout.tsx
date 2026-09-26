@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { List, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,6 @@ import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
 import { useNavigationLoading } from "@/components/providers/NavigationLoadingProvider";
-import { SymbolsFallback } from "@/components/providers/SymbolsProvider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,12 +24,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { mutate } = useSWRConfig();
   const { startNavigation } = useNavigationLoading();
   const [isLogoSearchOpen, setIsLogoSearchOpen] = useState(false);
+  const [hasOpenedLogoSearch, setHasOpenedLogoSearch] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const sidebarSwipe = useSheetSwipe(() => setIsMobileSidebarOpen(false));
   const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const isSidebarDraggingRef = useRef(false);
+  const handleLogoSearchOpen = () => {
+    setHasOpenedLogoSearch(true);
+    setIsLogoSearchOpen(true);
+  };
   const handleMobileSidebarOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     sidebarReturnFocusRef.current = event.currentTarget;
     isSidebarDraggingRef.current = false;
@@ -47,7 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <Topbar
-        onLogoSearchOpen={() => setIsLogoSearchOpen(true)}
+        onLogoSearchOpen={handleLogoSearchOpen}
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         onDesktopSidebarToggle={() => setIsDesktopSidebarOpen((open) => !open)}
       />
@@ -64,7 +68,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={handleMobileSidebarOpen} aria-label="銘柄サイドバーを開く" aria-expanded={isMobileSidebarOpen}>
             <List className="size-5" aria-hidden="true" />銘柄一覧
           </Button>
-          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={() => setIsLogoSearchOpen(true)} aria-label="ロゴ検索を開く" aria-expanded={isLogoSearchOpen}>
+          <Button variant="ghost" className="h-12 gap-2 rounded-xl" onClick={handleLogoSearchOpen} aria-label="ロゴ検索を開く" aria-expanded={isLogoSearchOpen}>
             <ScanSearch className="size-5" aria-hidden="true" />ロゴ検索
           </Button>
         </div>
@@ -118,21 +122,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
       {/* ロゴ検索Sheet */}
-      <Suspense fallback={
-        <Sheet open={isLogoSearchOpen} onOpenChange={setIsLogoSearchOpen}>
-          <SheetContent side="right" className="logo-search-sheet" style={{ backgroundColor: "var(--color-surface-1)" }}>
-            <SheetHeader><SheetTitle>ロゴから探す</SheetTitle></SheetHeader>
-            <p className="p-5 text-sm text-[var(--color-text-muted)]">銘柄一覧を読み込んでいます…</p>
-          </SheetContent>
-        </Sheet>
-      }>
-        <SymbolsFallback>
-          <LogoSearchSheet
-            open={isLogoSearchOpen}
-            onOpenChange={setIsLogoSearchOpen}
-          />
-        </SymbolsFallback>
-      </Suspense>
+      {hasOpenedLogoSearch && (
+        <LogoSearchSheet
+          open={isLogoSearchOpen}
+          onOpenChange={setIsLogoSearchOpen}
+        />
+      )}
       {/* セッション切れダイアログ */}
       <SessionExpiredDialog open={isExpired} onLogin={handleSessionExpiredLogin} />
     </div>
