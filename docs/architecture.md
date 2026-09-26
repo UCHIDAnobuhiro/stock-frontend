@@ -44,11 +44,10 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── �
 
 ## SSR と SWR
 
-`app/page.tsx` が `fetchSymbolsServer()` を呼び、取得結果を `/v1/symbols` キーの fallback として渡します。サーバーは `cookies()` から読み取った `auth_token` を Cookie ヘッダーへ明示的に付けます。
+`app/page.tsx` は `fetchSymbolsServer()` を開始し、その Promise を `SymbolsProvider` で共有します。シェルとチャートは取得完了を待たずに表示し、サイドバー・銘柄名とロゴ・ロゴ検索の一覧依存部分だけが Suspense で待機します。解決した結果は各部分の `SymbolsFallback` が `/v1/symbols` キーの SWR fallback として渡します。サーバーは `cookies()` から読み取った `auth_token` を Cookie ヘッダーへ明示的に付けます。
 
 - 正常な空配列は取得成功であり、fallback に含めます。
-- 認証 Cookie がない場合や API がエラーレスポンスを返した場合は `null` を返し、fallback を設定しません。
-- ネットワーク例外はこの関数では捕捉せず、ページのエラー境界へ伝わります。
+- 認証 Cookie がない場合や API がエラーレスポンスを返した場合、または通信に失敗した場合は `null` を返し、fallback を設定せずクライアントから取得します。
 - fallback があっても SWR の再検証中は `isLoading` が true になり得ます。初期データの有無とローディング状態は別の情報です。
 - SSR は自動 refresh を行いません。
 

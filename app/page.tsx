@@ -1,16 +1,15 @@
 import { Suspense } from "react";
-import { SWRConfig } from "swr";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ChartContainer } from "@/components/chart/ChartContainer";
 import { ChartSkeleton } from "@/components/chart/ChartSkeleton";
+import { SymbolsProvider } from "@/components/providers/SymbolsProvider";
 import { fetchSymbolsServer } from "@/lib/api.server";
 
-export default async function Home() {
-  const symbols = await fetchSymbolsServer();
-  const fallback = symbols === null ? {} : { "/v1/symbols": symbols };
+export default function Home() {
+  const symbolsPromise = fetchSymbolsServer();
 
   return (
-    <SWRConfig value={{ fallback }}>
+    <SymbolsProvider promise={symbolsPromise}>
       <Suspense fallback={<ChartSkeleton />}>
         <DashboardLayout>
           <Suspense fallback={<ChartSkeleton />}>
@@ -18,6 +17,6 @@ export default async function Home() {
           </Suspense>
         </DashboardLayout>
       </Suspense>
-    </SWRConfig>
+    </SymbolsProvider>
   );
 }

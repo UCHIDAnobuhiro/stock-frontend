@@ -68,4 +68,12 @@ describe("fetchSymbolsServer", () => {
 
     expect(symbols).toEqual([]);
   });
+
+  it("通信が例外を投げた場合は null を返す", async () => {
+    mockCookiesGet.mockReturnValue({ value: "token123" });
+    mockGet.mockRejectedValue(new TypeError("network failure"));
+
+    const { fetchSymbolsServer } = await import("@/lib/api.server");
+    await expect(fetchSymbolsServer()).resolves.toBeNull();
+  });
 });
