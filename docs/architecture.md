@@ -36,9 +36,9 @@ components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── Go
 
 ブラウザ用 `lib/api.ts` はCookieを送信し、安全メソッド以外にCSRFヘッダーを付けます。401時は `lib/auth-refresh.ts` がrefreshを共有し、409のみ一度再試行します。成功時は最新CSRF Cookieで元リクエストを一度再送します。refreshの401/403は失効として扱い、5xx・通信失敗・再409は一時障害の503として扱います。一時障害ではセッション切れイベントを発火しません。login・signup・logout・refresh・OAuthは自動refreshの対象外です。
 
-ログイン成功時にはSWRキャッシュを破棄し、watchlistを再取得してからホームへ移ります。ログアウト成功時は全キャッシュの破棄を待ってからログインへ移ります。ログアウトが失敗した場合はCookieが残り得るため画面を維持して再試行を促します。利用中の失効は `useSessionExpiry` のダイアログで扱います。
+ログイン成功時にはSWRキャッシュを破棄してwatchlistの認証確認を再実行し、ホームへ移ります。認証確認が一時的に失敗してもログイン失敗として表示せず、ホームで再試行を促します。ログアウト成功時は全キャッシュの破棄を待ってからログインへ移ります。ログアウトが失敗した場合はCookieが残り得るため画面を維持して再試行を促します。利用中の失効は `useSessionExpiry` のダイアログで扱います。
 
-`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、全レスポンスへCSPと基本セキュリティヘッダーを付けます。HTMLはinline scriptを含まず、`public/theme-init.js` を `script-src 'self'` で読み込みます。CSPの `connect-src` はビルド環境の `VITE_API_BASE_URL` のoriginから生成し、ViteとVercelで共通のURL検証を使います。
+`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、拡張子付き静的ファイルと `assets/`・`fonts/` を除外します。全レスポンスへCSPと基本セキュリティヘッダーを付けます。HTMLはinline scriptを含まず、`public/theme-init.js` を `script-src 'self'` で読み込みます。CSPの `connect-src` はビルド環境の `VITE_API_BASE_URL` のoriginから生成し、ViteとVercelで共通のURL検証を使います。
 
 ## チャートの計算と描画
 

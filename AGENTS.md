@@ -115,8 +115,8 @@ Go バックエンド
 - Cookie認証を使う状態変更リクエストと認証Cookieの更新・削除には `X-CSRF-Token` ヘッダーが必要
 - クライアント側の保護APIが401を返した場合は `lib/auth-refresh.ts` が `/v1/auth/refresh` を呼び、成功時に元リクエストを1回再送する。同一クライアント内の refresh は共有し、refresh の409のみ1回再試行する。再送時は最新の CSRF Cookie を使う
 - login・signup・logout・refresh・OAuth は自動 refresh の対象外。refresh の401/403は失効、5xx・通信失敗・再409は一時障害として扱う。一時障害ではセッション切れイベントを発火しない
-- `app/routes.tsx` が画面遷移を制御し、JWT の署名検証・認可はバックエンドが担う。ログイン成功後は認証確認を再実行し、ログアウト成功後は SWR キャッシュを破棄する
-- `vercel.ts` が `VITE_API_BASE_URL` のoriginからCSPの `connect-src` を生成し、全レスポンスへセキュリティヘッダーを付与する。`public/theme-init.js` は外部スクリプトとして描画前にテーマを適用する
+- `app/routes.tsx` が画面遷移を制御し、JWT の署名検証・認可はバックエンドが担う。ログイン成功後は旧ユーザーの SWR キャッシュを破棄して認証確認を再実行し、確認の一時障害はホームの再試行で扱う。ログアウト成功後は SWR キャッシュを破棄する
+- `vercel.ts` が `VITE_API_BASE_URL` のoriginからCSPの `connect-src` を生成し、全レスポンスへセキュリティヘッダーを付与する。SPA rewrite は拡張子付き静的ファイルと `assets/`・`fonts/` を除外する。`public/theme-init.js` は外部スクリプトとして描画前にテーマを適用する
 - 型定義は `schema.ts` から自動生成されるため、補完・型エラーが有効
 
 ### 主要エンドポイント

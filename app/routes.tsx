@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import useSWR from "swr";
 import { ApiError } from "@/lib/api";
 import { fetchWatchlist } from "@/hooks/useWatchlist";
@@ -10,7 +10,6 @@ import SignupPage from "./signup/page";
 import NotFound from "./not-found";
 
 function SessionGate({ children, publicPage = false }: { children: React.ReactNode; publicPage?: boolean }) {
-  const location = useLocation();
   const { data, error, mutate } = useSWR("/v1/watchlist", fetchWatchlist, {
     shouldRetryOnError: false,
   });
@@ -18,7 +17,7 @@ function SessionGate({ children, publicPage = false }: { children: React.ReactNo
   // 初回の認証確認中にも画面の各取得を開始し、チャートを直列待ちにしない。
   const checking = data === undefined && !error;
   if (error instanceof ApiError && error.status === 401) {
-    return publicPage ? children : <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+    return publicPage ? children : <Navigate to="/login" replace />;
   }
   if (error && data === undefined) {
     return (
@@ -31,7 +30,7 @@ function SessionGate({ children, publicPage = false }: { children: React.ReactNo
   if (publicPage && !checking) return <Navigate to="/" replace />;
   return (
     <>
-      <div aria-hidden={checking}>{children}</div>
+      <div aria-hidden={checking} inert={checking}>{children}</div>
       {checking && <PageLoadingScreen />}
     </>
   );

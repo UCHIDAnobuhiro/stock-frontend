@@ -91,6 +91,9 @@ it("初回認証確認中もホームをマウントしてデータ取得を並�
   renderRoute("/?symbol=AAPL");
   expect(screen.getByText("ホーム画面")).toBeTruthy();
   expect(screen.getByText("画面を読み込んでいます...")).toBeTruthy();
+  const home = screen.getByText("ホーム画面").parentElement!;
+  expect(home.closest("[inert]")).not.toBeNull();
   resolveCheck([]);
   await waitFor(() => expect(screen.queryByText("画面を読み込んでいます...")).toBeNull());
+  expect(home.closest("[inert]")).toBeNull();
 });

@@ -88,6 +88,7 @@ export function createAuthFetch({
 
       if (response.ok) return "ok";
       if (response.status === 401 || response.status === 403) return "expired";
+      // 400・429・再409・5xx は Cookie の失効を証明しない。
       return "unavailable";
     } catch {
       return "unavailable";

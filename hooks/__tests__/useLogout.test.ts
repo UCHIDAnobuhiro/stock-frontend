@@ -110,4 +110,13 @@ describe("useLogout", () => {
     expect(mockMutate).not.toHaveBeenCalled();
     expect(result.current.logoutError).not.toBeNull();
   });
+
+  it.each([401, 403])("サーバーが%dを返す場合はCookie残存を前提に画面を維持する", async (status) => {
+    mockDelete.mockResolvedValue({ response: { status, ok: false } });
+    const { result } = renderHook(() => useLogout());
+    await act(async () => { await result.current.handleLogout(); });
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(result.current.logoutError).not.toBeNull();
+  });
 });

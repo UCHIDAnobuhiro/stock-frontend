@@ -235,12 +235,12 @@ describe("createAuthFetch", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
-  it("refresh失敗時は元の401を返し、元リクエストを再送しない", async () => {
+  it.each([401, 403])("refreshが%dなら元の401を返し、元リクエストを再送しない", async (status) => {
     const original401 = new Response(null, { status: 401 });
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(original401)
-      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+      .mockResolvedValueOnce(new Response(null, { status }));
     const authFetch = createAuthFetch({ fetchImpl });
 
     const response = await authFetch(request("/v1/symbols"));
@@ -249,7 +249,7 @@ describe("createAuthFetch", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
-  it.each([500, 503])("refreshが%dなら失効ではなく一時障害を返す", async (status) => {
+  it.each([400, 429, 500, 503])("refreshが%dなら失効ではなく一時障害を返す", async (status) => {
     const fetchImpl = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status }));

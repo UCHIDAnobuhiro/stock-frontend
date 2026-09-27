@@ -70,39 +70,53 @@ export function useLogin() {
     if (!validate()) return;
 
     setIsLoading(true);
+    let loginResponse;
     try {
-      const { data, error, response } = await apiClient.POST("/v1/login", {
+      loginResponse = await apiClient.POST("/v1/login", {
         body: { email: email.trim(), password },
       });
-
-      if (data) {
-        // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
-        await mutate(() => true, undefined, { revalidate: false });
-        await mutate("/v1/watchlist", fetchWatchlist(), { revalidate: false });
-        void navigate("/", { replace: true });
-        return;
-      }
-
-      switch (response.status) {
-        case 400:
-          setServerError(error?.error ?? "入力内容に問題があります");
-          break;
-        case 401:
-          setServerError("メールアドレスまたはパスワードが正しくありません");
-          break;
-        case 429:
-          setServerError("しばらく時間をおいてから再度お試しください");
-          break;
-        case 503:
-          setServerError(
-            "サービスが一時的に利用できません。時間をおいて再度お試しください",
-          );
-          break;
-        default:
-          setServerError("エラーが発生しました。時間をおいて再度お試しください");
-      }
     } catch {
       setServerError("ネットワークエラーが発生しました");
+      setIsLoading(false);
+      return;
+    }
+
+    const { data, error, response } = loginResponse;
+
+    if (data) {
+      // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
+      // POST の成功後は Cookie が発行済み。認証確認の失敗をログイン失敗として表示しない。
+      await mutate(() => true, undefined, { revalidate: false });
+      try {
+        await mutate("/v1/watchlist", fetchWatchlist(), {
+          revalidate: false,
+          throwOnError: false,
+        });
+      } catch {
+        // 認証確認の更新に失敗しても POST 成功を取り消さない。
+      }
+      // 一時障害は遷移先の SessionGate が再試行として扱う。
+      void navigate("/", { replace: true });
+      return;
+    }
+
+    switch (response.status) {
+      case 400:
+        setServerError(error?.error ?? "入力内容に問題があります");
+        break;
+      case 401:
+        setServerError("メールアドレスまたはパスワードが正しくありません");
+        break;
+      case 429:
+        setServerError("しばらく時間をおいてから再度お試しください");
+        break;
+      case 503:
+        setServerError(
+          "サービスが一時的に利用できません。時間をおいて再度お試しください",
+        );
+        break;
+      default:
+        setServerError("エラーが発生しました。時間をおいて再度お試しください");
     }
     setIsLoading(false);
   }
