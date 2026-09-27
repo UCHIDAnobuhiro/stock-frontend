@@ -95,4 +95,15 @@ describe("セッションレスポンスミドルウェア", () => {
     expect(listener).not.toHaveBeenCalled();
     window.removeEventListener("session:expired", listener);
   });
+
+  it("refreshの一時障害を表す503ではセッション切れイベントを発火しない", () => {
+    const listener = vi.fn();
+    window.addEventListener("session:expired", listener);
+    sessionMiddleware.onResponse({
+      request: new Request("http://localhost/v1/watchlist"),
+      response: new Response(null, { status: 503 }),
+    });
+    expect(listener).not.toHaveBeenCalled();
+    window.removeEventListener("session:expired", listener);
+  });
 });

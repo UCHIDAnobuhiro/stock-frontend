@@ -17,6 +17,8 @@ interface AuthFetchOptions {
   sleep?: Sleep;
 }
 
+type RefreshResult = "ok" | "expired" | "unavailable";
+
 function getApiPath(url: string): string {
   const pathname = new URL(url).pathname;
   const apiPathStart = pathname.indexOf("/v1/");
@@ -71,27 +73,34 @@ export function createAuthFetch({
   sleep = (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
 }: AuthFetchOptions = {}): typeof fetch {
-  let refreshPromise: Promise<boolean> | null = null;
+  let refreshPromise: Promise<RefreshResult> | null = null;
   let refreshGeneration = 0;
 
-  async function requestRefresh(): Promise<boolean> {
+  async function requestRefresh(): Promise<RefreshResult> {
     const refreshUrl = `${API_BASE}${REFRESH_PATH}`;
-    let response = await fetchImpl(refreshUrl, createRefreshRequestInit());
+    try {
+      let response = await fetchImpl(refreshUrl, createRefreshRequestInit());
 
-    if (response.status === 409) {
-      await sleep(getConflictRetryDelay(response));
-      response = await fetchImpl(refreshUrl, createRefreshRequestInit());
+      if (response.status === 409) {
+        await sleep(getConflictRetryDelay(response));
+        response = await fetchImpl(refreshUrl, createRefreshRequestInit());
+      }
+
+      if (response.ok) return "ok";
+      if (response.status === 401 || response.status === 403) return "expired";
+      // 400・429・再409・5xx は Cookie の失効を証明しない。
+      return "unavailable";
+    } catch {
+      return "unavailable";
     }
-
-    return response.ok;
   }
 
-  function refreshOnce(): Promise<boolean> {
+  function refreshOnce(): Promise<RefreshResult> {
     if (!refreshPromise) {
       refreshPromise = requestRefresh()
-        .then((refreshed) => {
-          if (refreshed) refreshGeneration += 1;
-          return refreshed;
+        .then((result) => {
+          if (result === "ok") refreshGeneration += 1;
+          return result;
         })
         .finally(() => {
           refreshPromise = null;
@@ -110,8 +119,14 @@ export function createAuthFetch({
     if (response.status !== 401 || !retryRequest) return response;
 
     if (generationAtRequest === refreshGeneration) {
-      const refreshed = await refreshOnce();
-      if (!refreshed) return response;
+      const result = await refreshOnce();
+      if (result === "expired") return response;
+      if (result === "unavailable") {
+        return new Response(JSON.stringify({ error: "認証サーバーに接続できません" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
 
     return fetchImpl(withCurrentCsrfToken(retryRequest));

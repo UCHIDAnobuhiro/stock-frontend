@@ -8,7 +8,7 @@ const { replace, mutate, startNavigation } = vi.hoisted(() => ({
   startNavigation: vi.fn((navigate: () => void) => navigate()),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("react-router", () => ({ useNavigate: () => replace }));
 vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate }) }));
 vi.mock("@/hooks/useNavigationLoading", () => ({ useNavigationLoading: () => ({ startNavigation }) }));
 
@@ -37,6 +37,6 @@ describe("useSessionRedirect", () => {
       await redirect;
     });
     expect(startNavigation).toHaveBeenCalledOnce();
-    expect(replace).toHaveBeenCalledExactlyOnceWith("/login");
+    expect(replace).toHaveBeenCalledExactlyOnceWith("/login", { replace: true });
   });
 });

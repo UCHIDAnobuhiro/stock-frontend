@@ -1,108 +1,26 @@
 # デプロイ
 
-### デプロイ先
+フロントエンドはViteで `dist/` にビルドし、Vercelから静的配信します。`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、拡張子付き静的ファイルと `assets/`・`fonts/` は除外します。全パスへCSPとセキュリティヘッダーを付けます。Next.jsのサーバー実行環境は必要ありません。
 
-フロントエンドの本番デプロイ先には **Vercel** を使用します。
+## 本番設定
 
-- Next.js の App Router、動的レンダリング、`proxy.ts` を追加設定なしで実行できる
-- GitHub と連携すると、Pull Request ごとの Preview Deployment と `main` の Production Deployment が自動作成される
-- CDN、HTTPS 証明書、ビルドキャッシュを個別に構築する必要がない
-
-Go バックエンドは Vercel とは別に、HTTPS で公開された環境へデプロイします。フロントエンドから直接 API を呼ぶため、後述する Cookie / CORS 設定も必要です。
-
-### Vercel へのデプロイ手順
-
-1. バックエンドをデプロイし、HTTPS の API URL（例: `https://api.example.com`）を確定する
-2. [Vercel](https://vercel.com/) で **Add New Project** を選び、この GitHub リポジトリを Import する
-3. Framework Preset が `Next.js`、Production Branch が `main` であることを確認する
-4. Project Settings の Environment Variables に、次の変数を Production と Preview の両方へ登録する
-
-   | 変数 | 値の例 | 評価タイミング |
-   |---|---|---|
-   | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` | ビルド時（ランタイムでの変更不可） |
-
-5. **Deploy** を実行する。以後は `main` への push で本番、Pull Request の push で Preview が自動デプロイされる
-6. 発行された HTTPS URL でログイン、株価データ取得、ログアウトが成功することを確認する
-
-ローカルからデプロイする場合は、リポジトリルートで以下を実行します。初回実行時は Vercel のプロジェクト選択と連携設定を求められます。
+VercelのFramework Presetは **Vite**、Production Branchは `main`、Output Directoryは `dist` に設定します。Environment VariablesのProductionに `VITE_API_BASE_URL=https://api.stockviewapp.com` を登録します。Previewは利用するAPIのURLを別途設定しますが、現状の認証制限は下記の通りです。旧 `NEXT_PUBLIC_API_BASE_URL` は参照しません。変数はビルド時にバンドルへ組み込まれ、変更後は再ビルドが必要です。未設定・不正URLではビルドが失敗し、`vercel.ts` は同じ変数のoriginをCSPの `connect-src` に使います。
 
 ```bash
-# Production と同じ環境変数でローカルビルドを検証
 npm ci
-NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run build
-
-# Preview Deployment
-npx vercel@latest
-
-# Production Deployment
-npx vercel@latest --prod
+VITE_API_BASE_URL=https://api.stockviewapp.com npm run build
 ```
 
-> Preview Deployment の URL はブランチごとに変わります。Preview でも認証機能を検証する場合は、使用する Preview のオリジンをバックエンドの CORS 許可リストへ追加してください。
+本番サイトは `https://www.stockviewapp.com`、APIは `https://api.stockviewapp.com` です。バックエンドは `COOKIE_DOMAIN=stockviewapp.com`、Secure、SameSite=LaxのCookieを発行し、CORSで `https://www.stockviewapp.com` と資格情報付きリクエストを許可します。同一サイトのサブドメインなのでこのCookie構成で認証できます。フロントエンドは `credentials: "include"` と `csrf_token` Cookie由来の `X-CSRF-Token` を使います。OAuth開始はAPIへのトップレベル遷移で、コールバック後は本番フロントへ戻ります。既存の本番Go設定は変更しません。
 
-### 環境変数はビルド時に必要
+デプロイ後は直接アクセスした `/login` と `/signup`、共有した `/?symbol=...&interval=...`、OAuth、ログアウト、テーマ切り替え、CSPによるAPI接続を確認してください。この移行作業では本番デプロイを行いません。
 
-`NEXT_PUBLIC_API_BASE_URL` は `NEXT_PUBLIC_` プレフィックスを持つため、**Next.js のビルド時にバンドルへ文字列としてインライン化されます**。ランタイムの環境変数では上書きできません。
+## ローカル
 
-```bash
-# 正しい: ビルド時に渡す
-NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run build
-npm run start
+`.env.local` に `VITE_API_BASE_URL=http://localhost:8080` を設定し、バックエンドを起動して `npm run dev` を実行します。Viteはポート3000を使用し、使用中なら別ポートへ自動変更せず停止します。`npm run build` と `npm run start` で静的成果物のローカルプレビューもできます。ローカルのVite開発サーバーはVercelのレスポンスヘッダーを付けません。
 
-# 誤り: ランタイムにだけ渡してもビルド成果物には反映されない
-npm run build
-NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm run start
-```
+## Previewの制限
 
-API ベース URL は `lib/api-base.ts` で共有し、次の箇所で使います。
-
-| 箇所 | 影響 |
-|---|---|
-| `lib/api.ts` / `lib/api.server.ts` | ブラウザ・SSR の API リクエスト先 |
-| `lib/auth-refresh.ts` の refresh URL | トークンローテーション先 |
-| `proxy.ts` の CSP `connect-src` | ブラウザが接続を許可するオリジン |
-
-未設定のままビルドすると `API_BASE` が空文字になり、全 API リクエストがフロントエンド自身へ飛んで機能しなくなります。CSP も同時に `connect-src 'self'` になるため、ブラウザ側では CSP 違反として現れず原因追跡が困難です。
-
-この事故を防ぐため、`next.config.ts` は**ビルドフェーズで `NEXT_PUBLIC_API_BASE_URL` が未設定ならビルドを失敗させます**。`next.config.ts` 自体の検査はビルド時のみです。`npm run dev` と `npm run build` は事前の `doctor` でも環境変数を確認します。`next start` はビルド済みの値を使います。
-
-### `output: "standalone"` を設定しない理由
-
-現在のデプロイ先は Vercel であり、Vercel が Next.js のビルド成果物と実行環境を管理するため、`next.config.ts` に `output: "standalone"` は設定しません。
-
-将来 Cloud Run などへコンテナとしてセルフホストする場合は、イメージへ `node_modules` 全体を含めないよう `output: "standalone"` を有効化し、`.next/standalone` と `.next/static` をランタイムイメージへコピーします。その移行時には Dockerfile の追加と、`node .next/standalone/server.js` での起動確認も行ってください。
-
-### Docker でビルドする場合
-
-`ARG` と `--build-arg` で渡します。`ENV` だけを設定してもビルド前に評価されなければ意味がありません。
-
-```dockerfile
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-RUN npm run build
-```
-
-```bash
-docker build --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com .
-```
-
-1 つのイメージを複数環境で使い回したい場合、この構成では実現できません。`NEXT_PUBLIC_` を使わないランタイム設定方式（Server Component からの受け渡し等）への変更が必要です。
-
-### バックエンド側に必要な設定
-
-フロントエンドとバックエンドが別オリジンになる構成では、Cookie 認証のために以下が必要です。
-
-- 認証 Cookie が `SameSite=None; Secure` で発行されていること
-- `Access-Control-Allow-Credentials: true` が返ること
-- `Access-Control-Allow-Origin` にフロントエンドのオリジンが設定されていること（`*` は資格情報付きリクエストで使用不可）
-- **フロントエンド・バックエンドともに HTTPS であること**（`Secure` Cookie はHTTPS でのみ送信される）
-
-フロントエンドとバックエンドを同一サイトのサブドメイン（例: `app.example.com` / `api.example.com`）に置く場合は、`SameSite=Lax` + `Domain=.example.com` でも動作します。
-
-### レンダリングモード
-
-`app/layout.tsx` が `headers()` から CSP の nonce を読み取るため、**全ページが動的レンダリング**になります（`npm run build` の出力で `ƒ (Dynamic)` と表示されます）。
-
-nonce はリクエストごとに変わるため静的生成とは原理的に両立しません。静的配信のみのホスティング（`next export` 相当）にはデプロイできず、Node.js ランタイムが必要です。
+通常の `*.vercel.app` Previewは本番サイト `stockviewapp.com` と別サイトです。本番バックエンドのCookieを読めず、現在のCORS許可にも含まれません。そのためPreviewでの認証・API操作は検証対象外です。Previewで認証を試すには、同一サイトの固定サブドメインを用意してCookie・CORS・OAuth戻り先を合わせるか、独立したPreviewバックエンドを構成する別作業が必要です。今回その構成やバックエンド設定は変更しません。
 
 [README に戻る](../README.md)

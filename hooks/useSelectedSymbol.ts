@@ -1,54 +1,65 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { useCallback, useRef } from "react";
 import { isInterval, type Interval } from "@/lib/market-data";
 
 export type { Interval } from "@/lib/market-data";
 
-function chartUrl(params: URLSearchParams) {
-  return `${window.location.pathname}?${params.toString()}`;
+function chartUrl(params: URLSearchParams, current: URL) {
+  return `${current.pathname}?${params.toString()}${current.hash}`;
 }
 
-function symbolUrl(code: string, keepInterval: boolean) {
-  // 連続操作で useSearchParams の再レンダー前でも最新の URL を使う。
-  const params = new URLSearchParams(window.location.search);
+function symbolUrl(code: string, keepInterval: boolean, current: URL) {
+  const params = new URLSearchParams(current.search);
   params.set("symbol", code);
   if (!keepInterval) params.set("interval", "1day");
-  return chartUrl(params);
+  return chartUrl(params, current);
 }
 
 export function useSelectedSymbol() {
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const latestUrl = useRef(new URL(location.pathname + location.search + location.hash, "http://localhost"));
+  const locationUrl = location.pathname + location.search + location.hash;
+  if (latestUrl.current.pathname + latestUrl.current.search + latestUrl.current.hash !== locationUrl) {
+    latestUrl.current = new URL(locationUrl, "http://localhost");
+  }
 
   const rawSymbol = searchParams.get("symbol");
   const symbol = rawSymbol?.trim() || null;
   const rawInterval = searchParams.get("interval");
   const interval: Interval = isInterval(rawInterval) ? rawInterval : "1day";
 
-  // 同一ページのクエリ変更では Server Component を再実行せず、
-  // Next.js と同期する History API で URL と戻る・進む履歴を更新する。
+  // 最新URLを基に更新し、連続操作で他のクエリを失わない。
   const setSymbol = useCallback(
     (code: string, keepInterval = true) => {
-      window.history.pushState(null, "", symbolUrl(code, keepInterval));
+      const url = symbolUrl(code, keepInterval, latestUrl.current);
+      latestUrl.current = new URL(url, "http://localhost");
+      void navigate(url);
     },
-    []
+    [navigate]
   );
 
   const replaceSymbol = useCallback(
     (code: string, keepInterval = true) => {
-      window.history.replaceState(null, "", symbolUrl(code, keepInterval));
+      const url = symbolUrl(code, keepInterval, latestUrl.current);
+      latestUrl.current = new URL(url, "http://localhost");
+      void navigate(url, { replace: true });
     },
-    []
+    [navigate]
   );
 
   const setInterval = useCallback(
     (value: Interval) => {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(latestUrl.current.search);
       params.set("interval", value);
-      window.history.pushState(null, "", chartUrl(params));
+      const url = chartUrl(params, latestUrl.current);
+      latestUrl.current = new URL(url, "http://localhost");
+      void navigate(url);
     },
-    []
+    [navigate]
   );
 
   return { symbol, interval, setSymbol, replaceSymbol, setInterval };

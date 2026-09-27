@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@testing-library/react"
 import NotFound from "@/app/not-found"
+import { MemoryRouter } from "react-router"
 
 describe("NotFound", () => {
   it("404 とページが見つかりませんが表示される", () => {
-    render(<NotFound />)
+    render(<MemoryRouter><NotFound /></MemoryRouter>)
 
     expect(screen.getByText("404")).not.toBeNull()
     expect(
@@ -13,7 +14,7 @@ describe("NotFound", () => {
   })
 
   it("ホームに戻るリンクが / を指す", () => {
-    render(<NotFound />)
+    render(<MemoryRouter><NotFound /></MemoryRouter>)
 
     const link = screen.getByRole("link", {
       name: "ホームに戻る",

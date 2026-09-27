@@ -53,7 +53,7 @@ vi.mock("lightweight-charts", () => ({
   LineSeries: {},
 }));
 
-vi.mock("next-themes", () => ({
+vi.mock("@/components/providers/ThemeProvider", () => ({
   useTheme: () => theme,
 }));
 

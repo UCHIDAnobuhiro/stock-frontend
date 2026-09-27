@@ -1,6 +1,7 @@
 "use client";
 
 import apiClient from "@/lib/api";
+import { useState } from "react";
 import { useSessionRedirect } from "./useSessionRedirect";
 
 /**
@@ -8,20 +9,28 @@ import { useSessionRedirect } from "./useSessionRedirect";
  * DELETE /v1/logout を呼び出してサーバー側の Cookie を削除し、
  * SWR のグローバルキャッシュを全破棄してからログインページへリダイレクトする。
  * キャッシュを破棄しないと、前のユーザーのデータが次にログインしたユーザーに
- * 見えてしまうため、API 呼び出しの成否に関わらず必ず破棄する。
+ * 見えてしまうため、成功後に必ず破棄する。失敗時は認証Cookieが残り得るため画面を維持する。
  */
 export function useLogout() {
   const redirectToLogin = useSessionRedirect();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError(null);
     try {
-      await apiClient.DELETE("/v1/logout");
+      const { response } = await apiClient.DELETE("/v1/logout");
+      if (!response.ok) throw new Error(`Logout failed: ${response.status}`);
+      await redirectToLogin();
     } catch (error) {
-      // ネットワークエラーでもクライアント側はログイン画面へ遷移する
       console.warn("Logout request failed:", error);
+      setLogoutError("ログアウトできませんでした。時間をおいて再度お試しください。");
+    } finally {
+      setIsLoggingOut(false);
     }
-    await redirectToLogin();
   }
 
-  return { handleLogout };
+  return { handleLogout, isLoggingOut, logoutError };
 }

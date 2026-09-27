@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LogoSearchSheet } from "@/components/logo/LogoSearchSheet";
-import { SymbolsProvider } from "@/components/providers/SymbolsProvider";
-import type { SymbolItem } from "@/lib/market-data";
 
 const { contentMounted } = vi.hoisted(() => ({ contentMounted: vi.fn() }));
 vi.mock("@/components/logo/LogoSearchContent", async () => {
@@ -76,24 +74,4 @@ describe("LogoSearchSheet", () => {
     expect(within(reopened).getByRole("button", { name: "選択した画像 1" })).toBeTruthy();
   });
 
-  it("銘柄一覧待機中もシートを閉じられ、取得完了後に勝手に開かない", async () => {
-    let resolveSymbols!: (value: SymbolItem[] | null) => void;
-    const promise = new Promise<SymbolItem[] | null>((resolve) => { resolveSymbols = resolve; });
-    const user = userEvent.setup();
-    render(<SymbolsProvider promise={promise}><Harness /></SymbolsProvider>);
-    const trigger = screen.getByRole("button", { name: "ロゴ検索を開く" });
-
-    await user.click(trigger);
-    const dialog = await screen.findByRole("dialog", { name: "ロゴから探す" });
-    expect(within(dialog).getByRole("status").textContent).toContain("銘柄一覧を読み込んでいます...");
-    await user.click(within(dialog).getByRole("button", { name: "ロゴ検索を閉じる" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "ロゴから探す" })).toBeNull());
-
-    await act(async () => resolveSymbols([]));
-    expect(screen.queryByRole("dialog", { name: "ロゴから探す" })).toBeNull();
-
-    await user.click(trigger);
-    const reopened = await screen.findByRole("dialog", { name: "ロゴから探す" });
-    expect(await within(reopened).findByRole("button", { name: "選択した画像 0" })).toBeTruthy();
-  });
 });

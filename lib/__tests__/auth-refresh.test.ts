@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthFetch } from "@/lib/auth-refresh";
+import { API_BASE } from "@/lib/api-base";
 
 const { mockGetCsrfToken } = vi.hoisted(() => ({
   mockGetCsrfToken: vi.fn<() => string | null>(),
@@ -32,7 +33,7 @@ describe("createAuthFetch", () => {
     "https://api.example.com",
     "https://api.example.com/",
   ])("%s から正規化したrefresh URLを生成する", async (apiBaseUrl) => {
-    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.stubEnv("VITE_API_BASE_URL", apiBaseUrl);
     vi.resetModules();
     const { createAuthFetch: createAuthFetchWithEnv } = await import(
       "@/lib/auth-refresh"
@@ -63,7 +64,7 @@ describe("createAuthFetch", () => {
 
     expect(response.status).toBe(200);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
-    expect(requestUrl(fetchImpl.mock.calls[1][0])).toBe("/v1/auth/refresh");
+    expect(requestUrl(fetchImpl.mock.calls[1][0])).toBe(`${API_BASE}/v1/auth/refresh`);
     expect(fetchImpl.mock.calls[1][1]).toMatchObject({
       method: "POST",
       credentials: "include",
@@ -106,7 +107,7 @@ describe("createAuthFetch", () => {
   it("refresh後の更新系リクエストにはローテーション後のCSRFトークンを設定する", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url === "/v1/auth/refresh") {
+      if (url.endsWith("/v1/auth/refresh")) {
         mockGetCsrfToken.mockReturnValue("csrf-after");
         return new Response(null, { status: 200 });
       }
@@ -135,7 +136,7 @@ describe("createAuthFetch", () => {
     });
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url === "/v1/auth/refresh") return refreshResponse;
+      if (url.endsWith("/v1/auth/refresh")) return refreshResponse;
       const callsForUrl = fetchImpl.mock.calls.filter(
         ([calledInput]) => requestUrl(calledInput) === url,
       ).length;
@@ -148,7 +149,7 @@ describe("createAuthFetch", () => {
     await vi.waitFor(() => {
       expect(
         fetchImpl.mock.calls.filter(
-          ([input]) => requestUrl(input) === "/v1/auth/refresh",
+          ([input]) => requestUrl(input).endsWith("/v1/auth/refresh"),
         ),
       ).toHaveLength(1);
     });
@@ -158,7 +159,7 @@ describe("createAuthFetch", () => {
     expect(responses.map(({ status }) => status)).toEqual([200, 200]);
     expect(
       fetchImpl.mock.calls.filter(
-        ([input]) => requestUrl(input) === "/v1/auth/refresh",
+        ([input]) => requestUrl(input).endsWith("/v1/auth/refresh"),
       ),
     ).toHaveLength(1);
   });
@@ -172,7 +173,7 @@ describe("createAuthFetch", () => {
     let watchlistCalls = 0;
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url === "/v1/auth/refresh") {
+      if (url.endsWith("/v1/auth/refresh")) {
         return new Response(null, { status: 200 });
       }
       if (url.endsWith("/v1/symbols")) {
@@ -194,7 +195,7 @@ describe("createAuthFetch", () => {
     expect((await delayed).status).toBe(200);
     expect(
       fetchImpl.mock.calls.filter(
-        ([input]) => requestUrl(input) === "/v1/auth/refresh",
+        ([input]) => requestUrl(input).endsWith("/v1/auth/refresh"),
       ),
     ).toHaveLength(1);
   });
@@ -229,22 +230,40 @@ describe("createAuthFetch", () => {
 
     const response = await authFetch(request("/v1/symbols"));
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(503);
     expect(sleep).toHaveBeenCalledWith(1_000);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
-  it("refresh失敗時は元の401を返し、元リクエストを再送しない", async () => {
+  it.each([401, 403])("refreshが%dなら元の401を返し、元リクエストを再送しない", async (status) => {
     const original401 = new Response(null, { status: 401 });
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(original401)
-      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+      .mockResolvedValueOnce(new Response(null, { status }));
     const authFetch = createAuthFetch({ fetchImpl });
 
     const response = await authFetch(request("/v1/symbols"));
 
     expect(response).toBe(original401);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([400, 429, 500, 503])("refreshが%dなら失効ではなく一時障害を返す", async (status) => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status }));
+    const response = await createAuthFetch({ fetchImpl })(request("/v1/watchlist"));
+    expect(response.status).toBe(503);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshの通信失敗も一時障害として扱う", async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockRejectedValueOnce(new TypeError("network failed"));
+    const response = await createAuthFetch({ fetchImpl })(request("/v1/watchlist"));
+    expect(response.status).toBe(503);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 

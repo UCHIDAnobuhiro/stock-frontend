@@ -5,73 +5,40 @@
 ## 責務と依存方向
 
 ```text
-app/page.tsx ── lib/api.server.ts ── バックエンド（SSR の銘柄一覧）
-     │              │
-     │              └── lib/api-base.ts（共有 URL）
-     ↓ SWR fallback
-components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── バックエンド
-     │            │          └── lib/api-base.ts
-     └────────────┴── lib/market-data.ts / lib/indicators.ts 等
+index.html → app/main.tsx → app/routes.tsx（React Router）
+                                ↓
+components/ ── hooks/ ── lib/api.ts ── lib/auth-refresh.ts ── Go バックエンド
+     └─────────── lib/market-data.ts / lib/indicators.ts
 ```
 
-| 配置 | 責務 |
-| --- | --- |
-| `app/` | ページ・レイアウト、SSR、エラー境界 |
-| `components/` | 表示と操作。チャートシリーズ等、描画に閉じたフックも配置する |
-| `hooks/` | API 取得・更新、URL 遷移、フォームの状態・送信、共有する操作 |
-| `lib/` | API 通信、認証ヘルパー、入力検証、指標計算、共有型 |
-| `lib/generated/` | OpenAPI 由来の自動生成型。直接編集しない |
-| `tests/support/` | テストだけが参照する共通補助コード |
+`app/` はSPAのルートとページ、`components/` は表示、`hooks/` は取得・操作、`lib/` はAPI通信と純粋関数を担当します。ルート直下の構成と `@/*` → `./*` のエイリアスを維持します。ESLintは上位層への逆向き参照と、コンポーネントからAPIクライアントへの直接アクセスを防ぎます。型はOpenAPIから `lib/generated/schema.ts` に生成し、直接編集しません。
 
-ルート直下に配置し、`@/*` は `./*` に対応します。Server Component を基本とし、操作を伴う境界に `"use client"` を付けます。境界配下の表示部品すべてに宣言を重複させる必要はありません。ESLint は `lib/`・`hooks/`・`components/` から上位層への逆向き参照と、`hooks/`・`components/` からサーバー専用 API への参照を禁止します。UI の API 通信はフックを経由し、`ChartContainer` のエラー表示用 `ApiError` だけ `lib/api.ts` から参照します。テスト補助コードは境界チェックから除きます。
-
-市場データの共有型は `lib/market-data.ts` に置き、API 型を再定義せず生成型を参照します。従来のフックからも型を再エクスポートしますが、`lib/` はフックへ依存しません。SSR と OAuth 開始リンクの API URL はブラウザ用クライアントを初期化せず `api-base.ts` から参照します。遷移中表示の Context は `hooks/useNavigationLoading.ts` に置き、Provider は表示を担当します。
-
-ロゴ検索は `LogoSearchSheet` がダイアログとフォーカス制御を保持し、初回オープン時に `LogoSearchContent` を読み込みます。シート内の `SymbolsFallback` と Suspense が銘柄一覧の取得だけを待つため、シェルとチャートの初期描画は止めません。画像処理と企業分析、および Markdown 表示の依存はこの境界の先に置きます。一度開いた後は内容をマウントしたまま非表示にし、画像と分析結果を再オープン時にも保持します。
+`LogoSearchSheet` は初回オープン時に `React.lazy` で検索内容を読み込みます。銘柄一覧は `useSymbols` が `/v1/symbols` のSWRキーを共有し、チャート取得は一覧を待ちません。
 
 ## 状態管理
 
 | 状態 | 所有者 |
 | --- | --- |
-| 選択銘柄・時間足 | `useSelectedSymbol` と URL の `symbol` / `interval` |
+| 選択銘柄・時間足 | `useSelectedSymbol` とURLの `symbol` / `interval` |
 | 銘柄一覧・ローソク足・価格サマリー・ウォッチリスト | SWR |
-| アクセストークン・リフレッシュトークン | バックエンドが発行する HttpOnly Cookie |
-| CSRF トークン | `csrf_token` Cookie → `X-CSRF-Token` ヘッダー |
-| テーマ | next-themes |
-| 指標の有効状態 | `useIndicators` の React state |
-| ウォッチリスト表示形式・PCサイドバーのスクロール位置 | `Sidebar`（表示形式は localStorage にも保存） |
+| 認証トークン | バックエンドが発行するHttpOnly Cookie |
+| CSRFトークン | `csrf_token` Cookie → `X-CSRF-Token` ヘッダー |
+| テーマ | `ThemeProvider`、`localStorage`、描画前の `public/theme-init.js` |
+| 指標の有効状態 | `useIndicators` のReact state |
+| ウォッチリスト表示形式・サイドバーのスクロール位置 | `Sidebar` |
 | チャートの選択足・固定状態・表示範囲 | `useCandlestickChart` |
 
-`useSelectedSymbol` は同一ページの銘柄・時間足の変更を History API で URL に反映します。`useSearchParams` に同期するため、共有 URL とブラウザの戻る・進む操作を維持しつつ、変更ごとの `app/page.tsx` の再実行と銘柄一覧の SSR 再取得を避けます。直接アクセスや再読み込みは通常のページリクエストとして `proxy.ts` を通ります。画面内の切り替えでは保護 API が認証・認可を行い、最終的な401はセッション切れ表示につなぎます。認証データはブラウザの永続ストレージへ保存しません。
+`useSelectedSymbol` はReact RouterのURLと履歴へ反映します。連続した銘柄・時間足操作は最新URLを参照し、別のクエリとhashを保ちます。戻る・進む操作にも追従します。
 
-## SSR と SWR
+## 認証とCSP
 
-`app/page.tsx` は `fetchSymbolsServer()` を開始し、その Promise を `SymbolsProvider` で共有します。シェルとチャートは取得完了を待たずに表示し、サイドバー・銘柄名とロゴ・ロゴ検索の一覧依存部分だけが Suspense で待機します。解決した結果は各部分の `SymbolsFallback` が `/v1/symbols` キーの SWR fallback として渡します。サーバーは `cookies()` から読み取った `auth_token` を Cookie ヘッダーへ明示的に付けます。
+`app/routes.tsx` は既存の `GET /v1/watchlist` を認証確認に使います。401なら保護画面からログインへ、成功なら認証済みとして公開画面からホームへ移ります。一時障害ではログインへ誤遷移せず再試行を表示します。認証確認中もホームの取得を並列に開始し、URL指定のチャートを待たせません。認可はGoバックエンドが行います。
 
-- 正常な空配列は取得成功であり、fallback に含めます。
-- 認証 Cookie がない場合や API がエラーレスポンスを返した場合、または通信に失敗した場合は `null` を返し、fallback を設定せずクライアントから取得します。
-- fallback があっても SWR の再検証中は `isLoading` が true になり得ます。初期データの有無とローディング状態は別の情報です。
-- SSR は自動 refresh を行いません。
+ブラウザ用 `lib/api.ts` はCookieを送信し、安全メソッド以外にCSRFヘッダーを付けます。401時は `lib/auth-refresh.ts` がrefreshを共有し、409のみ一度再試行します。成功時は最新CSRF Cookieで元リクエストを一度再送します。refreshの401/403は失効として扱い、5xx・通信失敗・再409は一時障害の503として扱います。一時障害ではセッション切れイベントを発火しません。login・signup・logout・refresh・OAuthは自動refreshの対象外です。
 
-`useQuotes` は最大50銘柄ごとに分割して並列取得します。結果はリクエスト順で結合し、銘柄単位の失敗も保持します。HTTP エラーがある場合は全体の取得エラーとして扱います。キーはコードをソートして作るため、並び替えだけでは再取得しません。
+ログイン成功時にはSWRキャッシュを破棄してwatchlistの認証確認を再実行し、ホームへ移ります。認証確認が一時的に失敗してもログイン失敗として表示せず、ホームで再試行を促します。ログアウト成功時は全キャッシュの破棄を待ってからログインへ移ります。ログアウトが失敗した場合はCookieが残り得るため画面を維持して再試行を促します。利用中の失効は `useSessionExpiry` のダイアログで扱います。
 
-`useWatchlist` の更新は `optimisticData` に渡される最新キャッシュを使います。追加・削除・並び替えが失敗した場合は SWR がロールバックし、成功時はサーバーの一覧を取得します。
-
-ウォッチリストの銘柄検索は `WatchlistSymbolSearch` が入力状態を持ち、入力中もウォッチリスト行を再描画しません。`lib/symbol-search.ts` が cmdk と同じスコアでコード・企業名を順位付けし、候補は50件ずつ表示します。残件数とページ操作を示し、全候補へ到達できます。
-
-## 認証と CSP
-
-ブラウザ用 `api.ts` は Cookie を送信し、安全メソッド（GET / HEAD / OPTIONS）以外には CSRF ヘッダーを付けます。保護 API の401を `auth-refresh.ts` が受け取ると、refresh に成功した場合に元リクエストを1回だけ再送します。同じクライアント内の refresh は共有し、409のみ1回再試行します。再送時には最新の CSRF Cookie を使います。
-
-login・signup・logout・refresh・OAuth は自動 refresh の対象外です。最終的に保護 API が401を返すと `SESSION_EXPIRED_EVENT` を発火し、`useSessionExpiry` がダイアログ表示へつなぎます。加えて、マウント直後と60秒ごとにブラウザ内の CSRF Cookie の存在を確認します。この確認では API 通信を行いません。
-
-ログアウトとセッション切れのログイン遷移は `useSessionRedirect` を共有します。SWR の全キャッシュ破棄を待ってから `startNavigation` で `/login` へ移るため、次のユーザーに前のデータを表示しません。ログアウト API が通信に失敗しても、このクライアント側の後処理は行います。
-
-`proxy.ts` は Cookie の存在と JWT の期限を確認する画面遷移用ガードです。署名検証と認可はバックエンドが担います。有効なアクセストークンがなくても refresh Cookie と CSRF Cookie が揃えばクライアントで復旧できます。
-
-nonce は `proxy.ts` → `app/layout.tsx` → `ThemeProvider` に渡します。リクエストごとに異なる nonce を使うため、ページの動的レンダリングを維持します。
-
-認証フォームの状態・API 送信・成功後の遷移は `useLogin` / `useSignup` に残し、共通の入力検証だけを `lib/auth-validation.ts` に置きます。登録時だけパスワード12文字以上を要求します。
+`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、拡張子付き静的ファイルと `assets/`・`fonts/` を除外します。全レスポンスへCSPと基本セキュリティヘッダーを付けます。HTMLはinline scriptを含まず、`public/theme-init.js` を `script-src 'self'` で読み込みます。CSPの `connect-src` はビルド環境の `VITE_API_BASE_URL` のoriginから生成し、ViteとVercelで共通のURL検証を使います。
 
 ## チャートの計算と描画
 

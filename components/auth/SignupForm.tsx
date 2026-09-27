@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "react-router";
 import { LoaderCircle } from "lucide-react";
 import { useSignup } from "@/hooks/useSignup";
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ export default function SignupForm() {
 
       <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
         すでにアカウントをお持ちの方は{" "}
-        <Link href="/login" className="font-medium text-primary hover:underline">
+        <Link to="/login" className="font-medium text-primary hover:underline">
           ログイン
         </Link>
       </p>

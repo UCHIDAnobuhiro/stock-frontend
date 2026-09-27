@@ -12,7 +12,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLogoSearchOpen, isDesktopSidebarOpen, onDesktopSidebarToggle }: TopbarProps) {
-  const { handleLogout } = useLogout();
+  const { handleLogout, isLoggingOut, logoutError } = useLogout();
 
   return (
     <header
@@ -42,6 +42,7 @@ export default function Topbar({ onLogoSearchOpen, isDesktopSidebarOpen, onDeskt
 
       {/* 右側アクション */}
       <div className="ml-auto flex items-center gap-1">
+        {logoutError && <p role="alert" className="text-xs text-[var(--color-bear)]">{logoutError}</p>}
         <ThemeToggle />
         <Button
           variant="outline"
@@ -60,6 +61,7 @@ export default function Topbar({ onLogoSearchOpen, isDesktopSidebarOpen, onDeskt
           className="h-11 min-w-11 gap-2 rounded-full text-xs"
           style={{ color: "var(--color-text-secondary)" }}
           onClick={() => void handleLogout()}
+          disabled={isLoggingOut}
           aria-label="ログアウト"
         >
           <LogOut className="h-3.5 w-3.5" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { isCompactChartViewport } from "@/hooks/useIsCompactChart";
 import {
   createChart,
@@ -97,7 +97,7 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
   const [isPinned, setIsPinned] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
-  // resolvedTheme は SSR/ハイドレーション前は undefined になる。
+  // テーマ状態は外部ストアと同期し、変更時に描画色を更新する。
   // ThemeProvider は CandlestickChart より先にマウントされるため、
   // useEffect 実行時点では ref 経由で正しいテーマを取得できる。
   const resolvedThemeRef = useRef(resolvedTheme);

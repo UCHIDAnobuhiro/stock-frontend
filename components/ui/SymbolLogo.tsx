@@ -19,7 +19,6 @@ export function SymbolLogo({ code, logoUrl, size = 20 }: SymbolLogoProps) {
 
   if (logoUrl && !failed) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={logoUrl}
         alt={`${code} logo`}

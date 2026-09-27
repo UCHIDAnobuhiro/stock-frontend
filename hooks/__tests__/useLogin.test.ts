@@ -5,20 +5,22 @@ import { useLogin } from "@/hooks/useLogin";
 // ---- モック設定 ----
 // vi.mock はファイル先頭にホイストされるため、vi.hoisted で事前に変数を初期化する
 
-const { mockReplace, mockPost, mockUseSearchParams } = vi.hoisted(() => ({
+const { mockReplace, mockPost, mockUseSearchParams, mockFetchWatchlist } = vi.hoisted(() => ({
   mockReplace: vi.fn(),
   mockPost: vi.fn(),
   mockUseSearchParams: vi.fn(),
+  mockFetchWatchlist: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
-  useSearchParams: mockUseSearchParams,
+vi.mock("react-router", () => ({
+  useNavigate: () => mockReplace,
+  useSearchParams: () => [mockUseSearchParams(), vi.fn()],
 }));
 
 vi.mock("@/lib/api", () => ({
   default: { POST: mockPost },
 }));
+vi.mock("@/hooks/useWatchlist", () => ({ fetchWatchlist: mockFetchWatchlist }));
 
 // ---- ヘルパー ----
 
@@ -32,6 +34,7 @@ describe("useLogin", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseSearchParams.mockReturnValue(new URLSearchParams());
+    mockFetchWatchlist.mockResolvedValue([]);
   });
 
   // バリデーション
@@ -127,7 +130,8 @@ describe("useLogin", () => {
         await result.current.handleSubmit(fakeEvent());
       });
 
-      expect(mockReplace).toHaveBeenCalledWith("/");
+      expect(mockReplace).toHaveBeenCalledWith("/", { replace: true });
+      expect(mockFetchWatchlist).toHaveBeenCalledOnce();
     });
   });
 

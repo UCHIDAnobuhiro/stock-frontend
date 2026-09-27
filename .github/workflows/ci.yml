@@ -42,4 +42,4 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_API_BASE_URL: https://api.example.com/
+          VITE_API_BASE_URL: https://api.example.com

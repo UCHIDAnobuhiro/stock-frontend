@@ -13,7 +13,7 @@ Codex の上部ツールバーには「開発サーバー」と「検証」ア�
 
 `doctor` はローカルでは Node.js / npm の両方を検査します。Node.js の最低バージョンは 24.18.0 とし、推奨バージョンへの更新だけでは引き上げません。Vercel が提供する 24.19.0 も対応範囲に含みます。Vercelではビルドランナーのnpm差異を許容しますが、Node.js・依存関係・環境変数の検査は継続します。
 
-`npm run build` は `next build --webpack` を実行します。Next.js 16 の Turbopack は Codex sandbox 内で内部ポートを bind できない場合があるため、エージェントが worktree 内で確実に本番ビルドを検証できる構成にしています。開発サーバーは Codex のアクション（統合ターミナル）から通常どおり Turbopack で起動します。
+`npm run dev` はViteの開発サーバーをポート3000で起動し、`npm run build` は `dist/` へ静的SPAを出力します。`npm run start` はビルド済みSPAのローカルプレビューです。
 
 ## 型定義の再生成
 
@@ -37,13 +37,13 @@ STOCK_BACKEND_DIR=/path/to/stock-backend npm run sync:api
 
 | 配置 | 検証すること |
 | --- | --- |
-| `lib/__tests__/` | 指標計算、Cookie・refresh、API ミドルウェア、SSR の返り値 |
+| `lib/__tests__/` | 指標計算、Cookie・refresh、API ミドルウェア |
 | `hooks/__tests__/` | 入力検証・遷移、取得パラメータ、SWR の取得・楽観的更新・ロールバック |
 | `components/**/__tests__/` | 選択・固定・表示範囲、モバイル表示、ダイアログ等の操作 |
-| `app/__tests__/` | ページの fallback、エラー・空状態の表示 |
+| `app/__tests__/` | SPAルートの認証判定・API URL由来のCSP設定・エラー表示 |
 | `tests/support/` | テスト用の共通 Provider。アプリからは参照しない |
 
-純粋関数の計算は入力と期待値で確認します。フックのリクエスト引数は API 境界で確認し、キャッシュ共有・SSR fallback・楽観的更新は実際の SWR を使って確認します。`createSWRWrapper()` はマウントごとにキャッシュを分離し、エラー後のバックグラウンド再試行を無効にします。
+純粋関数の計算は入力と期待値で確認します。フックのリクエスト引数は API 境界で確認し、キャッシュ共有・認証ルート・楽観的更新は実際の SWR を使って確認します。`createSWRWrapper()` はマウントごとにキャッシュを分離し、エラー後のバックグラウンド再試行を無効にします。
 
 チャートのテストでは Canvas を描画するライブラリ境界をモックし、渡すデータとユーザー操作後の表示を検証します。ブラウザでの描画品質や実バックエンドとの接続を保証する E2E テストではありません。
 
