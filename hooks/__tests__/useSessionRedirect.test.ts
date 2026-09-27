@@ -2,14 +2,14 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionRedirect } from "@/hooks/useSessionRedirect";
 
-const { replace, mutate, startNavigation } = vi.hoisted(() => ({
+const { replace, unload, startNavigation } = vi.hoisted(() => ({
   replace: vi.fn(),
-  mutate: vi.fn(),
+  unload: vi.fn(),
   startNavigation: vi.fn((navigate: () => void) => navigate()),
 }));
 
 vi.mock("react-router", () => ({ useNavigate: () => replace }));
-vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate }) }));
+vi.mock("swr", () => ({ useSWRConfig: () => ({ unload }) }));
 vi.mock("@/hooks/useNavigationLoading", () => ({ useNavigationLoading: () => ({ startNavigation }) }));
 
 beforeEach(() => {
@@ -17,26 +17,12 @@ beforeEach(() => {
 });
 
 describe("useSessionRedirect", () => {
-  it("全キャッシュ破棄の完了まで画面遷移を待つ", async () => {
-    let finishClear: (() => void) | undefined;
-    mutate.mockImplementation(() => new Promise<void>((resolve) => { finishClear = resolve; }));
+  it("キャッシュを同期破棄してから画面遷移を開始する", () => {
     const { result } = renderHook(() => useSessionRedirect());
-
-    let redirect: Promise<void> | undefined;
-    await act(async () => {
-      redirect = result.current();
-      await Promise.resolve();
-    });
-    expect(mutate).toHaveBeenCalledWith(expect.any(Function), undefined, { revalidate: false });
-    expect(mutate.mock.calls[0][0]("any-key")).toBe(true);
-    expect(startNavigation).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
-
-    await act(async () => {
-      finishClear?.();
-      await redirect;
-    });
+    act(() => result.current());
+    expect(unload).toHaveBeenCalledExactlyOnceWith({ revalidate: false });
     expect(startNavigation).toHaveBeenCalledOnce();
     expect(replace).toHaveBeenCalledExactlyOnceWith("/login", { replace: true });
+    expect(unload.mock.invocationCallOrder[0]).toBeLessThan(startNavigation.mock.invocationCallOrder[0]);
   });
 });
