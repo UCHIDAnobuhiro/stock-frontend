@@ -3,12 +3,6 @@
 @import "shadcn/tailwind.css";
 
 @font-face {
-  font-family: Geist;
-  src: url("/fonts/Geist-Variable.woff2") format("woff2");
-  font-weight: 100 900;
-  font-display: swap;
-}
-@font-face {
   font-family: "Geist Mono";
   src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
   font-weight: 100 900;
@@ -145,7 +139,7 @@
   --color-accent:       var(--color-accent);
   --color-bull:         var(--color-bull);
   --color-bear:         var(--color-bear);
-  --font-sans:           Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-sans:           -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --font-mono:           "Geist Mono", monospace;
   --font-heading:           var(--font-sans);
   --color-sidebar-ring:           var(--sidebar-ring);
@@ -199,7 +193,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text-primary);
-  font-family: Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   font-weight: 400;
 }
 
