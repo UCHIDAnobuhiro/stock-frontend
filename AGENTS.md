@@ -44,7 +44,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 │   └── useWatchlist.ts         # ウォッチリスト操作
 ├── lib/
 │   ├── api-base.ts             # API ベースURLの共有定義
-│   ├── api.ts                  # APIクライアント（openapi-fetch、Client Component 用）
+│   ├── api.ts                  # APIクライアント（openapi-fetch、ブラウザ用）
 │   ├── auth.ts                 # 認証ヘルパー
 │   ├── auth-refresh.ts         # 401時のトークン更新・リクエスト再送
 │   ├── auth-validation.ts      # ログイン・登録の共通入力検証
@@ -74,9 +74,9 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 | 機能 | 方式 |
 |---|---|
 | 銘柄一覧 | クライアント（SWR）の共通キー `/v1/symbols` |
-| ローソク足チャート | Client Component |
-| ウォッチリスト | Client Component |
-| ロゴ検出・企業分析 | Client Component |
+| ローソク足チャート | ブラウザ上のReactコンポーネント |
+| ウォッチリスト | ブラウザ上のReactコンポーネント |
+| ロゴ検出・企業分析 | ブラウザ上のReactコンポーネント |
 
 銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` が `hooks/useSymbols.ts` の同じ SWR キー `/v1/symbols` で共有する。URL 指定銘柄のチャート取得は一覧取得を待たない。
 
@@ -94,7 +94,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 コンポーネント (components/)
     ↓ hooks を呼ぶ
 カスタムフック (hooks/)
-    ↓ api.ts を呼ぶ（Client Component）
+    ↓ api.ts を呼ぶ（ブラウザ上で実行）
 APIクライアント (lib/api.ts)
     ↓
 Go バックエンド

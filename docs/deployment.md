@@ -11,9 +11,9 @@ npm ci
 VITE_API_BASE_URL=https://api.stockviewapp.com npm run build
 ```
 
-本番サイトは `https://www.stockviewapp.com`、APIは `https://api.stockviewapp.com` です。バックエンドは `COOKIE_DOMAIN=stockviewapp.com`、Secure、SameSite=LaxのCookieを発行し、CORSで `https://www.stockviewapp.com` と資格情報付きリクエストを許可します。同一サイトのサブドメインなのでこのCookie構成で認証できます。フロントエンドは `credentials: "include"` と `csrf_token` Cookie由来の `X-CSRF-Token` を使います。OAuth開始はAPIへのトップレベル遷移で、コールバック後は本番フロントへ戻ります。既存の本番Go設定は変更しません。
+本番サイトは `https://www.stockviewapp.com`、APIは `https://api.stockviewapp.com` です。バックエンドは `COOKIE_DOMAIN=stockviewapp.com`、Secure、SameSite=LaxのCookieを発行し、CORSで `https://www.stockviewapp.com` と資格情報付きリクエストを許可します。同一サイトのサブドメインなのでこのCookie構成で認証できます。フロントエンドは `credentials: "include"` と `csrf_token` Cookie由来の `X-CSRF-Token` を使います。OAuth開始はAPIへのトップレベル遷移で、コールバック後は本番フロントへ戻ります。
 
-デプロイ後は直接アクセスした `/login` と `/signup`、共有した `/?symbol=...&interval=...`、OAuth、ログアウト、テーマ切り替え、CSPによるAPI接続を確認してください。この移行作業では本番デプロイを行いません。
+デプロイ後は直接アクセスした `/login` と `/signup`、共有した `/?symbol=...&interval=...`、OAuth、ログアウト、テーマ切り替え、CSPによるAPI接続を確認してください。
 
 ## ローカル
 
@@ -21,6 +21,6 @@ VITE_API_BASE_URL=https://api.stockviewapp.com npm run build
 
 ## Previewの制限
 
-通常の `*.vercel.app` Previewは本番サイト `stockviewapp.com` と別サイトです。本番バックエンドのCookieを読めず、現在のCORS許可にも含まれません。そのためPreviewでの認証・API操作は検証対象外です。Previewで認証を試すには、同一サイトの固定サブドメインを用意してCookie・CORS・OAuth戻り先を合わせるか、独立したPreviewバックエンドを構成する別作業が必要です。今回その構成やバックエンド設定は変更しません。
+通常の `*.vercel.app` Previewは本番サイト `stockviewapp.com` と別サイトです。本番バックエンドのCookieを読めず、現在のCORS許可にも含まれません。そのためPreviewでの認証・API操作は検証対象外です。Previewで認証を試すには、同一サイトの固定サブドメインを用意してCookie・CORS・OAuth戻り先を合わせるか、独立したPreviewバックエンドを構成する別作業が必要です。
 
 [README に戻る](../README.md)
