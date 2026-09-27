@@ -18,19 +18,19 @@ AGENTS.md と変更周辺の実装を根拠に、不具合・回帰・保守上�
 
 変更に関係する観点だけを適用する。
 
-- **API と責務**: クライアントのデータ取得・更新は hooks → `lib/api.ts`、SSR の銘柄取得は `app/page.tsx` → `lib/api.server.ts`。refresh の内部 fetch と OAuth 開始リンクは正規の経路であり、違反として扱わない。純粋な計算は `lib/`、表示に閉じた状態はコンポーネント内で扱える。
-- **Server / Client 境界**: ブラウザ API やフックを使う処理がクライアント境界内にあるか。`"use client"` は境界を定義するため、配下の全ファイルに要求しない。サーバー専用処理や秘密情報がクライアントへ流れないか。
-- **SSR と SWR**: `/v1/symbols` の fallback キーが一致するか。正常な空配列と取得できない場合の `null` を区別するか。fallback があっても再検証中の `isLoading` を理由にデータを隠していないか。
+- **API と責務**: アプリのデータ取得・更新は hooks → `lib/api.ts` を経由する。refresh の内部 fetch と OAuth 開始リンクは正規の経路であり、違反として扱わない。純粋な計算は `lib/`、表示に閉じた状態はコンポーネント内で扱える。
+- **SPA の構成と依存方向**: `app/main.tsx` が Provider と React Router を初期化し、`app/routes.tsx` がルートを定義する。`app/` → `components/` → `hooks/` → `lib/` の依存方向を守るか。ブラウザで動作するSPAのため、Server Component 境界や `"use client"` の追加を要求しない。秘密情報をブラウザへ含めないか。
+- **データ取得と SWR**: 銘柄一覧は `useSymbols` の共通キー `/v1/symbols` で共有するか。URL 指定銘柄のチャート取得を一覧取得待ちにしていないか。正常な空配列・取得中・エラーを区別し、再検証中も既存データを表示するか。
 - **状態管理**: 銘柄・期間は `useSelectedSymbol` を通して URL の `symbol` / `interval` と同期するか。SWR の更新、楽観的更新の失敗時の復元、リクエスト競合によって表示が古くならないか。
-- **認証**: HttpOnly Cookie と CSRF ヘッダー、自動 refresh の対象外パス、refresh の共有・再試行上限、再送時の CSRF 更新を維持するか。`proxy.ts` の画面遷移制御をバックエンドの認可の代わりにしていないか。
-- **CSP**: 関連変更では `proxy.ts` → `app/layout.tsx` → `ThemeProvider` の nonce 受け渡しと動的レンダリングを確認する。
+- **認証**: HttpOnly Cookie と CSRF ヘッダー、自動 refresh の対象外パス、refresh の共有・再試行上限、再送時の CSRF 更新を維持するか。`app/routes.tsx` が `/v1/watchlist` の共通 SWR キーで認証を確認し、401と一時障害を区別するか。画面遷移制御をバックエンドの認可の代わりにしていないか。ログイン・ログアウト・セッション切れの遷移で旧ユーザーの SWR キャッシュを破棄するか。
+- **CSP**: `vercel.ts` のセキュリティヘッダーと SPA rewrite を確認する。`connect-src` は `VITE_API_BASE_URL` の origin から生成し、Vite と共通の URL 検証を使うか。rewrite が拡張子付き静的ファイルと `assets/`・`fonts/` を除外するか。描画前のテーマ初期化は外部スクリプト `public/theme-init.js` を使い、`script-src 'self'` と整合するか。
 - **API コントラクト**: `openapi/openapi.yaml` と `lib/generated/schema.ts` はバックエンドの正本から `npm run sync:api` で更新する。生成差分があるだけで手編集と断定せず、同期元・生成結果を確認する。
-- **環境変数とテーマ**: ブラウザへ公開する値だけに `NEXT_PUBLIC_` を使う。API URL はビルド時設定であること、テーマ色は `app/globals.css` のトークンに沿うことを確認する。
+- **環境変数とテーマ**: ブラウザへ公開する値だけに `VITE_` を使う。`VITE_API_BASE_URL` はビルド時に確定し、変更後は再ビルドが必要であること、テーマ色は `app/globals.css` のトークンに沿うことを確認する。
 
 ## 品質と検証
 
 - 型の不整合、エラーの握り潰し、非同期処理の競合、Effect の依存関係と後始末、リストの安定したキー、キーボード操作やラベルの欠落など、動作に影響する問題を優先する。
-- 命名は周辺実装に合わせる。通常のコンポーネントは PascalCase、フックは `use` 接頭辞を使う。`components/ui/button.tsx` など shadcn 由来の命名、`lib/api-base.ts` などの既存規約、App Router の特殊ファイル名を許容する。
+- 命名は周辺実装に合わせる。通常のコンポーネントは PascalCase、フックは `use` 接頭辞を使う。`components/ui/button.tsx` など shadcn 由来の命名、`lib/api-base.ts` などの既存規約、`app/page.tsx` など現在のページファイル名を許容する。ルートはファイル名ではなく `app/routes.tsx` で定義する。
 - 行数や props 数だけで分割を要求しない。`useMemo` / `useCallback` の有無、共通化や命名の好みだけを問題として報告しない。
 - テストの変更有無にかかわらず、変更された振る舞いを既存テストが検証できるか確認する。必要な正常・異常・空・ローディング状態を選び、Testing Library のユーザー視点のクエリと非同期処理を確認する。実装をなぞるだけのテスト追加は求めない。
 - 影響範囲に応じた検証を実行する。全体検証は `npm run verify` で直列実行する。CI には別途 `npm audit --audit-level=high` があり、`verify` の成功だけで CI 全項目の成功としない。
