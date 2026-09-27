@@ -3,7 +3,7 @@ import { CircleAlert } from "lucide-react";
 import { ErrorPageShell } from "./ErrorPageShell";
 import { Button } from "@/components/ui/button";
 
-export class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+export class AppErrorBoundary extends Component<{ children: ReactNode; reloadPage?: () => void }, { error: Error | null }> {
   state = { error: null };
 
   static getDerivedStateFromError(error: Error) {
@@ -23,6 +23,9 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, { error
         description="ページの表示中に問題が発生しました。時間をおいて再度お試しください。"
       >
         <Button onClick={() => this.setState({ error: null })}>再試行</Button>
+        <Button variant="outline" onClick={() => (this.props.reloadPage ?? (() => window.location.reload()))()}>
+          ページ再読み込み
+        </Button>
       </ErrorPageShell>
     );
   }

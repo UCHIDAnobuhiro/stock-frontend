@@ -1,4 +1,5 @@
 import { validateApiBaseUrl } from "../../config/api-url";
+import { sourceToRegex } from "@vercel/routing-utils";
 
 const getConfig = async () => {
   vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com");
@@ -23,7 +24,7 @@ it.each(["https://api.example.com", "https://api.other.example/v1"])(
     const headers = Object.fromEntries(headerRule?.headers.map(({ key, value }) => [key, value]) ?? []);
     expect(config.framework).toBe("vite");
     expect(config.outputDirectory).toBe("dist");
-    expect(config.rewrites).toEqual([{ source: "/(.*)", destination: "/index.html" }]);
+    expect(config.rewrites?.[0].destination).toBe("/index.html");
     expect(headerRule?.source).toBe("/(.*)");
     expect(headers).toMatchObject({
       "X-Frame-Options": "DENY",
@@ -44,6 +45,22 @@ it("ローカルHTTPを許可し、APIベースパスをCSP originに含めな�
   expect(config.headers?.[0].headers.find(({ key }) => key === "Content-Security-Policy")?.value)
     .toContain("connect-src 'self' http://localhost:8080;");
   expect(validateApiBaseUrl("http://[::1]:8080/v1").origin).toBe("http://[::1]:8080");
+});
+
+it("Vercelの実matcherで深い画面URLだけをSPAへ書き換える", async () => {
+  const config = (await getConfig())("https://api.example.com");
+  const source = config.rewrites?.[0].source;
+  expect(source).toBeDefined();
+  const matcher = new RegExp(sourceToRegex(source!).src);
+  for (const path of ["/", "/login", "/signup", "/portfolio/watchlist/deep"]) {
+    expect(matcher.test(path)).toBe(true);
+  }
+  for (const path of [
+    "/assets/missing.js", "/assets/missing.css", "/fonts/missing.woff2",
+    "/theme-init.js", "/favicon.ico", "/nested/missing.png",
+  ]) {
+    expect(matcher.test(path)).toBe(false);
+  }
 });
 
 it.each([

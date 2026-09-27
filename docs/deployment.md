@@ -1,6 +1,6 @@
 # デプロイ
 
-フロントエンドはViteで `dist/` にビルドし、Vercelから静的配信します。`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、全パスへCSPとセキュリティヘッダーを付けます。Next.jsのサーバー実行環境は必要ありません。
+フロントエンドはViteで `dist/` にビルドし、Vercelから静的配信します。`vercel.ts` はSPAの深いURLを `index.html` にrewriteし、拡張子付き静的ファイルと `assets/`・`fonts/` は除外します。全パスへCSPとセキュリティヘッダーを付けます。Next.jsのサーバー実行環境は必要ありません。
 
 ## 本番設定
 

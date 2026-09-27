@@ -6,7 +6,8 @@ export function createVercelConfig(apiBaseUrl: string | undefined): VercelConfig
   return {
     framework: "vite",
     outputDirectory: "dist",
-    rewrites: [{ source: "/(.*)", destination: "/index.html" }],
+    // 実ファイルの欠落を index.html に書き換えると、JS や font の読み込み失敗が HTML として隠れる。
+    rewrites: [{ source: "/((?!assets/|fonts/|.*\\.[^/]+$).*)", destination: "/index.html" }],
     headers: [{
       source: "/(.*)",
       headers: [

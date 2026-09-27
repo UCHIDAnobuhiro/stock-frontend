@@ -15,3 +15,13 @@ it("描画エラーから再試行で復旧できる", () => {
   expect(screen.getByText("復旧しました")).toBeTruthy();
   log.mockRestore();
 });
+
+it("描画エラー後に明示操作でのみページを再読み込みする", () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const reloadPage = vi.fn();
+  render(<AppErrorBoundary reloadPage={reloadPage}><CrashingChild shouldCrash /></AppErrorBoundary>);
+  expect(reloadPage).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "ページ再読み込み" }));
+  expect(reloadPage).toHaveBeenCalledOnce();
+  log.mockRestore();
+});
