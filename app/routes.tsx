@@ -20,6 +20,7 @@ function SessionGate({ children, publicPage = false }: { children: React.ReactNo
     return publicPage ? children : <Navigate to="/login" replace />;
   }
   if (error && data === undefined) {
+    if (publicPage) return children;
     return (
       <main role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
         <p>認証状態を確認できませんでした。通信を確認して再試行してください。</p>
