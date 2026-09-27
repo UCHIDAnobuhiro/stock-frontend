@@ -5,6 +5,7 @@ import { SESSION_EXPIRED_EVENT } from "@/lib/api";
 import { AppRoutes } from "../routes";
 
 const { transport } = vi.hoisted(() => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com");
   const transport = vi.fn<typeof fetch>();
   vi.stubGlobal("fetch", transport);
   return { transport };
@@ -12,7 +13,10 @@ const { transport } = vi.hoisted(() => {
 
 vi.mock("../page", () => ({ default: () => <div>ホーム画面</div> }));
 
-afterAll(() => vi.unstubAllGlobals());
+afterAll(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 function jsonResponse(status: number, body: object): Response {
   return new Response(JSON.stringify(body), {
