@@ -4,10 +4,10 @@ import { useLogout } from "@/hooks/useLogout";
 
 // ---- モック設定 ----
 
-const { mockReplace, mockDelete, mockMutate } = vi.hoisted(() => ({
+const { mockReplace, mockDelete, mockUnload } = vi.hoisted(() => ({
   mockReplace: vi.fn(),
   mockDelete: vi.fn(),
-  mockMutate: vi.fn(),
+  mockUnload: vi.fn(),
 }));
 
 vi.mock("react-router", () => ({
@@ -19,7 +19,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 vi.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: mockMutate }),
+  useSWRConfig: () => ({ unload: mockUnload }),
 }));
 
 // ---- テスト ----
@@ -31,7 +31,6 @@ describe("useLogout", () => {
     vi.clearAllMocks();
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockDelete.mockResolvedValue({ data: { message: "ok" }, response: { status: 200, ok: true } });
-    mockMutate.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -79,14 +78,7 @@ describe("useLogout", () => {
       await result.current.handleLogout();
     });
 
-    expect(mockMutate).toHaveBeenCalledWith(expect.any(Function), undefined, {
-      revalidate: false,
-    });
-
-    // 第1引数のフィルタ関数が任意のキーに対して true を返すことを確認
-    const filterFn = mockMutate.mock.calls[0][0];
-    expect(filterFn("any-key")).toBe(true);
-    expect(filterFn(undefined)).toBe(true);
+    expect(mockUnload).toHaveBeenCalledExactlyOnceWith({ revalidate: false });
   });
 
   it("通信失敗なら認証中のキャッシュを破棄しない", async () => {
@@ -98,7 +90,7 @@ describe("useLogout", () => {
       await result.current.handleLogout();
     });
 
-    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockUnload).not.toHaveBeenCalled();
     expect(consoleWarnSpy).toHaveBeenCalledWith("Logout request failed:", expect.any(Error));
   });
 
@@ -107,7 +99,7 @@ describe("useLogout", () => {
     const { result } = renderHook(() => useLogout());
     await act(async () => { await result.current.handleLogout(); });
     expect(mockReplace).not.toHaveBeenCalled();
-    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockUnload).not.toHaveBeenCalled();
     expect(result.current.logoutError).not.toBeNull();
   });
 
@@ -116,7 +108,7 @@ describe("useLogout", () => {
     const { result } = renderHook(() => useLogout());
     await act(async () => { await result.current.handleLogout(); });
     expect(mockReplace).not.toHaveBeenCalled();
-    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockUnload).not.toHaveBeenCalled();
     expect(result.current.logoutError).not.toBeNull();
   });
 });
