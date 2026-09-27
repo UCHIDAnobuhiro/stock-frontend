@@ -10,7 +10,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 
 | 用途 | ライブラリ |
 |---|---|
-| フレームワーク | Next.js 16 (App Router) |
+| フレームワーク | React 19 + Vite 8 + React Router 7（SPA） |
 | 言語 | TypeScript |
 | APIクライアント | openapi-fetch |
 | 型生成 | openapi-typescript |
@@ -25,7 +25,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 
 ```
 .
-├── app/                        # ページ・レイアウト（App Router）
+├── app/                        # SPAのエントリ・ルート・ページ
 ├── components/                 # UIコンポーネント（View層）
 │   ├── auth/                   # ログイン・サインアップ
 │   ├── chart/                  # ローソク足・テクニカル指標
@@ -45,7 +45,6 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 ├── lib/
 │   ├── api-base.ts             # API ベースURLの共有定義
 │   ├── api.ts                  # APIクライアント（openapi-fetch、Client Component 用）
-│   ├── api.server.ts           # Server Component 用APIフェッチ（cookies() からCookieヘッダーを付与）
 │   ├── auth.ts                 # 認証ヘルパー
 │   ├── auth-refresh.ts         # 401時のトークン更新・リクエスト再送
 │   ├── auth-validation.ts      # ログイン・登録の共通入力検証
@@ -54,7 +53,10 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 │   ├── utils.ts                # `cn()` などの汎用ユーティリティ
 │   └── generated/
 │       └── schema.ts           # 自動生成の型定義（直接編集禁止）
-├── proxy.ts                    # 認証ルーティングガード・nonce ベース CSP
+├── index.html                  # SPAのHTMLエントリ
+├── public/theme-init.js        # 描画前のテーマ初期化
+├── vite.config.ts              # 開発サーバー・本番ビルド
+├── vercel.ts                   # 静的配信・SPA rewrite・API URL由来のCSP/headers
 ├── scripts/                    # 開発環境確認・OpenAPI 同期
 └── openapi/
     └── openapi.yaml            # バックエンドAPI仕様（schema.ts の生成元）
@@ -66,17 +68,17 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 
 ### コンポーネント戦略
 
-- **Server Component をデフォルト**とし、インタラクションが必要な場合のみ `"use client"` を付与する
-- ローソク足チャート・ウォッチリストは操作が多いため Client Component
+- React SPA とし、`app/main.tsx` が Provider と Router を初期化する
+- ロゴ検索の内容は `React.lazy` で初回オープン時に読み込む
 
 | 機能 | 方式 |
 |---|---|
-| 銘柄一覧 | Server Component（SSR）で初期データ取得 + Client Component（SWR）でハイドレート |
+| 銘柄一覧 | クライアント（SWR）の共通キー `/v1/symbols` |
 | ローソク足チャート | Client Component |
 | ウォッチリスト | Client Component |
 | ロゴ検出・企業分析 | Client Component |
 
-銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` で共有する。`app/page.tsx`（Server Component）は `lib/api.server.ts` の `fetchSymbolsServer()` を待たずに開始し、`SymbolsProvider` で結果の Promise を共有する。各一覧利用箇所の `SymbolsFallback` が取得結果を `SWRConfig` の `fallback` として渡すため、シェル・URL 指定銘柄のチャート取得は一覧待ちにならない。正常な空配列も fallback に含める。認証情報がない場合や API のエラー・通信失敗では `null` が返り、fallback を設定せずクライアント側で取得する。`hooks/useSymbols.ts` は同じキー `/v1/symbols` を使う。fallback があっても再検証中は `isLoading` が true になり得るため、初期データの有無と区別する。
+銘柄一覧は `WatchlistPanel` / `ChartToolbar` / `LogoSearchSheet` が `hooks/useSymbols.ts` の同じ SWR キー `/v1/symbols` で共有する。URL 指定銘柄のチャート取得は一覧取得を待たない。
 
 ### 状態管理
 
@@ -98,23 +100,23 @@ APIクライアント (lib/api.ts)
 Go バックエンド
 ```
 
-例外: 銘柄一覧のみ `app/page.tsx`（Server Component）が `lib/api.server.ts` を直接呼び、`next/headers` の `cookies()` から `auth_token` を読み取って `Cookie` ヘッダーを明示的に付与する（`credentials: "include"` はブラウザ専用でサーバー側では機能しないため）。取得結果は Promise のまま Client Component の `SymbolsProvider` へ渡し、一覧依存箇所だけで待機する。
+初回認証判定は `app/routes.tsx` が `GET /v1/watchlist` の共通 SWR キーで行う。401なら未認証、成功なら認証済み、一時的な通信・サーバー障害なら再試行を表示する。認可の正本はバックエンド API。確認中も画面側のデータ取得は並列に開始する。
 
-依存方向は `app/` → `components/` → `hooks/` → `lib/` とし、各層から下位の共有コードは参照できる。`lib/` → 上位層、`hooks/` → `components/`・`app/`、`components/` → `app/`、`hooks/`・`components/` → `lib/api.server.ts` は ESLint で禁止する。UI から `lib/api.ts` の通信機能を直接使わずフックを経由し、エラー表示に必要な `ApiError` の参照だけ許可する。テスト補助コードはこの境界チェックの対象外とする。
+依存方向は `app/` → `components/` → `hooks/` → `lib/` とし、各層から下位の共有コードは参照できる。`lib/` → 上位層、`hooks/` → `components/`・`app/`、`components/` → `app/` は ESLint で禁止する。UI から `lib/api.ts` の通信機能を直接使わずフックを経由し、エラー表示に必要な `ApiError` の参照だけ許可する。テスト補助コードはこの境界チェックの対象外とする。
 
-共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。SSR と OAuth 開始リンクの API URL は `lib/api-base.ts` を直接参照する。遷移 Context は `hooks/useNavigationLoading.ts` に置き、Provider は遷移中表示を担当する。ログアウトとセッション切れの遷移は `hooks/useSessionRedirect.ts` で SWR キャッシュを破棄してから行う。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。生成・破棄、リサイズ、選択・固定・表示範囲は `useCandlestickChart` が担当する。
+共有する市場データの型は `lib/market-data.ts` に置き、`lib/` からフックへ依存しない。OAuth 開始リンクの API URL は `lib/api-base.ts` を直接参照する。遷移 Context は `hooks/useNavigationLoading.ts` に置き、Provider は遷移中表示を担当する。ログアウトとセッション切れの遷移は `hooks/useSessionRedirect.ts` で SWR キャッシュを破棄してから行う。チャートの描画専用フックは `components/chart/` に置き、`CandlestickChart` でメモ化した指標計算結果をシリーズと `IndicatorReadout` で共有する。生成・破棄、リサイズ、選択・固定・表示範囲は `useCandlestickChart` が担当する。
 
 設計の説明は `docs/architecture.md`、開発・テストは `docs/development.md`、デプロイは `docs/deployment.md` にまとめる。README は導入手順と各文書への入口とする。
 
 ## API
 
-- `NEXT_PUBLIC_API_BASE_URL` 環境変数でベースURLを管理（**ビルド時にバンドルへインライン化されるため、ランタイム設定では反映されない**。未設定時は `next.config.ts` がビルドを失敗させる）
+- `VITE_API_BASE_URL` 環境変数でベースURLを管理（ビルド時にバンドルへインライン化され、ランタイム設定では反映されない。`vite.config.ts` と `vercel.ts` は共通のURL検証を使い、未設定・不正URLを拒否する）
 - 認証: Cookie 認証（`auth_token`・`refresh_token` HttpOnly Cookie）+ CSRF トークン（`csrf_token` Cookie）
 - Cookie認証を使う状態変更リクエストと認証Cookieの更新・削除には `X-CSRF-Token` ヘッダーが必要
 - クライアント側の保護APIが401を返した場合は `lib/auth-refresh.ts` が `/v1/auth/refresh` を呼び、成功時に元リクエストを1回再送する。同一クライアント内の refresh は共有し、refresh の409のみ1回再試行する。再送時は最新の CSRF Cookie を使う
-- login・signup・logout・refresh・OAuth は自動 refresh の対象外。SSR の `fetchSymbolsServer()` も自動 refresh は行わない
-- `proxy.ts` は Cookie の存在と期限による画面遷移制御を行い、JWT の署名検証・認可はバックエンドが担う。`refresh_token` と `csrf_token` があれば、アクセストークン期限切れでもクライアント側の復旧へ進める
-- CSP の nonce は `proxy.ts` → `app/layout.tsx` → `ThemeProvider` に渡す。リクエストごとの nonce を前提とする動的レンダリングを維持する
+- login・signup・logout・refresh・OAuth は自動 refresh の対象外。refresh の401/403は失効、5xx・通信失敗・再409は一時障害として扱う。一時障害ではセッション切れイベントを発火しない
+- `app/routes.tsx` が画面遷移を制御し、JWT の署名検証・認可はバックエンドが担う。ログイン成功後は認証確認を再実行し、ログアウト成功後は SWR キャッシュを破棄する
+- `vercel.ts` が `VITE_API_BASE_URL` のoriginからCSPの `connect-src` を生成し、全レスポンスへセキュリティヘッダーを付与する。`public/theme-init.js` は外部スクリプトとして描画前にテーマを適用する
 - 型定義は `schema.ts` から自動生成されるため、補完・型エラーが有効
 
 ### 主要エンドポイント
@@ -158,7 +160,7 @@ Go バックエンド
 
 ## コーディング規約
 
-- アプリのデータ取得・更新は `lib/api.ts`（Client Component）または `lib/api.server.ts`（Server Component）経由で行う。refresh の内部通信は `lib/auth-refresh.ts` が担当し、OAuth 開始はリンクによるブラウザ遷移とする
+- アプリのデータ取得・更新は `lib/api.ts` 経由で行う。refresh の内部通信は `lib/auth-refresh.ts` が担当し、OAuth 開始はリンクによるブラウザ遷移とする
 - `lib/generated/` 以下は直接編集しない
 - データ取得・操作のロジックはカスタムフックへ、指標計算などの純粋関数は `lib/` へ置く。表示に閉じた状態やイベント処理はコンポーネント内で扱える
 - 環境変数は `.env.local` で管理し、`.env.example` をリポジトリに含める
@@ -170,7 +172,7 @@ npm run setup:worktree # worktree の環境準備と確認
 npm run doctor        # Node/npm・依存関係・環境変数を確認
 npm run dev           # 開発サーバー起動
 npm run build         # 本番ビルド
-npm run start         # 本番サーバー起動
+npm run start         # ビルド済みSPAのローカルプレビュー
 npm run lint          # ESLint 実行
 npm run typecheck     # TypeScript 型チェック
 npm run test          # テスト実行（Vitest）
@@ -190,7 +192,7 @@ npm run verify        # doctor・API型同期確認・lint・型チェック・�
 - セットアップスクリプトは `.env.local` がなければ `.env.example` から作成し、`node_modules` がなければ `npm ci` を実行する
 - ローカルの Node.js / npm が `package.json` の `engines` の許容範囲外の場合、初期化と `npm run doctor` は明示的に失敗する（Vercelではビルドランナーのnpm差異を許容）
 - Codex 上部の「開発サーバー」「検証」アクションから、`npm run dev` と `npm run verify` を実行できる
-- 本番ビルドは Codex sandbox 内での Turbopack のローカル bind 制約を避けるため、Next.js が公式対応する `--webpack` を使用する
+- 本番ビルドは Vite で `dist/` へ静的ファイルを出力する
 - 検証はリソース競合によるテスト timeout を避けるため `npm run verify` で直列実行する
 
 ## 型定義の再生成

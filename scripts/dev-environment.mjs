@@ -1,10 +1,10 @@
-import { copyFileSync, existsSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 
 const REQUIRED_NODE = ">=24.18.0 <25";
 const REQUIRED_NPM = ">=12.0.2 <13";
-const API_BASE_KEY = "NEXT_PUBLIC_API_BASE_URL";
+const API_BASE_KEY = "VITE_API_BASE_URL";
 const IS_VERCEL = process.env.VERCEL === "1";
 
 function parseVersion(rawVersion) {
@@ -49,7 +49,7 @@ function envFileDefinesApiBase(path) {
   return readFileSync(path, "utf8")
     .split(/\r?\n/)
     .some((line) => {
-      const match = line.match(/^\s*NEXT_PUBLIC_API_BASE_URL\s*=\s*(.*)\s*$/);
+      const match = line.match(/^\s*VITE_API_BASE_URL\s*=\s*(.*)\s*$/);
       return match !== null && match[1].trim() !== "";
     });
 }
@@ -84,6 +84,14 @@ function prepareWorktree() {
   if (!existsSync(".env.local") && existsSync(".env.example")) {
     copyFileSync(".env.example", ".env.local");
     console.log(".env.example から .env.local を作成しました。");
+  }
+  if (existsSync(".env.local") && !envFileDefinesApiBase(".env.local")) {
+    const content = readFileSync(".env.local", "utf8");
+    const migrated = content.replace(/^(\s*)NEXT_PUBLIC_API_BASE_URL(?=\s*=)/m, "$1VITE_API_BASE_URL");
+    if (migrated !== content) {
+      writeFileSync(".env.local", migrated);
+      console.log(".env.local のAPI変数名を VITE_API_BASE_URL へ更新しました。");
+    }
   }
 
   if (!existsSync("node_modules")) {

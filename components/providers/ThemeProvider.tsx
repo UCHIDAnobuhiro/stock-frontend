@@ -1,28 +1,44 @@
-"use client";
+import { useEffect, useSyncExternalStore } from "react";
 
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+type Theme = "dark" | "light";
+const subscribers = new Set<() => void>();
 
-/**
- * next-themes は描画前にテーマを適用するため inline script を挿入する。
- * proxy.ts の CSP は `script-src 'self' 'nonce-...' 'strict-dynamic'` のため、
- * nonce を渡さないとこの script がブロックされ、ハイドレーションまで
- * ライトテーマ（globals.css の :root）で描画される＝白フラッシュが起きる。
- */
-export function ThemeProvider({
-  children,
-  nonce,
-}: {
-  children: React.ReactNode;
-  nonce?: string;
-}) {
-  return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="dark"
-      disableTransitionOnChange
-      nonce={nonce}
-    >
-      {children}
-    </NextThemesProvider>
-  );
+function emitThemeChange() {
+  for (const listener of subscribers) listener();
+}
+
+function subscribe(listener: () => void) {
+  subscribers.add(listener);
+  return () => subscribers.delete(listener);
+}
+
+function getTheme(): Theme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.key !== "theme") return;
+      document.documentElement.classList.toggle("dark", event.newValue !== "light");
+      emitThemeChange();
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+  return children;
+}
+
+export function useTheme() {
+  const resolvedTheme = useSyncExternalStore(subscribe, getTheme, () => "dark" as Theme);
+  const setTheme = (theme: Theme) => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      // Storageが使えない環境でも現在の画面では切り替える。
+    }
+    emitThemeChange();
+  };
+  return { resolvedTheme, setTheme };
 }

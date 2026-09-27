@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type SubmitEventHandler } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useNavigate, useSearchParams } from "react-router";
+import { useSWRConfig } from "swr";
+import { fetchWatchlist } from "./useWatchlist";
 import apiClient from "@/lib/api";
 import { validateAuthFields, type AuthFieldErrors } from "@/lib/auth-validation";
 
@@ -31,8 +33,9 @@ function getOAuthErrorMessage(code: string): string {
  * 対応するエラーメッセージを初期表示する（生のクエリ値は表示しない）。
  */
 export function useLogin() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { mutate } = useSWRConfig();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,7 +77,9 @@ export function useLogin() {
 
       if (data) {
         // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
-        router.replace("/");
+        await mutate(() => true, undefined, { revalidate: false });
+        await mutate("/v1/watchlist", fetchWatchlist(), { revalidate: false });
+        void navigate("/", { replace: true });
         return;
       }
 

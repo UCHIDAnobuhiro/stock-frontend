@@ -13,7 +13,7 @@ function getSnapshot() {
   return window.innerWidth >= DESKTOP_SIDEBAR_BREAKPOINT;
 }
 
-// SSR 時は描画せず、ハイドレーション後に viewport の幅へ合わせる。
+// 初回描画後に viewport の幅へ合わせる。
 function getServerSnapshot() {
   return false;
 }

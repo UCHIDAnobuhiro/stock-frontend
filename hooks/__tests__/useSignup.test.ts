@@ -10,8 +10,8 @@ const { mockReplace, mockPost } = vi.hoisted(() => ({
   mockPost: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+vi.mock("react-router", () => ({
+  useNavigate: () => mockReplace,
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -139,7 +139,7 @@ describe("useSignup", () => {
         await result.current.handleSubmit(fakeEvent());
       });
 
-      expect(mockReplace).toHaveBeenCalledWith("/login");
+      expect(mockReplace).toHaveBeenCalledWith("/login", { replace: true });
       expect(result.current.isLoading).toBe(true);
     });
   });

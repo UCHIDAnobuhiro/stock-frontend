@@ -79,7 +79,6 @@ export function LogoDropzone({
       />
       <div className="flex flex-col items-center text-center">
         {preview ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
           <img src={preview} alt="選択したロゴ画像" className="mb-5 max-h-44 max-w-full rounded-2xl object-contain" />
         ) : (
           <>

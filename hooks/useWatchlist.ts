@@ -10,7 +10,7 @@ export type WatchlistItem = components["schemas"]["WatchlistItem"];
  * SWR のフェッチャー関数。
  * `/v1/watchlist` にリクエストし、ウォッチリストの項目一覧を返す。
  */
-async function fetchWatchlist(): Promise<WatchlistItem[]> {
+export async function fetchWatchlist(): Promise<WatchlistItem[]> {
   const { data, error, response } = await apiClient.GET("/v1/watchlist");
   if (error) throw createApiError(response.status, "ウォッチリストの取得に失敗しました");
   return data ?? [];

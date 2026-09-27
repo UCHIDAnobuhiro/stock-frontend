@@ -10,8 +10,8 @@ const { mockReplace, mockDelete, mockMutate } = vi.hoisted(() => ({
   mockMutate: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+vi.mock("react-router", () => ({
+  useNavigate: () => mockReplace,
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -30,7 +30,7 @@ describe("useLogout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mockDelete.mockResolvedValue({ data: { message: "ok" }, response: { status: 200 } });
+    mockDelete.mockResolvedValue({ data: { message: "ok" }, response: { status: 200, ok: true } });
     mockMutate.mockResolvedValue(undefined);
   });
 
@@ -55,10 +55,10 @@ describe("useLogout", () => {
       await result.current.handleLogout();
     });
 
-    expect(mockReplace).toHaveBeenCalledWith("/login");
+    expect(mockReplace).toHaveBeenCalledWith("/login", { replace: true });
   });
 
-  it("API がエラーを返してもリダイレクトされる", async () => {
+  it("通信失敗ならCookieが残り得るため遷移せず再試行を促す", async () => {
     mockDelete.mockRejectedValue(new Error("network error"));
 
     const { result } = renderHook(() => useLogout());
@@ -67,7 +67,8 @@ describe("useLogout", () => {
       await result.current.handleLogout();
     });
 
-    expect(mockReplace).toHaveBeenCalledWith("/login");
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(result.current.logoutError).toContain("ログアウトできませんでした");
     expect(consoleWarnSpy).toHaveBeenCalledWith("Logout request failed:", expect.any(Error));
   });
 
@@ -88,7 +89,7 @@ describe("useLogout", () => {
     expect(filterFn(undefined)).toBe(true);
   });
 
-  it("API がエラーを返してもキャッシュは破棄される", async () => {
+  it("通信失敗なら認証中のキャッシュを破棄しない", async () => {
     mockDelete.mockRejectedValue(new Error("network error"));
 
     const { result } = renderHook(() => useLogout());
@@ -97,9 +98,16 @@ describe("useLogout", () => {
       await result.current.handleLogout();
     });
 
-    expect(mockMutate).toHaveBeenCalledWith(expect.any(Function), undefined, {
-      revalidate: false,
-    });
+    expect(mockMutate).not.toHaveBeenCalled();
     expect(consoleWarnSpy).toHaveBeenCalledWith("Logout request failed:", expect.any(Error));
+  });
+
+  it("サーバーが5xxを返す場合もCookie残存を前提に画面を維持する", async () => {
+    mockDelete.mockResolvedValue({ response: { status: 503, ok: false } });
+    const { result } = renderHook(() => useLogout());
+    await act(async () => { await result.current.handleLogout(); });
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(result.current.logoutError).not.toBeNull();
   });
 });

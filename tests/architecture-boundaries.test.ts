@@ -18,8 +18,6 @@ describe("依存方向の ESLint 境界", () => {
     ["hooks/example.ts", 'const chart = import("../components/chart/CandlestickChart");'],
     ["hooks/example.ts", 'import { Page } from "@/app/page";'],
     ["components/example.ts", 'import { Page } from "../app/page";'],
-    ["hooks/example.ts", 'import { fetchSymbolsServer } from "@/lib/api.server";'],
-    ["components/example.ts", 'import { fetchSymbolsServer } from "../lib/api.server";'],
   ])("%s の逆向き import を検出する: %s", async (filePath, source) => {
     expect(await ruleIds(filePath, source)).toContain("import/no-restricted-paths");
   });
@@ -40,7 +38,6 @@ describe("依存方向の ESLint 境界", () => {
   it.each([
     ["components/chart/ChartContainer.tsx", 'import { ApiError } from "@/lib/api";'],
     ["components/chart/ChartContainer.tsx", 'import type { ApiError } from "../../lib/api.ts";'],
-    ["app/page.tsx", 'import { fetchSymbolsServer } from "@/lib/api.server";'],
     ["hooks/useCandles.ts", 'import apiClient from "@/lib/api";'],
     ["components/auth/OAuthButtons.tsx", 'import { API_BASE } from "@/lib/api-base";'],
     ["hooks/__tests__/example.test.ts", 'import { CandlestickChart } from "@/components/chart/CandlestickChart";'],

@@ -1,13 +1,33 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import importPlugin from "eslint-plugin-import";
 
 const sourceFiles = ["app/**/*.{js,jsx,ts,tsx}", "components/**/*.{js,jsx,ts,tsx}", "hooks/**/*.{js,jsx,ts,tsx}", "lib/**/*.{js,jsx,ts,tsx}"];
 const testFiles = ["**/__tests__/**", "**/*.{test,spec}.{js,jsx,ts,tsx}"];
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+export default defineConfig([
+  globalIgnores(["dist/**", "node_modules/**", ".claude/**"]),
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    languageOptions: {
+      globals: { console: "readonly", document: "readonly", localStorage: "readonly" },
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks, import: importPlugin },
+    settings: { "import/resolver": {
+      node: { extensions: [".ts", ".tsx", ".js", ".jsx"] },
+      alias: { map: [["@", "."]], extensions: [".ts", ".tsx", ".js", ".jsx"] },
+    } },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
   {
     files: sourceFiles,
     ignores: testFiles,
@@ -18,7 +38,6 @@ const eslintConfig = defineConfig([
           { target: "./lib", from: ["./app", "./components", "./hooks"], message: "lib/ から上位層を参照しないでください。" },
           { target: "./hooks", from: ["./app", "./components"], message: "hooks/ から表示層を参照しないでください。" },
           { target: "./components", from: "./app", message: "components/ から app/ を参照しないでください。" },
-          { target: ["./hooks", "./components"], from: "./lib/api.server.ts", message: "サーバー専用 API は app/ からのみ参照してください。" },
         ],
       }],
     },
@@ -40,15 +59,4 @@ const eslintConfig = defineConfig([
       }],
     },
   },
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-    ".claude/**",
-  ]),
 ]);
-
-export default eslintConfig;

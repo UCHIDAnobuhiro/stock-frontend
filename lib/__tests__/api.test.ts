@@ -11,7 +11,7 @@ describe("API_BASE", () => {
     "https://api.example.com",
     "https://api.example.com/",
   ])("%s を末尾スラッシュなしに正規化する", async (apiBaseUrl) => {
-    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
+    vi.stubEnv("VITE_API_BASE_URL", apiBaseUrl);
     vi.resetModules();
 
     const { API_BASE } = await import("@/lib/api");

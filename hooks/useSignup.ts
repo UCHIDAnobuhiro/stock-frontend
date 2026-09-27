@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import apiClient from "@/lib/api";
 import { validateAuthFields, type AuthFieldErrors } from "@/lib/auth-validation";
 
@@ -10,7 +10,7 @@ import { validateAuthFields, type AuthFieldErrors } from "@/lib/auth-validation"
  * バリデーション・API 送信・エラー状態・リダイレクトを担う。
  */
 export function useSignup() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,7 +48,7 @@ export function useSignup() {
 
       if (response.ok) {
         // 遷移完了までフォームを残し、ボタンのローディング表示を維持する
-        router.replace("/login");
+        void navigate("/login", { replace: true });
         return;
       }
 

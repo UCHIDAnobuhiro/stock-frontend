@@ -7,7 +7,7 @@ const { setSymbol, reorder, removeSymbol, useQuotes } = vi.hoisted(() => ({
   setSymbol: vi.fn(), reorder: vi.fn(), removeSymbol: vi.fn(),
   useQuotes: vi.fn(() => ({ quotes: new Map(), failures: new Map(), isLoading: false })),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock("react-router", () => ({ useNavigate: () => vi.fn() }));
 vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate: vi.fn() }) }));
 vi.mock("@/hooks/useSessionExpiry", () => ({ useSessionExpiry: () => ({ isExpired: false }) }));
 vi.mock("@/hooks/useLogout", () => ({ useLogout: () => ({ handleLogout: vi.fn() }) }));
