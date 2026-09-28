@@ -25,7 +25,8 @@ describe("WatchlistSymbolSearch", () => {
     const onSelect = vi.fn();
     render(<WatchlistSymbolSearch symbols={symbols} isLoading={false} hasData onSelect={onSelect} />);
 
-    const input = screen.getByPlaceholderText("銘柄コード・企業名で検索...");
+    const input = screen.getByPlaceholderText("銘柄コード・企業名で検索...") as HTMLInputElement;
+    expect(input.type).toBe("search");
     await user.type(input, "Company");
     expect(screen.getAllByRole("option")).toHaveLength(50);
     expect(screen.getByRole("status").textContent).toContain("残り70件");
