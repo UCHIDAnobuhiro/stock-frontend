@@ -64,6 +64,9 @@ export function WatchlistSymbolSearch({
         className="overflow-visible! bg-transparent! rounded-none! p-0! h-full [&_[data-slot=command-input-wrapper]]:p-0 [&_[data-slot=command-input-wrapper]]:h-full [&_[data-slot=input-group]]:h-full! [&_[data-slot=input-group]]:border-0! [&_[data-slot=input-group]]:bg-transparent! [&_[data-slot=input-group]]:rounded-none! [&_[data-slot=input-group]]:shadow-none!"
       >
         <CommandInput
+          asChild
+          name="symbol-search"
+          autoComplete="off"
           value={query}
           aria-label="銘柄コード・企業名で検索"
           placeholder="銘柄コード・企業名で検索..."
@@ -74,7 +77,9 @@ export function WatchlistSymbolSearch({
             setPage(0);
             setSelectedValue("");
           }}
-        />
+        >
+          <input type="search" />
+        </CommandInput>
         {query.length > 0 && (
           <CommandList
             className="absolute top-full left-0 w-full min-w-56 z-50 mt-2 rounded-2xl border shadow-lg"
