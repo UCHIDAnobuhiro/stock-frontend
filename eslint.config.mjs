@@ -2,7 +2,8 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
-import importPlugin from "eslint-plugin-import";
+import importPlugin from "eslint-plugin-import-x";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 
 const sourceFiles = ["app/**/*.{js,jsx,ts,tsx}", "components/**/*.{js,jsx,ts,tsx}", "hooks/**/*.{js,jsx,ts,tsx}", "lib/**/*.{js,jsx,ts,tsx}"];
 const testFiles = ["**/__tests__/**", "**/*.{test,spec}.{js,jsx,ts,tsx}"];
@@ -18,11 +19,8 @@ export default defineConfig([
   },
   {
     files: ["**/*.{ts,tsx}"],
-    plugins: { "react-hooks": reactHooks, import: importPlugin },
-    settings: { "import/resolver": {
-      node: { extensions: [".ts", ".tsx", ".js", ".jsx"] },
-      alias: { map: [["@", "."]], extensions: [".ts", ".tsx", ".js", ".jsx"] },
-    } },
+    plugins: { "react-hooks": reactHooks, "import-x": importPlugin },
+    settings: { "import-x/resolver-next": [createTypeScriptImportResolver({ project: "./tsconfig.json" })] },
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
@@ -32,7 +30,7 @@ export default defineConfig([
     files: sourceFiles,
     ignores: testFiles,
     rules: {
-      "import/no-restricted-paths": ["error", {
+      "import-x/no-restricted-paths": ["error", {
         basePath: ".",
         zones: [
           { target: "./lib", from: ["./app", "./components", "./hooks"], message: "lib/ から上位層を参照しないでください。" },

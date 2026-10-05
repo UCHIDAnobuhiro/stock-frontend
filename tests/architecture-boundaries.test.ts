@@ -19,7 +19,7 @@ describe("依存方向の ESLint 境界", () => {
     ["hooks/example.ts", 'import { Page } from "@/app/page";'],
     ["components/example.ts", 'import { Page } from "../app/page";'],
   ])("%s の逆向き import を検出する: %s", async (filePath, source) => {
-    expect(await ruleIds(filePath, source)).toContain("import/no-restricted-paths");
+    expect(await ruleIds(filePath, source)).toContain("import-x/no-restricted-paths");
   });
 
   it.each([
@@ -43,7 +43,7 @@ describe("依存方向の ESLint 境界", () => {
     ["hooks/__tests__/example.test.ts", 'import { CandlestickChart } from "@/components/chart/CandlestickChart";'],
   ])("許可された参照を通す: %s", async (filePath, source) => {
     const ids = await ruleIds(filePath, source);
-    expect(ids).not.toContain("import/no-restricted-paths");
+    expect(ids).not.toContain("import-x/no-restricted-paths");
     expect(ids).not.toContain("no-restricted-imports");
   });
 });

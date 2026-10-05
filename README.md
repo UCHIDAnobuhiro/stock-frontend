@@ -24,7 +24,7 @@
 
 ## 技術構成
 
-React 19 / Vite 8 / React Router 7 / TypeScript、Tailwind CSS v4、SWR、openapi-fetch / openapi-typescript、TradingView Lightweight Charts、@dnd-kit、@base-ui/react / shadcn/ui、Vitest / Testing Library を使用します。バージョンは `package.json` と `package-lock.json` を参照してください。
+React 19 / Vite 8 / React Router 8 / TypeScript、Tailwind CSS v4、SWR、openapi-fetch / openapi-typescript、TradingView Lightweight Charts、@dnd-kit、@base-ui/react / shadcn/ui、Vitest / Testing Library を使用します。バージョンは `package.json` と `package-lock.json` を参照してください。
 
 ## セットアップ
 

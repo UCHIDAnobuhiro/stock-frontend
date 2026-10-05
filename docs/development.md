@@ -60,6 +60,12 @@ npm audit --audit-level=high
 
 `verify` は doctor → API 型同期確認 → lint → TypeScript → 全テスト → 本番ビルドを実行します。実バックエンドとの通信、ブラウザの目視確認、依存関係監査は含みません。
 
+## shadcn/ui の共通 CSS
+
+`app/globals.css` はローカルの `app/shadcn.css` を読み込みます。このファイルは `shadcn@4.21.0` の `dist/tailwind.css` を無改変で保存したもので、data 状態・方向・スクロールバーなどの共通バリアントを提供します。テーマ色の変更は引き続き `app/globals.css` で行います。出典・ハッシュ・判断理由は [依存関係の更新記録](dependency-updates.md)、ライセンス全文は [`licenses/shadcn-MIT.txt`](../licenses/shadcn-MIT.txt) を参照してください。
+
+CSS を更新するときは、対象バージョンの npm tarball の integrity をロックファイルまたは npm レジストリの情報と照合し、`dist/tailwind.css` を取り出して現在の `app/shadcn.css` と diff で比較します。必要なバリアントと表示を確認し、取り込む場合は出典・SHA-256・ライセンスを更新記録へ残してください。CLI の再導入は `braces` の修正版が依存経路全体へ反映され、開発依存を含む `npm audit --audit-level=high` が通ることを確認してから判断します。
+
 ## 変更時のドキュメント更新
 
 - 共通の実装規約・デザイン方針・コマンド変更は [AGENTS.md](../AGENTS.md) に反映します。
