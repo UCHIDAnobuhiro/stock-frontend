@@ -2,6 +2,14 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## shadcn CLI の除去（2026-10-05）
+
+`shadcn@4.21.0` の CLI が `fast-glob` / `ts-morph` → `micromatch` → `braces@3.0.3` を開発依存へ取り込んでいた。`braces` の [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) に修正版がなく、調査時点の `shadcn@4.21.1` でもこの経路が残るため、CLI の依存を除去した。アプリで直接利用していたのは CSS import だけであり、既存の shadcn/ui ベースのコンポーネントはそのまま利用する。
+
+旧ロックファイルの integrity と照合した [`shadcn@4.21.0` の npm tarball](https://registry.npmjs.org/shadcn/-/shadcn-4.21.0.tgz) から `dist/tailwind.css` を無改変で `app/shadcn.css` へ保存した。CSS の SHA-256 は `bc7d83425702955b4cb67cb14ede9d603f9d912376d57a2d81d661094d2a782a`。`data-open` / `data-closed` / `data-selected` / `data-horizontal` / `data-vertical` と `no-scrollbar` を含む。MIT ライセンス全文は [`licenses/shadcn-MIT.txt`](../licenses/shadcn-MIT.txt) に保存した。
+
+ロックファイルは npm 12.0.2 で再生成し、CLI 専用の推移依存を削除した。再導入条件と CSS の更新手順は [開発・検証](development.md) を参照する。
+
 ## 依存パッケージの更新判断（2026-09-06）
 
 npm レジストリの `latest` とロックファイルを照合し、互換性を満たす直接依存を更新した。プレリリースは対象外。Node.js は既存の LTS 方針を維持して 24.20.0、npm は 12.0.2 を使用する。
