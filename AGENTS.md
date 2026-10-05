@@ -10,7 +10,7 @@ AGENTS.md を共通指示の正本とし、`CLAUDE.md` は `@AGENTS.md` で参�
 
 | 用途 | ライブラリ |
 |---|---|
-| フレームワーク | React 19 + Vite 8 + React Router 7（SPA） |
+| フレームワーク | React 19 + Vite 8 + React Router 8（SPA） |
 | 言語 | TypeScript |
 | APIクライアント | openapi-fetch |
 | 型生成 | openapi-typescript |

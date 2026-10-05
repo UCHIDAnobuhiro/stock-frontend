@@ -2,6 +2,12 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## ESLint 10 への移行（2026-10-05）
+
+`@eslint/js` の10系更新に合わせて ESLint 本体も10系へ揃えた。旧 `eslint-plugin-import@2.32.0` と `eslint-import-resolver-alias@1.1.2` は ESLint 10 を許容しないため除去し、`eslint-plugin-import-x@4.17.1` と `eslint-import-resolver-typescript@4.4.5` へ移行した。`eslint-plugin-react-hooks` も10系互換の7.1.1へ更新した。
+
+`eslint.config.mjs` のレイヤー間 import 禁止は `import-x/no-restricted-paths` と TypeScript resolver に移し、`@/*` エイリアスと相対パスの両方を解決する。UIからの API クライアント直接参照禁止、`ApiError` の例外、テスト除外、React Hooks 規則を維持した。依存の整合性は npm の通常解決、`npm ls`、開発依存を含む `npm audit --audit-level=high` で確認する。
+
 ## shadcn CLI の除去（2026-10-05）
 
 `shadcn@4.21.0` の CLI が `fast-glob` / `ts-morph` → `micromatch` → `braces@3.0.3` を開発依存へ取り込んでいた。`braces` の [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) に修正版がなく、調査時点の `shadcn@4.21.1` でもこの経路が残るため、CLI の依存を除去した。アプリで直接利用していたのは CSS import だけであり、既存の shadcn/ui ベースのコンポーネントはそのまま利用する。
