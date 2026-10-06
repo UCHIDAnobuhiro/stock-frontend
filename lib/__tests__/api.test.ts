@@ -2,6 +2,7 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 import { ApiError, createApiError } from "@/lib/api";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.resetModules();
 });
@@ -17,6 +18,39 @@ describe("API_BASE", () => {
     const { API_BASE } = await import("@/lib/api");
 
     expect(API_BASE).toBe("https://api.example.com");
+  });
+});
+
+describe("APIクライアント", () => {
+  it("JSONエンコード失敗の500応答を解析し、再認証やセッション切れ扱いにしない", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('{"error":"internal server error"}\n', {
+        status: 500,
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+    const { default: apiClient, createApiError, SESSION_EXPIRED_EVENT } = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+
+    try {
+      const { data, error, response } = await apiClient.GET("/v1/candles/{code}", {
+        params: { path: { code: "AAPL" } },
+      });
+
+      expect(data).toBeUndefined();
+      expect(error).toEqual({ error: "internal server error" });
+      expect(response.status).toBe(500);
+      expect(createApiError(response.status, "チャートデータの取得に失敗しました").message).toBe(
+        "サーバーエラーが発生しました。時間をおいて再度お試しください",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    }
   });
 });
 
