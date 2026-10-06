@@ -30,6 +30,7 @@ describe("APIクライアント", () => {
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com");
     vi.resetModules();
     const { default: apiClient, createApiError, SESSION_EXPIRED_EVENT } = await import("@/lib/api");
     const onSessionExpired = vi.fn();
