@@ -444,6 +444,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description リクエスト本文が1 MiB（1,048,576バイト）を超過 */
+        RequestBodyTooLarge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
         /** @description 認証失敗（auth_token CookieまたはBearerトークンが無い・無効・期限切れ） */
         UnauthorizedError: {
             headers: {
@@ -521,6 +530,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            413: components["responses"]["RequestBodyTooLarge"];
             /** @description リクエスト過多（レートリミット超過） */
             429: {
                 headers: {
@@ -592,6 +602,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            413: components["responses"]["RequestBodyTooLarge"];
             /** @description リクエスト過多（レートリミット超過） */
             429: {
                 headers: {
@@ -1045,6 +1056,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            413: components["responses"]["RequestBodyTooLarge"];
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -1153,6 +1165,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            413: components["responses"]["RequestBodyTooLarge"];
             /** @description サーバーエラー */
             500: {
                 headers: {
@@ -1301,6 +1314,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            413: components["responses"]["RequestBodyTooLarge"];
             /** @description リクエスト過多（レートリミット超過） */
             429: {
                 headers: {
