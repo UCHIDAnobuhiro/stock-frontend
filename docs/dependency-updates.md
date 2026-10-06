@@ -2,6 +2,12 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## source-map-js の脆弱性対応（2026-10-06）
+
+開発依存の推移依存 `source-map-js@1.2.1` に高リスクの [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q) が報告された。`@tailwindcss/node`、`css-tree`、`postcss` の要求範囲 `^1.2.1` は修正版 `1.2.2` を許容するため、npm 12.0.2 の `npm update source-map-js --package-lock-only` でロックファイル内の当該項目だけを更新した。直接依存と override は変更しない。
+
+ローカルの `EBADENGINE` は Homebrew の Node.js / npm が Volta より先に見つかる PATH 設定が原因だった。`~/.zshrc` で Volta を Homebrew の初期化より後に PATH の先頭へ置き、Node.js 24.20.0 / npm 12.0.2 を確認する。リポジトリ側の `engines` と `doctor` の条件は維持する。設定方法は [README](../README.md#セットアップ) を参照する。
+
 ## ESLint 10 への移行（2026-10-05）
 
 `@eslint/js` の10系更新に合わせて ESLint 本体も10系へ揃えた。旧 `eslint-plugin-import@2.32.0` と `eslint-import-resolver-alias@1.1.2` は ESLint 10 を許容しないため除去し、`eslint-plugin-import-x@4.17.1` と `eslint-import-resolver-typescript@4.4.5` へ移行した。`eslint-plugin-react-hooks` も10系互換の7.1.1へ更新した。
