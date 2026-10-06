@@ -278,6 +278,10 @@ describe("useLogin", () => {
 
     it.each([
       [
+        "oauth_failed",
+        "ソーシャルログインに失敗しました。時間をおいて再度お試しください",
+      ],
+      [
         "rate_limited",
         "試行回数が多すぎます。しばらく時間をおいて再度お試しください",
       ],
@@ -291,6 +295,9 @@ describe("useLogin", () => {
       const { result } = renderHook(() => useLogin());
 
       expect(result.current.serverError).toBe(message);
+      expect(result.current.isLoading).toBe(false);
+      expect(mockPost).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it("未知のエラーコードのとき汎用のソーシャルログイン失敗メッセージが初期表示される", () => {
@@ -311,9 +318,9 @@ describe("useLogin", () => {
       expect(result.current.serverError).toBeNull();
     });
 
-    it("フォーム送信を開始すると OAuth エラー表示が消える", async () => {
+    it.each(["account_conflict", "oauth_failed"])("%s の後もフォームからログインを再試行できる", async (code) => {
       mockUseSearchParams.mockReturnValue(
-        new URLSearchParams("error=account_conflict")
+        new URLSearchParams(`error=${code}`)
       );
       mockPost.mockResolvedValue({
         data: null,
@@ -322,9 +329,7 @@ describe("useLogin", () => {
       });
 
       const { result } = renderHook(() => useLogin());
-      expect(result.current.serverError).toBe(
-        "このメールアドレスは既に登録されています。メールアドレスとパスワードでログインしてください"
-      );
+      expect(result.current.serverError).not.toBeNull();
 
       await act(async () => {
         result.current.setEmail("user@example.com");
@@ -337,6 +342,10 @@ describe("useLogin", () => {
       expect(result.current.serverError).toBe(
         "メールアドレスまたはパスワードが正しくありません"
       );
+      expect(result.current.isLoading).toBe(false);
+      expect(mockPost).toHaveBeenCalledWith("/v1/login", {
+        body: { email: "user@example.com", password: "password" },
+      });
     });
   });
 

@@ -128,7 +128,9 @@ export interface paths {
          *     フロントエンドURLへリダイレクトします。
          *     OpenAPI バリデーション通過後のエラーは、自動リンクや JSON 応答を行わず、
          *     フロントエンドのログイン画面へ `error` コード付きでリダイレクトします。
-         *     provider が許可値以外、または code/state が欠落している場合は、ハンドラー到達前に
+         *     認可キャンセル等で error が返された場合も、認証セッションを発行せずログイン画面へ戻します。
+         *     code と error が両方欠落した場合も oauth_failed でリダイレクトします。
+         *     provider が許可値以外、または state が欠落している場合は、ハンドラー到達前に
          *     OpenAPI バリデーションが 400 JSON 応答を返します。
          */
         get: operations["oauthCallback"];
@@ -804,7 +806,10 @@ export interface operations {
     oauthCallback: {
         parameters: {
             query: {
-                code: string;
+                /** @description 認可成功時のコード（error 応答時は省略） */
+                code?: string;
+                /** @description 認可キャンセル等のプロバイダーエラー。code より優先して認証を中断する */
+                error?: string;
                 state: string;
             };
             header?: never;
@@ -817,10 +822,11 @@ export interface operations {
         responses: {
             /**
              * @description 成功時は `{FRONTEND_URL}` へリダイレクト（auth_token・refresh_token・csrf_token Cookieをセット）。
-             *     エラー時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト（Cookieはセットしない）。
+             *     エラー時は `{FRONTEND_URL}/login?error=<code>` へリダイレクト（認証Cookieはセットしない）。
+             *     ハンドラー到達後のエラーでは oauth_state Cookie を削除します。
              *     code は以下のいずれか:
              *       - `account_conflict`: 同メールアドレスの既存アカウントが存在（自動リンクは行わない）
-             *       - `oauth_failed`: 上記以外のすべてのエラー（state不正・期限切れ、プロバイダーAPIエラー、
+             *       - `oauth_failed`: 上記以外のすべてのエラー（認可キャンセル、code/error欠落、state不正・期限切れ、プロバイダーAPIエラー、
              *         未サポートのプロバイダー、内部エラー等）
              *       - `rate_limited`: IPレートリミット超過
              *       - `service_unavailable`: レートリミット基盤障害
@@ -833,7 +839,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description provider が許可値以外、または code/state が欠落している */
+            /** @description provider が許可値以外、または state が欠落している */
             400: {
                 headers: {
                     [name: string]: unknown;
