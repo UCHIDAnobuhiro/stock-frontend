@@ -31,13 +31,13 @@ it.each(["503", "network"])("ログイン成功後の認証確認%s障害は再�
   mockGet.mockReset();
   mockPost.mockReset();
   let shouldRecover = false;
-  mockGet.mockResolvedValueOnce({ error: { error: "unauthorized" }, response: { status: 401 } });
+  mockGet.mockResolvedValueOnce({ error: { error: "unauthorized" }, response: new Response(null, { status: 401 }) });
   mockGet.mockImplementation(() => shouldRecover
-    ? Promise.resolve({ data: [], response: { status: 200 } })
+    ? Promise.resolve({ data: [], response: new Response(null, { status: 200 }) })
     : failure === "network"
       ? Promise.reject(new TypeError("network failed"))
-      : Promise.resolve({ error: { error: "unavailable" }, response: { status: 503 } }));
-  mockPost.mockResolvedValue({ data: { message: "ok" }, response: { status: 200 } });
+      : Promise.resolve({ error: { error: "unavailable" }, response: new Response(null, { status: 503 }) }));
+  mockPost.mockResolvedValue({ data: { message: "ok" }, response: new Response(null, { status: 200 }) });
 
   render(<SWRConfig value={{ provider: () => cache, dedupingInterval: 0, shouldRetryOnError: false }}>
     <MemoryRouter initialEntries={["/login"]}><AppRoutes /></MemoryRouter>

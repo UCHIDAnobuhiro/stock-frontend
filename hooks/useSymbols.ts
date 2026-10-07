@@ -11,8 +11,8 @@ export type { SymbolItem } from "@/lib/market-data";
  * `/v1/symbols` にリクエストし、アクティブな銘柄一覧を返す。
  */
 async function fetchSymbols(): Promise<SymbolItem[]> {
-  const { data, error, response } = await apiClient.GET("/v1/symbols");
-  if (error) throw createApiError(response.status, "銘柄一覧の取得に失敗しました");
+  const { data, response } = await apiClient.GET("/v1/symbols");
+  if (!response.ok) throw createApiError(response.status, "銘柄一覧の取得に失敗しました");
   return data ?? [];
 }
 

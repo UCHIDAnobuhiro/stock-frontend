@@ -33,8 +33,8 @@ it.each(["ログアウト", "セッション切れからログイン"])("%s直�
   resolvePending = undefined;
   const cache = new Map<string, unknown>();
   cache.set("/v1/symbols", { data: [{ code: "OLD" }] });
-  get.mockResolvedValueOnce({ data: [], response: { status: 200 } });
-  get.mockResolvedValue({ error: { error: "unauthorized" }, response: { status: 401 } });
+  get.mockResolvedValueOnce({ data: [], response: new Response(null, { status: 200 }) });
+  get.mockResolvedValue({ error: { error: "unauthorized" }, response: new Response(null, { status: 401 }) });
   del.mockResolvedValue({ response: { ok: true } });
 
   render(<SWRConfig value={{ provider: () => cache, shouldRetryOnError: false }}>

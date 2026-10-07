@@ -3,7 +3,7 @@ export interface AuthFieldErrors {
   password?: string;
 }
 
-/** ログイン・新規登録で共通の入力検証。パスワードの長さ制約は登録時のみ適用する。 */
+/** ログイン・新規登録で共通の入力検証。最低文字数は登録時のみ適用する。 */
 export function validateAuthFields(
   email: string,
   password: string,
@@ -18,8 +18,10 @@ export function validateAuthFields(
   }
   if (!password) {
     errors.password = "パスワードを入力してください";
-  } else if (mode === "signup" && password.length < 12) {
+  } else if (mode === "signup" && [...password].length < 12) {
     errors.password = "パスワードは12文字以上で入力してください";
+  } else if (new TextEncoder().encode(password).byteLength > 1024) {
+    errors.password = "パスワードはUTF-8で1024バイト以下で入力してください";
   }
   return errors;
 }

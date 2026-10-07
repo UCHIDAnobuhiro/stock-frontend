@@ -45,12 +45,12 @@ async function fetchQuotes([, codes, interval, bars]: QuotesKey): Promise<QuoteB
 
   const results = await Promise.all(
     codeChunks.map(async (codesChunk) => {
-      const { data, error, response } = await apiClient.GET("/v1/quotes", {
+      const { data, response } = await apiClient.GET("/v1/quotes", {
         params: {
           query: { codes: codesChunk.join(","), interval, bars },
         },
       });
-      if (error) throw createApiError(response.status, "株価サマリーの取得に失敗しました");
+      if (!response.ok) throw createApiError(response.status, "株価サマリーの取得に失敗しました");
       return data ?? { quotes: [], failures: [] };
     })
   );

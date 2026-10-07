@@ -19,13 +19,13 @@ const INTERVAL_OUTPUTSIZE: Record<Interval, number> = {
  * タプルの第 0 要素は SWR キャッシュキーのプレフィックスなので無視する。
  */
 async function fetchCandles([, code, interval]: [string, string, Interval]): Promise<CandlesResponse> {
-  const { data, error, response } = await apiClient.GET("/v1/candles/{code}", {
+  const { data, response } = await apiClient.GET("/v1/candles/{code}", {
     params: {
       path: { code },
       query: { interval, outputsize: INTERVAL_OUTPUTSIZE[interval] },
     },
   });
-  if (error) throw createApiError(response.status, "チャートデータの取得に失敗しました");
+  if (!response.ok) throw createApiError(response.status, "チャートデータの取得に失敗しました");
   return data ?? { ticker: code, candles: [] };
 }
 

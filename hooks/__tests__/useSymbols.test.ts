@@ -87,7 +87,7 @@ describe("useSymbols", () => {
 
     it("成功時は data をそのまま返す", async () => {
       const symbols = [{ code: "AAPL", name: "Apple Inc." }];
-      mockGet.mockResolvedValue({ data: symbols, error: undefined, response: { status: 200 } });
+      mockGet.mockResolvedValue({ data: symbols, error: undefined, response: new Response(null, { status: 200 }) });
 
       const result = await getFetcher()();
 
@@ -95,13 +95,13 @@ describe("useSymbols", () => {
     });
 
     it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 404 }) });
 
       await expect(getFetcher()()).rejects.toThrow("データが見つかりませんでした");
     });
 
     it("500 のときサーバーエラーメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 500 }) });
 
       await expect(getFetcher()()).rejects.toThrow(
         "サーバーエラーが発生しました。時間をおいて再度お試しください"
@@ -109,7 +109,7 @@ describe("useSymbols", () => {
     });
 
     it("マッピング外のステータスのときデフォルトメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 400 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 400 }) });
 
       const error = await getFetcher()().catch((e) => e);
 
