@@ -105,7 +105,7 @@ describe("useCandles", () => {
     it("成功時は ticker と candles を含む data をそのまま返す", async () => {
       const candles = [{ time: "2024-01-01", open: 100, high: 110, low: 90, close: 105, volume: 1000 }];
       const data = { ticker: "AAPL", candles };
-      mockGet.mockResolvedValue({ data, error: undefined, response: { status: 200 } });
+      mockGet.mockResolvedValue({ data, error: undefined, response: new Response(null, { status: 200 }) });
 
       const result = await getFetcher()(["/v1/candles", "AAPL", "1day"]);
 
@@ -113,7 +113,7 @@ describe("useCandles", () => {
     });
 
     it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 404 }) });
 
       await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
         "データが見つかりませんでした"
@@ -121,7 +121,7 @@ describe("useCandles", () => {
     });
 
     it("500 のときサーバーエラーメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 500 }) });
 
       await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
         "サーバーエラーが発生しました。時間をおいて再度お試しください"
@@ -129,7 +129,7 @@ describe("useCandles", () => {
     });
 
     it("403 のとき共通の拒否メッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 403 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 403 }) });
 
       await expect(getFetcher()(["/v1/candles", "AAPL", "1day"])).rejects.toThrow(
         "リクエストが拒否されました。ページを再読み込みして再度お試しください"
@@ -137,7 +137,7 @@ describe("useCandles", () => {
     });
 
     it("マッピング外のステータスのときデフォルトメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 400 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 400 }) });
 
       const error = await getFetcher()(["/v1/candles", "AAPL", "1day"]).catch((e) => e);
 

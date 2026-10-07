@@ -15,12 +15,13 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { BarChart2, List } from "lucide-react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useSymbols } from "@/hooks/useSymbols";
 import { useSelectedSymbol } from "@/hooks/useSelectedSymbol";
 import { useQuotes } from "@/hooks/useQuotes";
+import { ApiError } from "@/lib/api";
 import { WatchlistItem } from "./WatchlistItem";
 import { WatchlistEmpty } from "./WatchlistEmpty";
 import { WatchlistSymbolSearch } from "./WatchlistSymbolSearch";
@@ -38,6 +39,7 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
   const { symbols, isLoading: symbolsLoading, hasData: hasSymbolsData } = useSymbols();
   const { symbol: activeSymbol, setSymbol } = useSelectedSymbol();
   const listRef = useRef<HTMLDivElement>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // ウォッチリスト内の全銘柄の株価サマリーを1回のリクエストでまとめて取得する（N+1回避）
   // viewMode によらず常に bars: 60 で取得することで、compact ⇄ chart 切替でSWRキーが変わらないようにする
@@ -56,7 +58,16 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleRemove = async (code: string) => {
+    setActionError(null);
+    try {
+      await removeSymbol(code);
+    } catch (error) {
+      setActionError(error instanceof ApiError ? error.message : "銘柄の削除に失敗しました。再度お試しください");
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
     onDragStateChange?.(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -64,7 +75,12 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
     const oldIndex = items.findIndex((i) => i.symbol_code === active.id);
     const newIndex = items.findIndex((i) => i.symbol_code === over.id);
     const newOrder = arrayMove(items, oldIndex, newIndex).map((i) => i.symbol_code);
-    reorder(newOrder);
+    setActionError(null);
+    try {
+      await reorder(newOrder);
+    } catch (error) {
+      setActionError(error instanceof ApiError ? error.message : "並び替えに失敗しました。再度お試しください");
+    }
   };
 
   const symbolMap = useMemo(
@@ -105,6 +121,11 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
       </div>
 
       <p className="px-5 pb-2 text-xs font-medium text-[var(--color-text-muted)]">ウォッチリスト</p>
+      {actionError && (
+        <p role="alert" className="px-5 pb-2 text-xs text-[var(--color-bear)]">
+          {actionError}
+        </p>
+      )}
       {/* リスト */}
       <div
         ref={listRef}
@@ -147,7 +168,7 @@ export function WatchlistPanel({ onItemClick, onDragStateChange, viewMode, onTog
                     setSymbol(item.symbol_code);
                     onItemClick?.();
                   }}
-                  onRemove={() => removeSymbol(item.symbol_code)}
+                  onRemove={() => { void handleRemove(item.symbol_code); }}
                   viewMode={viewMode}
                   quote={quotes.get(item.symbol_code)}
                   quoteFailure={failures.get(item.symbol_code)}

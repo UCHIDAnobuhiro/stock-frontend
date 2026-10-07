@@ -11,8 +11,8 @@ export type WatchlistItem = components["schemas"]["WatchlistItem"];
  * `/v1/watchlist` にリクエストし、ウォッチリストの項目一覧を返す。
  */
 export async function fetchWatchlist(): Promise<WatchlistItem[]> {
-  const { data, error, response } = await apiClient.GET("/v1/watchlist");
-  if (error) throw createApiError(response.status, "ウォッチリストの取得に失敗しました");
+  const { data, response } = await apiClient.GET("/v1/watchlist");
+  if (!response.ok) throw createApiError(response.status, "ウォッチリストの取得に失敗しました");
   return data ?? [];
 }
 
@@ -34,10 +34,10 @@ export function useWatchlist() {
   const addSymbol = async (symbolCode: string) => {
     await mutate(
       async () => {
-        const { error, response } = await apiClient.POST("/v1/watchlist", {
+        const { response } = await apiClient.POST("/v1/watchlist", {
           body: { symbol_code: symbolCode },
         });
-        if (error) throw createApiError(response.status, "銘柄の追加に失敗しました");
+        if (!response.ok) throw createApiError(response.status, "銘柄の追加に失敗しました");
         return fetchWatchlist();
       },
       {
@@ -60,10 +60,10 @@ export function useWatchlist() {
   const removeSymbol = async (code: string) => {
     await mutate(
       async () => {
-        const { error, response } = await apiClient.DELETE("/v1/watchlist/{code}", {
+        const { response } = await apiClient.DELETE("/v1/watchlist/{code}", {
           params: { path: { code } },
         });
-        if (error) throw createApiError(response.status, "銘柄の削除に失敗しました");
+        if (!response.ok) throw createApiError(response.status, "銘柄の削除に失敗しました");
         return fetchWatchlist();
       },
       {
@@ -85,10 +85,10 @@ export function useWatchlist() {
   const reorder = async (codes: string[]) => {
     await mutate(
       async () => {
-        const { error, response } = await apiClient.PUT("/v1/watchlist/order", {
+        const { response } = await apiClient.PUT("/v1/watchlist/order", {
           body: { codes },
         });
-        if (error) throw createApiError(response.status, "並び替えに失敗しました");
+        if (!response.ok) throw createApiError(response.status, "並び替えに失敗しました");
         return fetchWatchlist();
       },
       {

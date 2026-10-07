@@ -151,7 +151,7 @@ describe("useQuotes", () => {
       mockGet.mockResolvedValue({
         data: { quotes, failures },
         error: undefined,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       const result = await getFetcher()(["/v1/quotes", "AAPL", "1day", 0]);
@@ -163,7 +163,7 @@ describe("useQuotes", () => {
       mockGet.mockResolvedValue({
         data: { quotes: [], failures: [] },
         error: undefined,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       await getFetcher()(["/v1/quotes", "AAPL,GOOGL", "1week", 60]);
@@ -174,7 +174,7 @@ describe("useQuotes", () => {
     });
 
     it("404 のとき「データが見つかりませんでした」を含む ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 404 }) });
 
       await expect(getFetcher()(["/v1/quotes", "AAPL", "1day", 0])).rejects.toThrow(
         "データが見つかりませんでした"
@@ -182,7 +182,7 @@ describe("useQuotes", () => {
     });
 
     it("500 のときサーバーエラーメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 500 }) });
 
       await expect(getFetcher()(["/v1/quotes", "AAPL", "1day", 0])).rejects.toThrow(
         "サーバーエラーが発生しました。時間をおいて再度お試しください"
@@ -190,7 +190,7 @@ describe("useQuotes", () => {
     });
 
     it("マッピング外のステータスのときデフォルトメッセージの ApiError を throw する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 400 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 400 }) });
 
       const error = await getFetcher()(["/v1/quotes", "AAPL", "1day", 0]).catch((e) => e);
 
@@ -217,7 +217,7 @@ describe("useQuotes", () => {
         const failures = requestedCodes.includes("CODE50")
           ? [{ code: "CODE50", reason: "fetch_failed" }]
           : [];
-        return { data: { quotes, failures }, error: undefined, response: { status: 200 } };
+        return { data: { quotes, failures }, error: undefined, response: new Response(null, { status: 200 }) };
       });
 
       const result = (await getFetcher(codesList)([

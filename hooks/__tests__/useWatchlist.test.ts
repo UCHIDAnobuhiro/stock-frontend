@@ -38,7 +38,7 @@ const wrapper = createSWRWrapper();
 describe("useWatchlist", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGet.mockResolvedValue({ data: ITEMS, error: null, response: { status: 200 } });
+    mockGet.mockResolvedValue({ data: ITEMS, error: null, response: new Response(null, { status: 200 }) });
   });
 
   describe("戻り値", () => {
@@ -64,7 +64,7 @@ describe("useWatchlist", () => {
 
   describe("addSymbol", () => {
     it("追加した銘柄が末尾に反映される", async () => {
-      mockPost.mockResolvedValue({ data: null, error: null });
+      mockPost.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 201 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -72,7 +72,7 @@ describe("useWatchlist", () => {
       mockGet.mockResolvedValue({
         data: [...ITEMS, { id: 3, symbol_code: "TSLA", sort_key: 3 }],
         error: null,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       await act(async () => {
@@ -84,7 +84,7 @@ describe("useWatchlist", () => {
     });
 
     it("確定前はオプティミスティックに末尾へ一時追加され、確定後はサーバーの正式データに置き換わる", async () => {
-      let resolvePost!: (value: { data: null; error: null }) => void;
+      let resolvePost!: (value: { data: null; error: null; response: Response }) => void;
       mockPost.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -107,11 +107,11 @@ describe("useWatchlist", () => {
       mockGet.mockResolvedValue({
         data: [...ITEMS, { id: 3, symbol_code: "TSLA", sort_key: 3 }],
         error: null,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       await act(async () => {
-        resolvePost({ data: null, error: null });
+        resolvePost({ data: null, error: null, response: new Response(null, { status: 201 }) });
         await addPromise;
       });
 
@@ -119,18 +119,18 @@ describe("useWatchlist", () => {
     });
 
     it("連続で追加しても、直前の追加分を土台に次の一時アイテムを積める（stale closure 回避）", async () => {
-      mockPost.mockResolvedValue({ data: null, error: null });
+      mockPost.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 201 }) });
       mockGet
-        .mockResolvedValueOnce({ data: ITEMS, error: null, response: { status: 200 } })
+        .mockResolvedValueOnce({ data: ITEMS, error: null, response: new Response(null, { status: 200 }) })
         .mockResolvedValueOnce({
           data: [...ITEMS, { id: 3, symbol_code: "TSLA", sort_key: 3 }],
           error: null,
-          response: { status: 200 },
+          response: new Response(null, { status: 200 }),
         })
         .mockResolvedValue({
           data: [...ITEMS, { id: 3, symbol_code: "TSLA", sort_key: 3 }, { id: 4, symbol_code: "MSFT", sort_key: 4 }],
           error: null,
-          response: { status: 200 },
+          response: new Response(null, { status: 200 }),
         });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
@@ -149,7 +149,7 @@ describe("useWatchlist", () => {
     });
 
     it("POST /v1/watchlist を正しいパラメータで呼ぶ", async () => {
-      mockPost.mockResolvedValue({ data: null, error: null });
+      mockPost.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 201 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -164,7 +164,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に addSymbol が失敗メッセージで reject し、items は元の状態にロールバックされる", async () => {
-      mockPost.mockResolvedValue({ data: null, error: { message: "server error" }, response: { status: 400 } });
+      mockPost.mockResolvedValue({ data: null, error: { message: "server error" }, response: new Response(null, { status: 400 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -179,7 +179,7 @@ describe("useWatchlist", () => {
     });
 
     it("403 のとき共通の拒否メッセージで reject する", async () => {
-      mockPost.mockResolvedValue({ data: null, error: {}, response: { status: 403 } });
+      mockPost.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 403 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -192,7 +192,7 @@ describe("useWatchlist", () => {
     });
 
     it("reject されるエラーは status を保持した ApiError インスタンスである", async () => {
-      mockPost.mockResolvedValue({ data: null, error: {}, response: { status: 500 } });
+      mockPost.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 500 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -213,8 +213,8 @@ describe("useWatchlist", () => {
 
   describe("removeSymbol", () => {
     it("削除した銘柄が items から消える", async () => {
-      mockDelete.mockResolvedValue({ data: null, error: null });
-      mockGet.mockResolvedValue({ data: [ITEMS[1]], error: null, response: { status: 200 } });
+      mockDelete.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 204 }) });
+      mockGet.mockResolvedValue({ data: [ITEMS[1]], error: null, response: new Response(null, { status: 200 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -228,8 +228,8 @@ describe("useWatchlist", () => {
     });
 
     it("DELETE /v1/watchlist/{code} を正しいパラメータで呼ぶ", async () => {
-      mockDelete.mockResolvedValue({ data: null, error: null });
-      mockGet.mockResolvedValue({ data: [ITEMS[1]], error: null, response: { status: 200 } });
+      mockDelete.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 204 }) });
+      mockGet.mockResolvedValue({ data: [ITEMS[1]], error: null, response: new Response(null, { status: 200 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -244,7 +244,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に removeSymbol が失敗メッセージで reject し、items は元の状態にロールバックされる", async () => {
-      mockDelete.mockResolvedValue({ data: null, error: { message: "not found" }, response: { status: 400 } });
+      mockDelete.mockResolvedValue({ data: null, error: { message: "not found" }, response: new Response(null, { status: 400 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -261,14 +261,14 @@ describe("useWatchlist", () => {
 
   describe("reorder", () => {
     it("codes の順序に従い sort_key を 1 始まりで振り直す", async () => {
-      mockPut.mockResolvedValue({ data: null, error: null });
+      mockPut.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 204 }) });
       mockGet.mockResolvedValue({
         data: [
           { id: 2, symbol_code: "GOOGL", sort_key: 1 },
           { id: 1, symbol_code: "AAPL", sort_key: 2 },
         ],
         error: null,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
@@ -285,7 +285,7 @@ describe("useWatchlist", () => {
     });
 
     it("並び替え確定前は、現在のキャッシュに存在しないコードを含めても架空アイテムを作らず除外した状態が一時反映される", async () => {
-      let resolvePut!: (value: { data: null; error: null }) => void;
+      let resolvePut!: (value: { data: null; error: null; response: Response }) => void;
       mockPut.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -314,18 +314,18 @@ describe("useWatchlist", () => {
           { id: 1, symbol_code: "AAPL", sort_key: 2 },
         ],
         error: null,
-        response: { status: 200 },
+        response: new Response(null, { status: 200 }),
       });
 
       await act(async () => {
-        resolvePut({ data: null, error: null });
+        resolvePut({ data: null, error: null, response: new Response(null, { status: 204 }) });
         await reorderPromise;
       });
     });
 
     it("PUT /v1/watchlist/order を正しいパラメータで呼ぶ", async () => {
-      mockPut.mockResolvedValue({ data: null, error: null });
-      mockGet.mockResolvedValue({ data: [ITEMS[1], ITEMS[0]], error: null, response: { status: 200 } });
+      mockPut.mockResolvedValue({ data: null, error: null, response: new Response(null, { status: 204 }) });
+      mockGet.mockResolvedValue({ data: [ITEMS[1], ITEMS[0]], error: null, response: new Response(null, { status: 200 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -340,7 +340,7 @@ describe("useWatchlist", () => {
     });
 
     it("API エラー時に reorder が失敗メッセージで reject し、items は元の状態にロールバックされる", async () => {
-      mockPut.mockResolvedValue({ data: null, error: { message: "server error" }, response: { status: 400 } });
+      mockPut.mockResolvedValue({ data: null, error: { message: "server error" }, response: new Response(null, { status: 400 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -357,7 +357,7 @@ describe("useWatchlist", () => {
 
   describe("fetchWatchlist（フェッチャー）", () => {
     it("404 のとき「データが見つかりませんでした」を含む ApiError を error に設定する", async () => {
-      mockGet.mockResolvedValue({ data: null, error: {}, response: { status: 404 } });
+      mockGet.mockResolvedValue({ data: null, error: {}, response: new Response(null, { status: 404 }) });
 
       const { result } = renderHook(() => useWatchlist(), { wrapper });
 

@@ -16,7 +16,7 @@ describe("useSymbols と実際の SWR の連携", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it.each([{ fallback: symbols }, { fallback: [] }])("SSR fallback を再検証中も保持する ($fallback)", async ({ fallback }) => {
-    let resolveRequest!: (result: { data: SymbolItem[] }) => void;
+    let resolveRequest!: (result: { data: SymbolItem[]; response: Response }) => void;
     mockGet.mockReturnValue(new Promise(resolve => { resolveRequest = resolve; }));
     const { result } = renderHook(() => useSymbols(), {
       wrapper: createSWRWrapper({ fallback: { "/v1/symbols": fallback } }),
@@ -27,13 +27,14 @@ describe("useSymbols と実際の SWR の連携", () => {
     expect(result.current.symbols).toEqual(fallback);
     expect(result.current.isLoading).toBe(true);
 
-    await act(async () => resolveRequest({ data: symbols }));
+    await act(async () => resolveRequest({ data: symbols, response: new Response(null, { status: 200 }) }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.symbols).toEqual(symbols);
+    expect(result.current.error).toBeUndefined();
   });
 
   it("同じ Provider 内の利用者はリクエストと取得結果を共有する", async () => {
-    mockGet.mockResolvedValue({ data: symbols });
+    mockGet.mockResolvedValue({ data: symbols, response: new Response(null, { status: 200 }) });
     const { result } = renderHook(() => [useSymbols(), useSymbols()], {
       wrapper: createSWRWrapper(),
     });

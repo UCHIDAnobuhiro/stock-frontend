@@ -514,7 +514,7 @@ export interface operations {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
-            /** @description バリデーションエラー */
+            /** @description バリデーションエラー（パスワードの最低文字数・1024バイト上限違反等） */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -523,7 +523,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description 登録失敗（メールアドレス重複、パスワードの1024バイト上限超過等） */
+            /** @description 登録失敗（メールアドレス重複等） */
             409: {
                 headers: {
                     [name: string]: unknown;

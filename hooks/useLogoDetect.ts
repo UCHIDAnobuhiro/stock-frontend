@@ -7,7 +7,7 @@ import type { components } from "@/lib/generated/schema";
 export type DetectedLogoResponse = components["schemas"]["DetectedLogoResponse"];
 
 async function detectLogo(_key: string, { arg }: { arg: File }) {
-  const { data, error, response } = await apiClient.POST("/v1/logo/detect", {
+  const { data, response } = await apiClient.POST("/v1/logo/detect", {
     body: { image: arg } as never,
     bodySerializer: () => {
       const formData = new FormData();
@@ -15,7 +15,7 @@ async function detectLogo(_key: string, { arg }: { arg: File }) {
       return formData;
     },
   });
-  if (error) {
+  if (!response.ok) {
     switch (response.status) {
       case 413:
         throw createApiError(response.status, "ロゴ検出に失敗しました");

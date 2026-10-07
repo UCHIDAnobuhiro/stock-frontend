@@ -66,7 +66,7 @@ describe("useLogoDetect", () => {
     mockPost.mockResolvedValue({
       data: results,
       error: null,
-      response: { status: 200 },
+      response: new Response(null, { status: 200 }),
     });
 
     const { result } = renderHook(() => useLogoDetect());
@@ -78,7 +78,7 @@ describe("useLogoDetect", () => {
     mockPost.mockResolvedValue({
       data: null,
       error: {},
-      response: { status: 413 },
+      response: new Response(null, { status: 413 }),
     });
 
     const { result } = renderHook(() => useLogoDetect());
@@ -92,7 +92,7 @@ describe("useLogoDetect", () => {
     mockPost.mockResolvedValue({
       data: null,
       error: {},
-      response: { status: 429 },
+      response: new Response(null, { status: 429 }),
     });
 
     const { result } = renderHook(() => useLogoDetect());
@@ -106,7 +106,7 @@ describe("useLogoDetect", () => {
     mockPost.mockResolvedValue({
       data: null,
       error: {},
-      response: { status: 503 },
+      response: new Response(null, { status: 503 }),
     });
 
     const { result } = renderHook(() => useLogoDetect());
@@ -120,7 +120,7 @@ describe("useLogoDetect", () => {
     mockPost.mockResolvedValue({
       data: null,
       error: {},
-      response: { status: 500 },
+      response: new Response(null, { status: 500 }),
     });
 
     const { result } = renderHook(() => useLogoDetect());
