@@ -33,7 +33,7 @@
     "verify": "npm run doctor && npm run check:api && npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
-    "@base-ui/react": "^1.8.0",
+    "@base-ui/react": "^1.9.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -41,7 +41,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "lightweight-charts": "^5.2.1",
-    "lucide-react": "^1.53.0",
+    "lucide-react": "^1.55.0",
     "openapi-fetch": "^0.17.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -63,7 +63,7 @@
     "@tailwindcss/vite": "^4",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vercel/config": "^0.12.0",
@@ -76,8 +76,8 @@
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.1",
+    "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.4"
   }
 }
