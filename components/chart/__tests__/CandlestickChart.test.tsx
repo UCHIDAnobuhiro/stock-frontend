@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act, screen, fireEvent } from "@testing-library/react";
 import { StrictMode } from "react";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
-import type { AutoscaleInfoProvider } from "lightweight-charts";
 import type { CandleResponse } from "@/hooks/useCandles";
 
 // ---- モック設定 ----
 
-const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } = vi.hoisted(() => {
+const { mockSeriesInstances, mockChart, mockTimeScale, mockPriceScale, createChartMock, theme } = vi.hoisted(() => {
   const mockSeriesInstances: Array<{
     setData: ReturnType<typeof vi.fn>;
     applyOptions: ReturnType<typeof vi.fn>;
@@ -20,6 +19,7 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } 
     unsubscribeVisibleLogicalRangeChange: vi.fn(),
   };
 
+  const mockPriceScale = { applyOptions: vi.fn() };
   const mockChart = {
     addSeries: vi.fn(() => {
       const series = { setData: vi.fn(), applyOptions: vi.fn(), moveToPane: vi.fn(), priceScale: vi.fn(() => ({ applyOptions: vi.fn() })) };
@@ -28,7 +28,7 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } 
     }),
     panes: vi.fn(() => [{ setStretchFactor: vi.fn() }, { setStretchFactor: vi.fn() }]),
     removeSeries: vi.fn(),
-    priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
+    priceScale: vi.fn(() => mockPriceScale),
     timeScale: vi.fn(() => mockTimeScale),
     subscribeCrosshairMove: vi.fn(),
     unsubscribeCrosshairMove: vi.fn(),
@@ -42,7 +42,7 @@ const { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme } 
 
   const createChartMock = vi.fn(() => mockChart);
 
-  return { mockSeriesInstances, mockChart, mockTimeScale, createChartMock, theme: { resolvedTheme: "light" } };
+  return { mockSeriesInstances, mockChart, mockTimeScale, mockPriceScale, createChartMock, theme: { resolvedTheme: "light" } };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -253,37 +253,32 @@ describe("CandlestickChart", () => {
     );
   });
 
-  it("スマホの価格範囲は初回で固定し、スクロール・再取得・テーマ変更でも維持する", async () => {
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
-    const { rerender } = render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+  it.each([390, 820])("幅%dでは表示中の足で価格軸が自動調整される", async (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    mockClientWidth = width;
+    render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
     await act(async () => {});
-    const options = (mockChart.addSeries.mock.calls[0] as unknown as [unknown, { autoscaleInfoProvider: AutoscaleInfoProvider }])[1];
-    const original = vi.fn().mockReturnValue(null);
-    expect(options.autoscaleInfoProvider(original)).toBeNull();
-    const initial = { priceRange: { minValue: 90, maxValue: 115 } };
-    original.mockReturnValue(initial);
-    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
-    original.mockReturnValue({ priceRange: { minValue: 100, maxValue: 105 } });
-    act(() => mockTimeScale.subscribeVisibleLogicalRangeChange.mock.calls[0][0]({ from: -5, to: 1 }));
-    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
-    theme.resolvedTheme = "dark";
-    rerender(<CandlestickChart candles={[...candlesWithData]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
-    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
 
-    // Desktop resumes automatic scaling; re-entering mobile captures a fresh range.
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
+    const options = mockChart.addSeries.mock.calls[0][1];
+    expect(options).not.toHaveProperty("autoscaleInfoProvider");
+    expect(createChartMock.mock.calls[0][1].rightPriceScale).not.toHaveProperty("autoScale", false);
+    expect(mockTimeScale.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: 0, to: 1 });
+  });
+
+  it("PCからスマホへ切り替えたときだけ価格軸を自動調整へ戻す", async () => {
     mockClientWidth = 800;
-    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
-    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+    render(<CandlestickChart candles={candlesWithData} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
+    await act(async () => {});
+
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     mockClientWidth = 390;
     act(() => resizeObserverCallback?.([], {} as ResizeObserver));
-    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
-    original.mockReturnValue(initial);
-    expect(options.autoscaleInfoProvider(original)).toEqual({ priceRange: { minValue: 100, maxValue: 105 } });
+    expect(mockChart.priceScale).toHaveBeenCalledWith("right");
+    expect(mockPriceScale.applyOptions).toHaveBeenLastCalledWith({ autoScale: true });
 
-    rerender(<CandlestickChart candles={[]} interval="1day" smaEnabled={false} bollingerEnabled={false} />);
-    expect(options.autoscaleInfoProvider(original)).toEqual(initial);
+    mockPriceScale.applyOptions.mockClear();
+    act(() => resizeObserverCallback?.([], {} as ResizeObserver));
+    expect(mockPriceScale.applyOptions).not.toHaveBeenCalled();
   });
 
   it("画面幅が変わっても選択した足の4本値を維持する", async () => {
