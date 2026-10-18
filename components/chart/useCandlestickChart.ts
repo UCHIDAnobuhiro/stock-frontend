@@ -8,7 +8,6 @@ import {
   CandlestickSeries,
   CrosshairMode,
   HistogramSeries,
-  type AutoscaleInfo,
   type IChartApi,
   type LogicalRange,
   type MouseEventParams,
@@ -90,7 +89,6 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
   const defaultRangeRef = useRef<VisibleLogicalRange | null>(null);
   const pendingRangeRef = useRef<VisibleLogicalRange | null>(null);
   const dataLengthRef = useRef(0);
-  const mobileAutoscaleRef = useRef<AutoscaleInfo | null>(null);
   const isRangeModifiedRef = useRef(false);
   const [isRangeModified, setIsRangeModified] = useState(false);
   const pinnedRef = useRef(false);
@@ -200,13 +198,6 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
       borderDownColor: c.downColor,
       wickUpColor: c.upColor,
       wickDownColor: c.downColor,
-      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
-        if (!isCompact) return original();
-        // Capture the first visible price range and retain it during horizontal
-        // scrolling, pinch zooming, data refreshes, and theme changes.
-        mobileAutoscaleRef.current ??= original();
-        return mobileAutoscaleRef.current;
-      },
     });
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -265,7 +256,9 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
       if (containerRef.current) {
         const width = containerRef.current.clientWidth;
         const nextIsCompact = isCompactChartViewport();
-        if (nextIsCompact !== isCompact) mobileAutoscaleRef.current = null;
+        if (nextIsCompact && !isCompact) {
+          chart.priceScale("right").applyOptions({ autoScale: true });
+        }
         chart.applyOptions({
           width,
           height: containerRef.current.clientHeight,
@@ -324,7 +317,6 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
       defaultRangeRef.current = null;
       pendingRangeRef.current = null;
       dataLengthRef.current = 0;
-      mobileAutoscaleRef.current = null;
       setChartReady(false);
     };
   }, []);
@@ -357,7 +349,6 @@ export function useCandlestickChart({ sortedCandles, smaData, bollingerData, isC
       defaultRangeRef.current = null;
       pendingRangeRef.current = null;
       dataLengthRef.current = 0;
-      mobileAutoscaleRef.current = null;
       return;
     }
 
