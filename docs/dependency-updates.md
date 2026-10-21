@@ -2,6 +2,10 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## Node.js セキュリティ更新（2026-10-22）
+
+[Node.js の2026年10月セキュリティリリース](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases) に従い、ローカル推奨版と CI が参照する `.nvmrc`、Volta の固定版を 24.20.0 から 24.22.1 に更新した。npm は 12.0.2 を維持する。`engines` と `doctor` の対応下限は既存の `>=24.18.0 <25` を維持し、Vercel が提供する Node.js 24.19.0 も引き続き許容する。Vercel 側の Node.js 更新はこの変更の対象外。
+
 ## source-map-js の脆弱性対応（2026-10-06）
 
 開発依存の推移依存 `source-map-js@1.2.1` に高リスクの [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q) が報告された。`@tailwindcss/node`、`css-tree`、`postcss` の要求範囲 `^1.2.1` は修正版 `1.2.2` を許容するため、npm 12.0.2 の `npm update source-map-js --package-lock-only` でロックファイル内の当該項目だけを更新した。直接依存と override は変更しない。

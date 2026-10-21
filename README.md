@@ -30,7 +30,7 @@ React 19 / Vite 8 / React Router 8 / TypeScript、Tailwind CSS v4、SWR、openap
 
 ### 前提条件
 
-- Node.js 24.20.0（ローカル推奨のLTS、`.nvmrc` で固定。対応範囲は `>=24.18.0 <25`）
+- Node.js 24.22.1（ローカル推奨のLTS、`.nvmrc` で固定。対応範囲は `>=24.18.0 <25`）
 - npm 12.0.2
 - `stock_backend` が起動済みであること（デフォルト: `http://localhost:8080`）
 
@@ -44,7 +44,7 @@ git clone https://github.com/UCHIDAnobuhiro/stock-frontend.git
 cd stock-frontend
 
 # Volta を使用する場合（package.json のバージョンへ自動で切り替わる）
-volta install node@24.20.0 npm@12.0.2
+volta install node@24.22.1 npm@12.0.2
 
 # リポジトリ内で利用中の Node.js / npm を確認する
 command -v node
@@ -70,7 +70,7 @@ npm run doctor
 npm run dev
 ```
 
-Volta 利用時は `command -v node` と `command -v npm` が `$HOME/.volta/bin` を指し、このリポジトリでは Node.js 24.20.0 / npm 12.0.2 が表示されることを確認してください。`npm install` などで `EBADENGINE` が出た場合は、Homebrew より前に Volta が見つかるよう上記の `~/.zshrc` の行を確認し、新しいシェルでバージョンを確かめてから `npm ci` を再実行してください。
+Volta 利用時は `command -v node` と `command -v npm` が `$HOME/.volta/bin` を指し、このリポジトリでは Node.js 24.22.1 / npm 12.0.2 が表示されることを確認してください。`npm install` などで `EBADENGINE` が出た場合は、Homebrew より前に Volta が見つかるよう上記の `~/.zshrc` の行を確認し、新しいシェルでバージョンを確かめてから `npm ci` を再実行してください。
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開く。
 
