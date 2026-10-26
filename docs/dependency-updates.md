@@ -2,6 +2,12 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## Zod の脆弱性対応（2026-10-26）
+
+開発依存の `@vercel/config@0.13.0` が要求する `zod@^3.22.0` から、修正版のない Zod 3 系が入っていた。調査時点の `@vercel/config` 最新版も 0.13.0 であり、依存制約は変わっていない。アプリでは `@vercel/config` の実行機能を使わず `vercel.ts` の型だけを参照していたため、この依存を除去し、設定に必要なフィールドの型を `vercel.ts` に定義した。
+
+SPA rewrite のテストが使う `@vercel/routing-utils@6.6.0` は直接の開発依存に変更した。別経路の推移依存で残る Zod 4 は、修正版の `4.6.7` にロックファイルを更新した。`@vercel/routing-utils` の `path-to-regexp` に対する既存の override は引き続き必要。
+
 ## Node.js セキュリティ更新（2026-10-22）
 
 [Node.js の2026年10月セキュリティリリース](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases) に従い、ローカル推奨版と CI が参照する `.nvmrc`、Volta の固定版を 24.20.0 から 24.22.1 に更新した。npm は 12.0.2 を維持する。`engines` と `doctor` の対応下限は既存の `>=24.18.0 <25` を維持し、Vercel が提供する Node.js 24.19.0 も引き続き許容する。Vercel 側の Node.js 更新はこの変更の対象外。

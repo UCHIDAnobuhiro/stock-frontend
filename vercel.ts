@@ -1,5 +1,11 @@
-import type { VercelConfig } from "@vercel/config/v1";
 import { validateApiBaseUrl } from "./config/api-url";
+
+type VercelConfig = {
+  framework: "vite";
+  outputDirectory: string;
+  rewrites: { source: string; destination: string }[];
+  headers: { source: string; headers: { key: string; value: string }[] }[];
+};
 
 export function createVercelConfig(apiBaseUrl: string | undefined): VercelConfig {
   const apiOrigin = validateApiBaseUrl(apiBaseUrl).origin;
