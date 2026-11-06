@@ -2,6 +2,12 @@
 
 以下は更新時点の調査記録です。現在のバージョンの正本は `package.json` と `package-lock.json` です。
 
+## minimatch の脆弱性対応（2026-11-06）
+
+開発依存の `minimatch@10.2.6` に [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) が報告された。`package.json` のバージョン限定 override で、影響を受ける `>=7.0.0 <11.0.1` だけを修正版の11系へ更新する。`@redocly/openapi-core` が固定する5.1.9は対象外なので維持する。依存元が修正版を直接採用し、overrideなしでも監査結果がゼロになれば解除する。
+
+`eslint-plugin-import-x@4.17.1` は minimatch 11 で削除された `makeRe` export を読み込むため、[互換性修正のコミット](https://github.com/un-ts/eslint-plugin-import-x/commit/72540485d12bea99039f30a636ace9ab8ce84ead) から公式の `pkg.pr.new` CIが作成した tarball をコミットSHAで固定する。lockfileの integrity で内容を検証する。正式版にこの修正が含まれ、`npm run verify` と開発依存込みの `npm audit` が通れば、通常の npm バージョン指定へ戻す。npm 12 の `.npmrc` はリモート tarball をルートの直接依存だけに許可する。通常指定へ戻した際はこの設定も削除する。
+
 ## Zod の脆弱性対応（2026-10-26）
 
 開発依存の `@vercel/config@0.13.0` が要求する `zod@^3.22.0` から、修正版のない Zod 3 系が入っていた。調査時点の `@vercel/config` 最新版も 0.13.0 であり、依存制約は変わっていない。アプリでは `@vercel/config` の実行機能を使わず `vercel.ts` の型だけを参照していたため、この依存を除去し、設定に必要なフィールドの型を `vercel.ts` に定義した。

@@ -191,6 +191,7 @@ npm run verify        # doctor・API型同期確認・lint・型チェック・�
 - Codex のローカル環境設定は `.codex/environments/environment.toml` を使用する
 - `.worktreeinclude` でローカルチェックアウトの `.env.local` を新しい Codex 管理 worktree へコピーする
 - セットアップスクリプトは `.env.local` がなければ `.env.example` から作成し、`node_modules` がなければ `npm ci` を実行する
+- `.npmrc` は npm のリモート tarball をルートの `package.json` に明記した依存だけに許可する（ESLint プラグインのコミット固定プレビュー用）
 - ローカルの Node.js / npm が `package.json` の `engines` の許容範囲外の場合、初期化と `npm run doctor` は明示的に失敗する（Vercelではビルドランナーのnpm差異を許容）
 - Codex 上部の「開発サーバー」「検証」アクションから、`npm run dev` と `npm run verify` を実行できる
 - 本番ビルドは Vite で `dist/` へ静的ファイルを出力する
