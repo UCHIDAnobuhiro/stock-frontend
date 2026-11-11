@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { SymbolItem } from "@/lib/market-data";
 import { searchSymbols } from "@/lib/symbol-search";
 import {
@@ -47,6 +47,14 @@ export function WatchlistSymbolSearch({
   const changePage = (next: number) => {
     setPage(next);
     setSelectedValue("");
+  };
+
+  // ページ送りボタンは disabled 属性ではなく aria-disabled で無効化する。
+  // フォーカス中のボタンが disabled になるとフォーカスが外れ、onBlur の clear() で候補リストごと閉じてしまうため。
+  const isFirstPage = currentPage === 0;
+  const isLastPage = currentPage === pageCount - 1;
+  const stopCommandKeys = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "Enter" || event.key === " ") event.stopPropagation();
   };
 
   return (
@@ -124,8 +132,8 @@ export function WatchlistSymbolSearch({
                   </p>
                   {pageCount > 1 && (
                     <div className="mt-1 flex justify-between gap-2">
-                      <button type="button" disabled={currentPage === 0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => changePage(currentPage - 1)} className="rounded px-2 py-1 disabled:opacity-40">前の候補</button>
-                      <button type="button" disabled={currentPage === pageCount - 1} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => changePage(currentPage + 1)} className="rounded px-2 py-1 disabled:opacity-40">次の候補</button>
+                      <button type="button" aria-disabled={isFirstPage} onKeyDown={stopCommandKeys} onClick={() => { if (!isFirstPage) changePage(currentPage - 1); }} className="rounded px-2 py-1 aria-disabled:cursor-default aria-disabled:opacity-40">前の候補</button>
+                      <button type="button" aria-disabled={isLastPage} onKeyDown={stopCommandKeys} onClick={() => { if (!isLastPage) changePage(currentPage + 1); }} className="rounded px-2 py-1 aria-disabled:cursor-default aria-disabled:opacity-40">次の候補</button>
                     </div>
                   )}
                 </div>
