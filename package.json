@@ -68,7 +68,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vercel/routing-utils": "6.6.1",
-    "@vitejs/plugin-react": "^6.2.1",
+    "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^10",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import-x": "https://pkg.pr.new/eslint-plugin-import-x@72540485d12bea99039f30a636ace9ab8ce84ead",
@@ -77,8 +77,8 @@
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.72.1",
-    "vite": "^8.3.6",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.7",
     "vitest": "^5.1.0"
   }
 }
